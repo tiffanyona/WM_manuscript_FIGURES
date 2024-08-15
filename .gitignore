@@ -162,8 +162,14 @@ cython_debug/
 #.idea/
 
 # File formats
-.png 
-.svg
-.pdf 
-.csv
+*.png 
+*.svg
+*.pdf 
+*.csv
+*.ai
+*.pptx
+*.gdoc
+
+# Drive files
+desktop.ini
 
