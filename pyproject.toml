@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "working_memory"
+version = "0.1.0"
+description = "Your project description here"
+authors = [
+  { name = "Tiffany Ona", email = "tiffany.ona@example.com" }
+]
+requires-python = ">=3.9"
+dependencies = [
+  "numpy==1.26.4",
+  "pandas==1.5.3",
+  "opencv-python>=4.0",
+  "ipykernel>=6.25",
+  "matplotlib",
+  "tables", 
+  "scikit-learn", 
+  "seaborn"
+]
