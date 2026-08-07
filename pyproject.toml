@@ -17,6 +17,14 @@ dependencies = [
   "ipykernel>=6.25",
   "matplotlib",
   "tables", 
+  "rpy2",
   "scikit-learn", 
-  "seaborn"
+  "scipy",
+  "seaborn",
+  "statannot",
+  "statsmodels",
+  "neo",
+  "elephant",
+  "quantities",
+  "pingouin"
 ]

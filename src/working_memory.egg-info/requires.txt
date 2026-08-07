@@ -1,0 +1,16 @@
+numpy==1.26.4
+pandas==1.5.3
+opencv-python>=4.0
+ipykernel>=6.25
+matplotlib
+tables
+rpy2
+scikit-learn
+scipy
+seaborn
+statannot
+statsmodels
+neo
+elephant
+quantities
+pingouin

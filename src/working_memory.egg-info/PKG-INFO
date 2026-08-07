@@ -1,0 +1,22 @@
+Metadata-Version: 2.4
+Name: working_memory
+Version: 0.1.0
+Summary: Your project description here
+Author-email: Tiffany Ona <tiffany.ona@example.com>
+Requires-Python: >=3.9
+Requires-Dist: numpy==1.26.4
+Requires-Dist: pandas==1.5.3
+Requires-Dist: opencv-python>=4.0
+Requires-Dist: ipykernel>=6.25
+Requires-Dist: matplotlib
+Requires-Dist: tables
+Requires-Dist: rpy2
+Requires-Dist: scikit-learn
+Requires-Dist: scipy
+Requires-Dist: seaborn
+Requires-Dist: statannot
+Requires-Dist: statsmodels
+Requires-Dist: neo
+Requires-Dist: elephant
+Requires-Dist: quantities
+Requires-Dist: pingouin

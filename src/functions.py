@@ -19,6 +19,8 @@ import matplotlib.gridspec as gridspec
 import matplotlib.patches as mpatches
 import matplotlib as mpl
 import os
+from pathlib import Path
+_ANALYSIS_DATA = Path(__file__).resolve().parents[2] / 'ANALYSIS_figures'
 import pandas as pd
 import numpy as np
 import seaborn as sns
@@ -160,7 +162,7 @@ def single_trial_with_decoder(df, df_decoder, big_data, filename, T, panels = []
     
     ### ------ Filter neurons with substantial weight in the decoder
     window='Delay_OFF--0.5-0'
-    path = 'G:/Mi unidad/WORKING_MEMORY/PAPER/ANALYSIS_figures/'
+    path = str(_ANALYSIS_DATA) + '/'
     file_weights = 'weights for the modelling_complete.csv'
     # file_weights = 'weights for the modelling_3and10_V8'
 

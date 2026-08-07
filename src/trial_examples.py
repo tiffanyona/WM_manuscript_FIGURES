@@ -42,11 +42,14 @@ from cycler import cycler
 # from plots import functions_Fig_4 as plots
 # import functions_Fig_4 as plots
 
-save_path = 'C:/Users/Tiffany/Google Drive/WORKING_MEMORY/PAPER/WM_manuscript_FIGURES/'
-os.chdir(save_path)
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from config import ROOT, ANALYSIS_DATA, FIGURES_OUT, DATA_DIR
+sys.path.insert(0, str(ROOT / 'src'))
 import functions as plots
 
-save_path = 'C:/Users/Tiffany/Google Drive/WORKING_MEMORY/PAPER/WM_manuscript_FIGURES/Fig. 5. Errors in WM/'
+save_path = str(FIGURES_OUT / 'Fig. 5. Errors in WM') + '/'
 cm = 1/2.54
 sns.set_context('paper', rc={'axes.labelsize': 7,
                             'lines.linewidth': 1, 
@@ -93,7 +96,7 @@ def single_trial_with_decoder(df, df_decoder, big_data, filename, T, panels = []
     
     ### ------ Filter neurons with substantial weight in the decoder
     window='Delay_OFF--0.5-0'
-    path = 'C:/Users/Tiffany/Google Drive/WORKING_MEMORY/PAPER/ANALYSIS_Figures/'
+    path = str(ANALYSIS_DATA) + '/'
     file_name = 'weights for the modelling_complete'
     df_weights = pd.read_csv(path+file_name+'.csv', index_col=0)
     df_weights = df_weights.loc[df_weights.session == filename]
@@ -228,7 +231,7 @@ def single_trial_with_decoder(df, df_decoder, big_data, filename, T, panels = []
         
 # -----------------############################## Example trial correct  #######################-----------------------
 
-path = 'C:/Users/Tiffany/Google Drive/WORKING_MEMORY/PAPER/ANALYSIS_figures/'
+path = str(ANALYSIS_DATA) + '/'
 
 T=83
 filename = 'E17_2022-02-02_17-13-06.csv'
