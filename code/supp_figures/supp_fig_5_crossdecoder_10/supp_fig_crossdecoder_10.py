@@ -7,55 +7,23 @@ Created on Wed Dec 28 12:06:44 2022
 COLORLEFT = 'teal'
 COLORRIGHT = '#FF8D3F'
 
-import statsmodels.api as sm
-from statsmodels.formula.api import ols
-from statsmodels.stats.anova import anova_lm
-from statsmodels.stats.anova import AnovaRM
-from statsmodels.graphics.factorplots import interaction_plot
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
 import matplotlib.gridspec as gridspec
-import matplotlib.patches as mpatches
-import matplotlib as mpl
-import os
 import pandas as pd
 import numpy as np
 import seaborn as sns
-from scipy import stats
-from scipy import special
-import json 
-from sklearn.linear_model import LogisticRegression
-from scipy.optimize import curve_fit
 #Import all needed libraries
-from matplotlib.lines import Line2D
-from statsmodels.genmod.bayes_mixed_glm import BinomialBayesMixedGLM
-from matplotlib.backends.backend_pdf import PdfPages
-from statannotations.Annotator import Annotator as _StAnn
-def add_stat_annotation(ax, data=None, x=None, y=None, hue=None,
-                        order=None, hue_order=None, box_pairs=None,
-                        test='Mann-Whitney', text_format='star', loc='inside',
-                        verbose=2, **kwargs):
-    if 'line_offset_to_box' in kwargs:
-        kwargs['line_offset_to_group'] = kwargs.pop('line_offset_to_box')
-    if 'linewidth' in kwargs:
-        kwargs['line_width'] = kwargs.pop('linewidth')
-    ann = _StAnn(ax, box_pairs, data=data, x=x, y=y, hue=hue,
-                 order=order, hue_order=hue_order)
-    ann.configure(test=test, text_format=text_format, loc=loc,
-                  verbose=verbose, **kwargs)
-    return ann.apply_and_annotate()
 from neo.core import SpikeTrain
-from quantities import ms, s, Hz
-from elephant.statistics import mean_firing_rate
+from quantities import ms
 from elephant.statistics import time_histogram, instantaneous_rate
 from elephant.kernels import GaussianKernel
-from elephant.statistics import mean_firing_rate
-from cycler import cycler
 
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
-from config import ROOT, ANALYSIS_DATA, FIGURES_OUT, DATA_DIR
+from config import ROOT, FIGURES_OUT, DATA_DIR
+sys.path.insert(0, str(ROOT / 'src'))
+from functions import add_stat_annotation, convolveandplot, new_convolve
 
 save_path = str(FIGURES_OUT / 'supp_figures' / 'supp_fig_5_crossdecoder_10')
 path = str(DATA_DIR) + '/'
@@ -91,112 +59,6 @@ fig.text(0.5, 1, 'b', fontsize=10, fontweight='bold', va='top')
 # fig.text(0.5, 0.75, 'g', fontsize=10, fontweight='bold', va='top')
 # fig.text(0.01, 0.51, 'h', fontsize=10, fontweight='bold', va='top')
 
-# -----------------############################## A Panel #################################-----------------------
-def convolveandplot(df, upper_plot, lower_plot, variable='reward_side', cluster_id = 153, delay = 10, labels=['Correct right stimulus','Correct left stimulus'],
-                   colors=[COLORRIGHT,COLORLEFT], align = 'Stimulus_ON', j=1, alpha=1, spikes=True, kernel=50):
-    cue_on=0
-    cue_off=0.35
-    start=-2.5
-    stop= 5 + delay
-    
-    neuron = new_convolve(df.loc[df.cluster_id==cluster_id], df, kernel)
-
-    # neuron = neuron.loc[neuron.delay != 0.1] # Remove trials with no delay if the studied segment is that one. 
-
-    # Align the data to the targeted align
-    neuron['time_centered'] = neuron['times'] - neuron[align] 
-    neuron['time_centered'] = np.round(neuron.time_centered/1000, 2) #### estos es importante!!
-    neuron['firing_'] = neuron['firing']*1000
-
-    df_results = pd.DataFrame(dtype=float)
-    df_results['firing'] = neuron.loc[(neuron.time_centered <= stop)&(neuron.delay == delay)].groupby(['time_centered',variable])['firing_'].mean()
-    df_results['error'] = neuron.loc[(neuron.time_centered <= stop)&(neuron.delay == delay)].groupby(['time_centered',variable])['firing_'].std()
-    df_results.reset_index(inplace=True)
-    
-    panel = lower_plot
-    for condition,color,name in zip([1,0],colors,labels):
-        y_mean= df_results[df_results[variable]==condition].firing
-        error = 0.5*df_results[df_results[variable]==condition].error
-        lower = y_mean - error
-        upper = y_mean + error
-        x=df_results[df_results[variable]==condition].time_centered
-
-        panel.plot(x, y_mean, label=name,color=color, alpha=alpha)
-        panel.plot(x, lower, color=color, alpha=0.0, linewidth=0)
-        panel.plot(x, upper, color=color, alpha=0.0, linewidth=0)
-        panel.fill_between(x, lower, upper, alpha=0.2, color=color, linewidth=0)
-
-    panel.set_xlim(start,stop)  
-    panel.set_ylim(0,50)  
-    panel.set_xlabel('Time from stimulus onset (s)')
-    y = np.arange(0,50,0.1)     
-    panel.fill_betweenx(y, cue_on,cue_off, color='lightgrey', alpha=1, linewidth=0)  
-    panel.fill_betweenx(y, cue_off+delay,cue_off+delay+.2, color='grey', alpha=1, linewidth=0)
-    
-    # axis labels and legend
-    lower_plot.legend(frameon=False)  
-    panel.set_xlabel('Time (s) from stimulus onset')
-    panel.set_ylabel('Firing rate (spikes/s)')
-    panel.locator_params(nbins=4) 
-
-    if spikes:
-        pass
-    else:
-        return j
-    
-    panel = upper_plot
-    SpikesRight = (df.loc[(df[variable] == 1)&(df.cluster_id == cluster_id)&(df.delay == delay)])
-    SpikesLeft = (df.loc[(df[variable] == 0)&(df.cluster_id == cluster_id)&(df.delay == delay)])
-
-    SpikesRight['a_'+align] = SpikesRight['fixed_times'] - SpikesRight['Stimulus_ON'] 
-    SpikesLeft['a_'+align] = SpikesLeft['fixed_times'] - SpikesLeft['Stimulus_ON'] 
-
-    trial=1
-    spikes = []
-    trial_repeat = []
-    for i in range(len(SpikesRight)):
-        # Plot for licks for left trials
-        if SpikesRight.trial.iloc[i] != trial:
-            panel.plot(spikes,trial_repeat, '|', markersize=0.5, color=colors[0], zorder=1)
-            spikes = []
-            trial_repeat = []
-            trial = SpikesRight.trial.iloc[i]
-            j+=1
-        if SpikesRight['a_'+align].iloc[i] > start and SpikesRight['a_'+align].iloc[i] < stop:
-            spikes.append(SpikesRight['a_'+align].iloc[i])
-            trial_repeat.append(j)
-        else:
-            continue
-
-    trial=1
-    spikes = []
-    trial_repeat = []
-    for i in range(len(SpikesLeft)):
-        # Plot for licks for left trials
-        if SpikesLeft.trial.iloc[i] != trial:
-            panel.plot(spikes,trial_repeat, '|', markersize=0.5, color=colors[1], zorder=1)
-            spikes = []
-            trial_repeat = []
-            trial = SpikesLeft.trial.iloc[i]
-            j+=1
-        if SpikesLeft['a_'+align].iloc[i] > start and SpikesLeft['a_'+align].iloc[i] < stop:
-            spikes.append(SpikesLeft['a_'+align].iloc[i])
-            trial_repeat.append(j)
-        else:
-            continue
-
-    panel.set_ylabel('Trials (n)')
-    panel.set_ylim(0,j)
-    panel.set_xlim(start,stop)  
-
-    y = np.arange(0,j+1,0.1)
-    panel.fill_betweenx(y, cue_on,cue_off, color='grey', alpha=1, linewidth=0)
-    panel.fill_betweenx(y, cue_off+delay,cue_off+delay+.2, color='darkgrey', alpha=1, linewidth=0)
-    
-    panel.locator_params(nbins=5) 
-    panel.axes.get_xaxis().set_visible(False)
-    
-    return j
 
 def plot_decoder(left, df,baseline=0.5,individual_sessions=False, align='Stimulus_ON', show_axis=True,colors=['black'], upper_limit=0.2, variables_combined=['WM_roll_1']):
     for color, variable,left in zip(colors,variables_combined,left):
@@ -278,68 +140,6 @@ def plot_decoder(left, df,baseline=0.5,individual_sessions=False, align='Stimulu
             left.spines['left'].set_visible(False)
 
 
-def new_convolve(nx,df, kernel=50):
-    '''
-    nx = already selected cluster
-    df = dataframe from the session with all trials
-    '''
-
-    errors_=[] ##indexes and neurons without enough spikes to make a spiketrain
-    frames=[]
-   
-    # Iterate for each trial in that session
-    for T in df.trial.unique():
-        if T > nx.iloc[0].trial_start+1 and T < nx.iloc[0].trial_end+1:
-            # Take the spike times for that trial
-            nxt = nx.loc[nx['trial']==T]['fixed_times']
-
-            # !!!! IMPORTANT use the main df that has all the trials. If you use the filtered nx, some trials may not appear if they were no spikes there. 
-            dft = df.loc[df['trial']==T]
-
-            # try: 
-            ############################################################ Get the times of the spikes
-            times_spikes = nxt
-            times_spikes = times_spikes*1000 #transform to ms
-
-            ############################################################ Set the strat and end time of the train
-            stop_time =  (dft.END.unique()[0])*1000*ms ## End of the trial in ms
-            try:
-                start_time = (dft.START_adjusted.unique()[0]-0.1)*1000*ms ## Start of the trial in ms    
-            except:
-                start_time = dft.START.unique()[0]*1000*ms ## Start of the trial in ms   
-                    
-            ############################################################ Spiketrain
-            spiketrain = SpikeTrain(times_spikes, units=ms, t_stop=stop_time, t_start=start_time) 
-
-            ############################################################ Convoluted firing rate
-            histogram_rate = time_histogram([spiketrain], 20*ms, output='rate')
-            gaus_rate = instantaneous_rate(spiketrain, sampling_period=20*ms, kernel=GaussianKernel(kernel*ms)) #s.d of Suzuki & Gottlieb 
-            times_ = gaus_rate.times.rescale(ms)
-            firing = gaus_rate.rescale(histogram_rate.dimensionality).magnitude.flatten()
-
-            ############################################################ Dataframe 
-            df_trial = pd.DataFrame({'times':times_, 'firing':firing}) #dataframe con times y firing
-            df_trial['trial']=T
-            df_trial['Delay_OFF']= dft.Delay_OFF.unique()[0]*1000
-            df_trial['Stimulus_ON']= dft.Stimulus_ON.unique()[0]*1000
-            df_trial['delay']=dft.delay.unique()[0]
-            df_trial['vector_answer']=dft.vector_answer.unique()[0]
-            df_trial['reward_side']=dft.reward_side.unique()[0]
-            # df_trial['miss']=dft.miss.unique()[0]
-            df_trial['hit']=dft.hit.unique()[0]
-
-            frames.append(df_trial)
-            # except ValueError:
-            #     errors_.append([N,T])
-            #     print (N, T)
-            # except IndexError:
-            #     print('Index error, missing trial ' + str(T))
-            #     errors_.append([N,T])
-        else:
-            continue
-    neuron = pd.concat(frames)
-    return neuron
-
 def plotsingledelay(df_cum_sti, panel, colors, variables_combined, delay, start=-2, stop=8):
     baseline = 0.5
     y_upper=baseline
@@ -393,8 +193,9 @@ def plotsingledelay(df_cum_sti, panel, colors, variables_combined, delay, start=
         panel.set_xlim(start,stop)
         if panel=='crimson':
             panel.set_xlabel('Time to Cue onset (s)')
-# ----------------------------------------------------------------------------------------------------------------
-# -----------------############################## A Panel - Crossdecoder for 10s  #######################-----------------------
+# ---------------------------------------------------------------------------
+# Panel a — cross-decoder heatmap (10s delay)
+# ---------------------------------------------------------------------------
 
 file_name = 'crossdecoder_WMroll1_10s_r0.25_substracted'
 df_animal_sti = pd.read_csv(path+file_name+'.csv', index_col = 0)
@@ -445,8 +246,9 @@ for train_value in train_value_list:
     else:
         df_diagonal = pd.merge(df_diagonal, df_temp, on=['session'])
 
-# ----------------------------------------------------------------------------------------------------------------
-# -----------------############################## B Panel - Example segments of trained groups ############-----------------------
+# ---------------------------------------------------------------------------
+# Panels b/c/d/d1 — decoder traces for selected training windows
+# ---------------------------------------------------------------------------
 
 # This when we want to recover the traces of the crossdecoder
 for panel, df_cum_sti, upper_limit in zip([b,c,d,d1],[df_animal_sti.loc[df_animal_sti.train == '0.0_0.25'],
@@ -455,10 +257,6 @@ for panel, df_cum_sti, upper_limit in zip([b,c,d,d1],[df_animal_sti.loc[df_anima
                                       df_diagonal],[0.3,0.2,0.4,0.4]):
     plot_decoder([panel], df_cum_sti,baseline=0.0,individual_sessions=False, upper_limit=upper_limit)
     panel.margins(x=0)
-    
-# ----------------------------------------------------------------------------------------------------------------
-
-# ------#########################################################################################-----------------------
 
 # Show the figure
 sns.despine()

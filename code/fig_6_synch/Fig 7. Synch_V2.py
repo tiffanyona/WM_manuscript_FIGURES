@@ -24,28 +24,11 @@ import numpy as np
 import seaborn as sns
 from scipy import stats
 
-from statannotations.Annotator import Annotator as _StAnn
-
-def add_stat_annotation(ax, data=None, x=None, y=None, hue=None,
-                        order=None, hue_order=None, box_pairs=None,
-                        test='Mann-Whitney', text_format='star', loc='inside',
-                        verbose=2, **kwargs):
-    if 'line_offset_to_box' in kwargs:
-        kwargs['line_offset_to_group'] = kwargs.pop('line_offset_to_box')
-    if 'linewidth' in kwargs:
-        kwargs['line_width'] = kwargs.pop('linewidth')
-    ann = _StAnn(ax, box_pairs, data=data, x=x, y=y, hue=hue,
-                 order=order, hue_order=hue_order)
-    ann.configure(test=test, text_format=text_format, loc=loc,
-                  verbose=verbose, **kwargs)
-    return ann.apply_and_annotate()
+from neo.core import SpikeTrain
+from quantities import ms, s
 
 from neo.core import SpikeTrain
-from quantities import ms, s, Hz
-
-from neo.core import SpikeTrain
-from quantities import ms, s, Hz
-from elephant.statistics import mean_firing_rate
+from quantities import ms, s
 from elephant.statistics import time_histogram
 
 import os 
@@ -58,9 +41,9 @@ from cycler import cycler
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from config import ROOT, ANALYSIS_DATA, FIGURES_OUT, DATA_DIR
+from config import ROOT, FIGURES_OUT, DATA_DIR
 sys.path.insert(0, str(ROOT / 'src'))
-import functions as plots
+from functions import add_stat_annotation, trials_synch, synch_trial, distribution
 
 save_path = str(FIGURES_OUT / 'fig_6_synch') + '/'
 path = str(DATA_DIR/ 'fig_6_synch') + '/'
@@ -110,113 +93,6 @@ fig.text(0.36, 0.53, 'd', fontsize=10, fontweight='bold', va='top')
 fig.text(0.56, 1, 'e', fontsize=10, fontweight='bold', va='top')
 fig.text(0.56, 0.53, 'f', fontsize=10, fontweight='bold', va='top')
 
-##################################### Functions #####################
-
-def trials(row):
-    val = 0
-    val = row['T']/row['total trials']
-    return val
-
-def synch_trial(df, T, lower_plot, upper_plot = None, trial=0, start=-2, stop=0, color='indigo', surrogates=100, bins=20):
-    dft = df.loc[df.trial ==T]
-    align='Stimulus_ON'
-    # stop = dft.delay.unique()[0]+5 # end of analyzed window
-    delay = dft.delay.unique()[0]
-    #Filter for the last 2 seconds of the ITI
-    dft = dft.loc[(dft['a_'+align]>start)&(dft['a_'+align]<stop)]
-    
-    # Recover amount of neurons that were being registered at that trial interval
-    n_neurons = len(df.cluster_id.unique())
-    times_spikes = dft['a_'+align].values
-    times_spikes = times_spikes*1000*ms #transform to ms
-    
-    ############################################################ Set the strat and end time of the train
-    stop_time =  stop*1000*ms ## End of the trial in ms
-    start_time = start*1000*ms ## Start of the trial in ms     
-    
-    ############################################################ Spiketrain
-    spiketrain = SpikeTrain(times_spikes, units=ms, t_stop=stop_time, t_start=start_time) 
-    
-    ############################################################ 
-    histogram_rate = time_histogram([spiketrain], bins*ms, output='rate')
-    times_ = histogram_rate.times.rescale(s)
-    firing_real = histogram_rate.rescale(histogram_rate.dimensionality).magnitude.flatten()
-    
-    real_std=np.std(firing_real) # Store the real std value
-    
-    list_std = []
-    for i in range(surrogates):
-        # Create a random shuffle for the same amount of spikes in that interval
-        random_float_list = np.random.uniform(start, stop, len(times_spikes))
-        surrogate_spikes = np.array(random_float_list)*1000*ms #transform to ms
-        spiketrain = SpikeTrain(surrogate_spikes, units=ms, t_stop=stop_time, t_start=start_time) 
-    
-        histogram_rate = time_histogram([spiketrain], bins*ms, output='rate')
-        times_ = histogram_rate.times.rescale(s)
-        firing = histogram_rate.rescale(histogram_rate.dimensionality).magnitude.flatten()
-    
-        list_std.append(np.std(firing))
-    
-    # Organized by cluster_id and corrected for FR ____________________________
-    cluster_id=[]
-    FR_mean=[]
-    
-    for N in df.cluster_id.unique():
-        spikes = dft.loc[dft.cluster_id==N]['a_'+align].values
-        FR_mean.append(len(spikes)/abs(stop-start))
-        cluster_id.append(N)
-    
-    df_spikes = pd.DataFrame(list(zip(cluster_id,FR_mean)), columns =['cluster_id','FR'])
-    df_spikes = df_spikes.sort_values('FR')
-    df_spikes['new_order'] = np.arange(len(df_spikes))
-    
-    dft = pd.merge(df_spikes, dft, on=['cluster_id'])
-    
-    print('Synch:', real_std/np.mean(list_std), '; WM:', str(dft.WM_roll.unique()[0]))
-    
-    if upper_plot != None:
-        panel = upper_plot
-        panel.set_title(trial)
-        j=0
-        for N in dft.new_order.unique():
-            spikes = dft.loc[dft.new_order==N]['a_'+align].values
-            j+=1
-            panel.plot(spikes,np.repeat(j, len(spikes)), '|', markersize=1, color='black', zorder=1)
-    
-    panel = lower_plot
-    panel.plot(times_,firing_real/n_neurons*1000, color=color, linewidth=0.5)
-    # y = np.arange(0,j+1,0.1)
-    # panel.fill_betweenx(y, cue_on,cue_off, color='grey', alpha=.4)
-    # panel.fill_betweenx(y, cue_off+delay,cue_off+delay+.2, color='beige', alpha=.8)
-    panel.set_ylim(0,20)
-    panel.set_ylabel('Firing rate\n(spks/s)')
-    
-    
-def distribution(df_final, variable='WM_roll'):
-    r_value_lower=[]
-    r_value_upper =[]
-    for animal in df_final.animal.unique():
-        test_df = df_final.loc[df_final.animal==animal]
-        test_df = test_df.dropna()
-        corr_synch = test_df['synch'].values
-
-        r_value_list=[]
-        for animal in df_final.animal.unique():
-            try:
-                corr_WM = df_final.loc[df_final.animal==animal][variable].values[-len(corr_synch):]
-                slope, intercept, r_value, p_value, std_err = stats.linregress(corr_synch,corr_WM)
-                # print('Slope WM:'+str(round(slope,3))+' Intercept:'+ str(round(intercept,3))+ ' R_value:'+ str(round(r_value,3)) + ' P_value:'+ str(round(p_value,3)) + ' Std_err:'+ str(std_err))
-                r_value_list.append(r_value)
-            except:
-
-                continue
-        # r_value_upper.append(np.quantile(r_value_list, 0.9))
-        # r_value_lower.append(np.quantile(r_value_list, 0.1))
-        r_value_upper.append(np.mean(r_value_list))
-    return r_value_upper
-
-    #######################################################################################
-    
 # -----------------############## C Panel - Synch correlation with p(WM) ################-----------------------
 
 # file_name = 'synch_data'
@@ -232,7 +108,9 @@ def distribution(df_final, variable='WM_roll'):
 # ----------------------------------------------------------------------------------------------------------------
 
 
-# -----------------############## A Panel - Example trial  #############-----------------------
+# ---------------------------------------------------------------------------
+# Panel a — example trial: population raster (a2), PSTH (a1), synch rate (a3)
+# ---------------------------------------------------------------------------
 # path = 'C:/Users/Tiffany/Google Drive/WORKING_MEMORY/PAPER/Figures/'
 os.chdir(save_path)
 color = plt.cm.viridis(np.linspace(0, 1,4))
@@ -349,7 +227,9 @@ panel.set_ylim(-5,25)
 # panel.set_ylim(0.9,2)
 
 
-# -----------------############### C Panel  -  Synchrony depending on state  ######################-----------------------
+# ---------------------------------------------------------------------------
+# Panel c — synchrony by brain state (WM vs RepL; subplot c1)
+# ---------------------------------------------------------------------------
 file_name = 'synch_data_trials_2beforeSti'
 df_final = pd.read_csv(path+file_name+'.csv', index_col=0)
 
@@ -409,7 +289,9 @@ add_stat_annotation(panel, data=df_results, x='state', y='synch',
 
 # ----------------------------------------------------------------------------------------------------------------
 
-# -----------------############### D Panel #################-----------------------
+# ---------------------------------------------------------------------------
+# Panel b — synch over session (subplot d) + single-trial examples (g1/g2, f1/f2, h1/h2)
+# ---------------------------------------------------------------------------
 
 animal = "E22_2022-01-13_16-34-24.csv"
 # file_name = 'synch_data_trials_2beforeSti'
@@ -453,9 +335,9 @@ g1.axis('off')
 g2.axis('off')
 
 
-# ------##############################################################################-----------------------
-
-# ------############################## E Panel #################################-----------------------
+# ---------------------------------------------------------------------------
+# Panel d — synchrony correlation with p(WM), accuracy, repeating bias (subplot i1)
+# ---------------------------------------------------------------------------
 
 file_name = 'synch_corrdata_final'
 df_corr = pd.read_csv(path+file_name+'.csv', index_col=0)
@@ -509,9 +391,9 @@ for const, regressor in zip(range(3),['r_acc_shuff','r_repeat_shuff','r_WM_shuff
 panel.set_xlabel('Corr. coef. (Synch. X)')
 panel.set_xticklabels(['p(WM)','Accuracy','RB'])
 
-# ------##############################################################################-----------------------
-
-# ------##########################Autocrrelations states ##########################-----------------------
+# ---------------------------------------------------------------------------
+# Panel e — autocorrelogram (j1) and PSD ratio (j2); single session E11
+# ---------------------------------------------------------------------------
 panel = j1
 file_name = 'auto_corrs_indiv_session'
 df = pd.read_csv(file_name+'.csv', header=None, index_col=0)
@@ -524,8 +406,6 @@ panel.set_xlabel('Autocorrelogram#')
 panel.set_xlabel('Time lag (s)')
 panel.set_title('Pop. inst. rate Autocorr. (Session E11_2021-05-12)', fontsize=7)
 
-# ------##############################################################################-----------------------
-# ------##########################Autocrrelations difference ##########################-----------------------
 panel = j2
 
 file_name = 'psd_ratio_indiv_session'
@@ -542,8 +422,9 @@ panel.hlines(xmin=2, xmax=100, y=1, linestyle=':')
 panel.set_xlabel('Frequency (Hz)')
 panel.set_title('PSD Ratio RepL/STM (Session E11_2021-05-12)', fontsize=7)
 
-# ------##############################################################################-----------------------
-# ------########################## PSD both  ##########################-----------------------
+# ---------------------------------------------------------------------------
+# Panel f — average PSD across animals (k1: both states, k2: ratio)
+# ---------------------------------------------------------------------------
 panel = k1
 file_name = 'avg_PSDs_V2'
 df = pd.read_csv(file_name+'.csv', header=None, index_col=0)
@@ -564,8 +445,6 @@ panel.hlines(xmin=3.5, xmax=15.6, y=0.015, linewidth=2)
 panel.set_title('Pop. inst. rate Power Spectrum', fontsize=7)
 panel.set_xlabel('Frequency (Hz)')
 
-# ------##############################################################################-----------------------
-# ------########################## PSD difference zoomed in ##########################-----------------------
 panel = k2
 file_name = 'AVG_psd_ratio_w_band'
 df = pd.read_csv(file_name+'.csv', header=None, index_col=0)

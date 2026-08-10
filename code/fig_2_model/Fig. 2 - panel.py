@@ -7,46 +7,16 @@ Created on Wed Dec 28 12:06:44 2022
 COLORLEFT = 'teal'
 COLORRIGHT = '#FF8D3F'
 
-import statsmodels.api as sm
-from statsmodels.formula.api import ols
-from statsmodels.stats.anova import anova_lm
-from statsmodels.stats.anova import AnovaRM
-from statsmodels.graphics.factorplots import interaction_plot
 import warnings
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import matplotlib.patches as mpatches
 import os
 import pandas as pd
 import numpy as np
 import seaborn as sns
 warnings.filterwarnings('ignore', 'Attempting to set identical low and high xlims')
 warnings.filterwarnings('ignore', 'FigureCanvasAgg is non-interactive')
-from scipy import stats
-from scipy import special
-import json 
-from sklearn.linear_model import LogisticRegression
-from scipy.optimize import curve_fit
-#Import all needed libraries
 from matplotlib.lines import Line2D
-from statsmodels.genmod.bayes_mixed_glm import BinomialBayesMixedGLM
-from matplotlib.backends.backend_pdf import PdfPages
-from statannotations.Annotator import Annotator as _StAnn
-
-def add_stat_annotation(ax, data=None, x=None, y=None, hue=None,
-                        order=None, hue_order=None, box_pairs=None,
-                        test='Mann-Whitney', text_format='star', loc='inside',
-                        verbose=2, **kwargs):
-    if 'line_offset_to_box' in kwargs:
-        kwargs['line_offset_to_group'] = kwargs.pop('line_offset_to_box')
-    if 'linewidth' in kwargs:
-        kwargs['line_width'] = kwargs.pop('linewidth')
-    ann = _StAnn(ax, box_pairs, data=data, x=x, y=y, hue=hue,
-                 order=order, hue_order=hue_order)
-    ann.configure(test=test, text_format=text_format, loc=loc,
-                  verbose=verbose, **kwargs)
-    return ann.apply_and_annotate()
-
 from pathlib import Path
 
 import sys
@@ -54,7 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from config import ROOT, FIGURES_OUT, DATA_DIR
 
 sys.path.insert(0, str(ROOT / 'src'))
-import functions as plots
+from functions import add_stat_annotation, figureplot, compute_window_centered
 
 save_path = str(FIGURES_OUT) + '/fig_2_model/'
 path = str(DATA_DIR) + '/fig_2_model/'
@@ -129,68 +99,9 @@ fig.text(0.27, 0.19, 't', fontsize=10, fontweight='bold', va='top')
 fig.text(0.5, 0.19, 'u', fontsize=10, fontweight='bold', va='top')
 
 
-# -----------------############################## FUNCTIONS #################################-----------------------
-def figureplot(new_df_real,new_df,panel):
-    Left = 'teal'
-    Right = '#FF8D3F'
-
-    # --------------------------------------
-    df_results =pd.DataFrame()
-    df_results['accuracy'] = new_df_real.groupby(['delays','session','stim'])['hit'].mean()
-    df_results.reset_index(inplace=True)      
-
-    sns.lineplot(x='delays',y='accuracy',data=df_results, errorbar=('ci', 67), markeredgewidth = 0.2, ax=panel,marker='o',color='black', linestyle = '', err_style="bars")
-    sns.lineplot(x='delays',y='accuracy',hue='stim',data=df_results, markeredgewidth = 0.2, ax=panel, marker='o', palette=[Left,Right], linestyle = '', err_style="bars",legend=False)
-
-    df_results =pd.DataFrame()
-    df_results['accuracy'] = new_df.groupby(['delays','session'])['hit'].mean()
-    df_results.reset_index(inplace=True)   
-    sns.lineplot(x='delays',y='accuracy',data=df_results,color='black', ax=panel,  markersize=3)
-
-    df_results =pd.DataFrame()
-    df_results['accuracy'] = new_df.groupby(['delays','stim','session'])['hit'].mean()
-    df_results.reset_index(inplace=True)   
-    sns.lineplot(x='delays',y='accuracy',hue='stim',markeredgewidth = 0.2, data=df_results,  markersize=3, ax=panel, palette=[Left,Right], legend=False)
-
-    panel.set_ylim(0.4,1)
-    panel.hlines(xmin=0,xmax=10, y=0.5, linestyles = ':')
-    panel.set_xlabel("Delay (s)")
-    panel.set_ylabel(" Accuracy")
-    panel.locator_params(nbins=3)
-
-
-def compute_window_centered(data, runningwindow,option):
-    """
-    Computes a rolling average with a length of runningwindow samples.
-    """
-    performance = []
-    start_on=False
-    for i in range(len(data)):
-        if data['trial'].iloc[i] <= int(runningwindow/2):
-            # Store the first index of that session for the first initial trials
-            if start_on == False:
-                start=i
-                start_on=True
-            performance.append(round(np.mean(data[option].iloc[start:i + int(runningwindow/2)]), 2))
-        elif i < (len(data)-runningwindow):
-            if data['trial'].iloc[i] > data['trial'].iloc[i+runningwindow]:
-                # Store the last values for the end of the session
-                if end == True:
-                    end_value = i+runningwindow-1
-                    end = False
-                performance.append(round(np.mean(data[option].iloc[i:end_value]), 2))
-                
-            else: # Rest of the session
-                start_on=False
-                end = True
-                performance.append(round(np.mean(data[option].iloc[i - int(runningwindow/2):i+int(runningwindow/2)]), 2))
-            
-        else:
-            performance.append(round(np.mean(data[option].iloc[i:len(data)]), 2))
-    return performance
-#____________________________________________________________________________________________________________________
-
-# -----------------############################## B Panel #################################-----------------------
+# ---------------------------------------------------------------------------
+# Panels b/b2 — accuracy and repeating bias by delay (real data vs HMM model)
+# ---------------------------------------------------------------------------
 threshold = 0.5
 groupings=['subject','delays','state']
 
@@ -253,8 +164,9 @@ legend_elements = [Line2D([0], [0], color='black', label='All trials'),
                    Line2D([0], [0],  color = 'darkgreen', label='WM trials')]
 b2.legend(handles=legend_elements, ncol=1,borderaxespad=0, fontsize=6).get_frame().set_linewidth(0.0)
 
-# ----------------------------------------------------------------------------------------------------------------
-# -----------------############################## B Panel - BIC comparison #################################-----------------------
+# ---------------------------------------------------------------------------
+# Panel x — model log-likelihood comparison (BIC)
+# ---------------------------------------------------------------------------
 panel=x
 file_name = 'pertrialLL'
 full_fit = pd.read_csv(save_path+file_name+'.csv', index_col=0)
@@ -282,64 +194,9 @@ add_stat_annotation(panel, data=full_fit, x='model', y='substracted',
 # 10 v.s. all: t-test paired samples with Bonferroni correction, P_val=4.455e-10 stat=8.947e+00
 # --------------------------------------------------------------------------------------------------------------------------------------------
 
-# --------------------------------------------------------------------------------------------------------------------------------------------
-# -----------------############################## B Panel - BIC comparison #################################-----------------------
-# panel=x_0
-# # file_name = 'fit_DW_HMM_new'
-# file_name = 'fit_DW_HMM_cross'
-
-# full_fit = pd.read_csv(save_path+file_name+'.csv', index_col=0)
-# color_list = ['blue','lightgrey','grey']
-# full_fit = full_fit.loc[(full_fit.model == '9')|(full_fit.model == '10')|(full_fit.model == '11')]
-# xA = np.random.normal(0.05, 0.1, len(full_fit))
-# sns.stripplot(x='model',y='norm', data=full_fit, jitter=0.3,size=2, order=['9','10','11'], palette = color_list, edgecolor='white', linewidth=0.1, ax=panel)
-# # sns.violinplot(x='model',y='norm', data=full_fit, saturation=0.7, order=['all','9','10','11','12'], palette = color_list,linewidth=0, ax=panel)
-# sns.violinplot(x='model',y='norm', data=full_fit, legend=False, order=['9','10','11'], palette = color_list,linewidth=1.5, ax=panel)
-
-# panel.hlines(y=1, xmin=-0.5, xmax=2.5, linestyle=':')
-# panel.set_xlabel('')
-# panel.set_ylabel('BIC difference')
-
-# panel.set_ylim(-250,600)
-# labels = ['DW with\n initial \nrepeating','DW with\n repeating \nin Delay','DW\n with both']
-# panel.set_xticklabels(labels)
-# # panel.set_yticklabels(['HMM','DW $x_0_r$','DW $mb_r$','DW both','DW'])
-# # panel.text(x=-1.48,y=1200, s='> 1000 -', fontsize=6)
-
-# # add_stat_annotation(ax, data=full_fit, x='model', y='BIC',
-# #                     box_pairs=[("all", "11"),("11", "9"),("9", "10"),("9", "12")],
-# #                     test='t-test_paired', text_format='star', loc='outside', verbose=2)
-# # --------------------------------------------------------------------------------------------------------------------------------------------
-
-# # -----------------############################## B Panel - BIC comparison #################################-----------------------
-# panel=x
-# file_name = 'fit_DW_HMM_cross'
-# full_fit = pd.read_csv(save_path+file_name+'.csv', index_col=0)
-# color_list = ['black','purple']
-# full_fit = full_fit.loc[(full_fit.model == 'all')|(full_fit.model == '12')]
-
-# xA = np.random.normal(0, 0.1, len(full_fit))
-# sns.stripplot(x='model',y='norm', data=full_fit, jitter=0.3,size=2, order=['all','12'], palette = color_list, edgecolor='white', linewidth=0.1, ax=panel)
-# # sns.violinplot(x='model',y='norm', data=full_fit, saturation=0.7, order=['all','9','10','11','12'], palette = color_list,linewidth=0, ax=panel)
-# sns.violinplot(x='model',y='norm', data=full_fit, legend=False, order=['all','12'], palette = color_list,linewidth=1.5, ax=panel)
-
-# panel.hlines(y=1, xmin=-0.5, xmax=1.5, linestyle=':')
-# panel.set_xlabel('')
-# panel.set_ylabel('BIC difference')
-
-# panel.set_ylim(-250,1300)
-# labels = ['HMM','classic DW']
-# panel.set_xticklabels(labels)
-# # panel.set_yticklabels(['HMM','DW $x_0_r$','DW $mb_r$','DW both','DW'])
-# panel.text(x=-1.48,y=1200, s='> 1000 -', fontsize=6)
-
-# add_stat_annotation(ax, data=full_fit, x='model', y='BIC',
-#                     box_pairs=[("all", "11"),("11", "9"),("9", "10"),("9", "12")],
-#                     test='t-test_paired', text_format='star', loc='outside', verbose=2)
-# --------------------------------------------------------------------------------------------------------------------------------------------
-
-    
-# -----------------############################## C Panel - Model Comparison with long delays #################################-----------------------
+# ---------------------------------------------------------------------------
+# Panels c/c2 — model predictions vs real data across delay lengths
+# ---------------------------------------------------------------------------
 # ------------ Real data
 groupings=['subject','delays']
 color_list = ['black','purple','blue','lightgrey','grey']
@@ -382,8 +239,9 @@ c2.legend(handles=legend_elements, ncol=1, fontsize=6,borderaxespad=0).get_frame
 c.locator_params(nbins=3)
 c2.locator_params(nbins=3)
 
-# ----------------------------------------------------------------------------------------------------------------
-# -----------------############################## D Panel - Parameter values for HMM fiting #################################-----------------------
+# ---------------------------------------------------------------------------
+# Panels d1–d6 — HMM fitted parameter distributions
+# ---------------------------------------------------------------------------
 file_name = 'fit_HMM_selected_final'
 full_fit = pd.read_csv(save_path+file_name+'.csv', index_col=0)
 full_fit = full_fit.loc[full_fit.delay ==10]
@@ -434,9 +292,9 @@ for regressor, panel, color in zip(['P_L', 'P_R','alfa', 'mu_b','WM','RL', 'beta
     y_min, y_max = panel.get_ylim()  
     panel.locator_params(nbins=3)
 
-# ----------------------------------------------------------------------------------------------------------------
-# ----------------------------------------------------------------------------------------------------------------
-# -----------------############################## X2 Panel -  Histogram #################################---------------------
+# ---------------------------------------------------------------------------
+# Panel x2 — posterior p(WM) histogram
+# ---------------------------------------------------------------------------
 df_summary = pd.read_csv(save_path+'histogram_all.csv', index_col=0)
 
 panel = x2
@@ -452,7 +310,9 @@ panel.vlines(x=threshold*10-0.5, ymax=max(df_summary.astype(float).mean(axis=0))
 panel.set_xticks(range(11))
 panel.set_xticklabels([0.0,'',0.2,'',0.4,'',0.6,'',0.8,'',1])
 
-# -----------------############################## X Panel -  Example poor man's and p(WM) #################################---------------------
+# ---------------------------------------------------------------------------
+# Panels a/a2 — example session: p(WM) and running accuracy (animal C38)
+# ---------------------------------------------------------------------------
 
 # animal = 'E12_10'
 # session = 19
@@ -462,6 +322,7 @@ panel.set_xticklabels([0.0,'',0.2,'',0.4,'',0.6,'',0.8,'',1])
 
 # animal = 'C38'
 # session = 11
+
 file = 'final data from HMM (delays 10)'
 df = pd.read_csv(save_path+ file+'.csv', low_memory=False)
 df['WM_roll'] = compute_window_centered(df, 3,'WM')
@@ -514,7 +375,9 @@ np.std(df.loc[(df["WM"]>0.6)].groupby('subject')["stim"].count()/df.groupby('sub
 np.mean(df.loc[(df["RL"]>0.4)].groupby('subject')["stim"].count()/df.groupby('subject')["stim"].count())
 np.std(df.loc[(df["RL"]>0.4)].groupby('subject')["stim"].count()/df.groupby('subject')["stim"].count())
 
-# -----------------############################## G Panel - Individual animal examples #################################-----------------------
+# ---------------------------------------------------------------------------
+# Panels g2/g3 — individual animal model fits
+# ---------------------------------------------------------------------------
 
 # animal='N27_10'
 # new_df_real = pd.read_csv(save_path+animal+'_data.csv')
