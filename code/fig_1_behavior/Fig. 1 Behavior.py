@@ -36,12 +36,12 @@ save_path = str(FIGURES_OUT) + '/fig_1_behavior/'
 os.chdir(path)
 
 sns.set_context('paper', rc={'axes.labelsize': 7,
-                            'lines.linewidth': 1, 
-                            'lines.markersize': 3, 
-                            'legend.fontsize': 7,  
+                            'lines.linewidth': 1,
+                            'lines.markersize': 3,
+                            'legend.fontsize': 7,
                             'xtick.major.size': 1,
-                            'xtick.labelsize': 6, 
-                            'ytick.major.size': 1, 
+                            'xtick.labelsize': 6,
+                            'ytick.major.size': 1,
                             'ytick.labelsize': 6,
                             'xtick.major.pad': 0,
                             'ytick.major.pad': 0,
@@ -58,7 +58,7 @@ a2 = fig.add_subplot(gs[0, 4:6])
 b = fig.add_subplot(gs[0, 6:8])
 b2 = fig.add_subplot(gs[1, 0:2])
 c = fig.add_subplot(gs[1, 2:4])
-c2 = fig.add_subplot(gs[1, 4:6]) 
+c2 = fig.add_subplot(gs[1, 4:6])
 # d = fig.add_subplot(gs[1, 3:5])  # span 2 rows and 2 columns
 d = fig.add_subplot(gs[1, 6:8])  # span 2 rows and 1 column
 e = fig.add_subplot(gs[3, 0:2])
@@ -110,7 +110,7 @@ panel.locator_params(nbins=4)
 panel=a2
 xaxis=[0,1,3,10]
 fit = np.polyfit(xaxis,np.array(df_results.groupby('delay_times')['hit'].mean()),1)
-fit_fn = np.poly1d(fit) 
+fit_fn = np.poly1d(fit)
 panel.plot(xaxis,np.array(df_results.groupby('delay_times')['hit'].mean()), 'k.', xaxis, fit_fn(xaxis),'k')
 panel.errorbar(xaxis,np.array(df_results.groupby('delay_times')['hit'].mean()),yerr=2*np.array(df_results.groupby('delay_times')['hit'].sem()), markersize=1, fmt='o',ecolor='grey',color='black', capsize=2)
 panel.set_ylim(0.45,1)
@@ -143,8 +143,8 @@ df_temp=pd.DataFrame()
 df_cumulative = pd.DataFrame()
 
 for animal in df.subject.unique():
-    fit = np.polyfit([0,1,3,10],np.array(df.loc[(df['subject'] == animal)].groupby('delay_times')['hit'].mean()),1) 
-    fit_fn = np.poly1d(fit) 
+    fit = np.polyfit([0,1,3,10],np.array(df.loc[(df['subject'] == animal)].groupby('delay_times')['hit'].mean()),1)
+    fit_fn = np.poly1d(fit)
     df_temp = pd.DataFrame({'subject': [animal], 'slope': [fit[0]]})
     df_cumulative = pd.concat([df_cumulative,df_temp],sort=True)
 
@@ -155,7 +155,7 @@ df_results.reset_index(inplace=True)
 
 palette = sns.color_palette(['black'], len(df.subject.unique()))
 sns.regplot(x="slope", y="accuracy",data=df_results, ax=b, color='black',marker='')
-sns.scatterplot(x="slope", y="accuracy", hue='subject',data=df_results, palette='Greys',ax=b,legend=False)      
+sns.scatterplot(x="slope", y="accuracy", hue='subject',data=df_results, palette='Greys',ax=b,legend=False)
 b.set_xlabel('Rate of Accuracy decay (($s^-1$)')
 b.set_ylabel('Accuracy')
 b.set_ylim(0.5,1)
@@ -176,8 +176,8 @@ df_results['accuracy'] = df.groupby(['subject'])['hit'].mean()
 df_results.reset_index(inplace=True)
 
 palette = sns.color_palette(['black'], len(df.subject.unique()))
-sns.regplot(x="lapse", y="accuracy", data=df_results, color='black',ci=68,ax=b2,marker='.')      
-sns.scatterplot(x="lapse", y="accuracy", hue='subject',data=df_results, palette=palette, ax=b2,legend=False)      
+sns.regplot(x="lapse", y="accuracy", data=df_results, color='black',ci=68,ax=b2,marker='.')
+sns.scatterplot(x="lapse", y="accuracy", hue='subject',data=df_results, palette=palette, ax=b2,legend=False)
 
 b2.set_ylabel('Accuracy')
 b2.set_xlabel('Lapse rate')
@@ -206,7 +206,7 @@ c.set_xlabel('Delay (s)')
 c.hlines(y=0.5,xmin=0,xmax=10,linestyle=':')
 
 fit = np.polyfit(xaxis,np.array(df_results.groupby('delay_times')['repeat_choice'].mean()),1)
-fit_fn = np.poly1d(fit) 
+fit_fn = np.poly1d(fit)
 
 c2.plot(xaxis,np.array(df_results.groupby('delay_times')['repeat_choice'].mean()), 'k.', xaxis, fit_fn(xaxis), 'k')
 c2.errorbar(xaxis,np.array(df_results.groupby('delay_times')['repeat_choice'].mean()),yerr=np.array(df_results.groupby('delay_times')['repeat_choice'].sem()*2), fmt='.', markersize= 1, ecolor='grey',color='black', capsize=2)
@@ -234,13 +234,13 @@ df_results = pd.DataFrame()
 # df_results['repeat_choice'] = df.loc[df['presented_delays']=='0.01,1.0,3.0,10.0'].groupby(['subject'])['repeat_choice'].mean()
 df_results['prob_repeat'] = 0.5* df.loc[(df['delay_times']==0.01)&(df['repeat_choice_side']==1)].groupby(['subject'])['valids'].count()/df.loc[(df['delay_times']==0.01)&(df.vector_answer == 0)].groupby(['subject'])['valids'].count() + 0.5*df.loc[(df['delay_times']==0.01)&(df['repeat_choice_side']==2)].groupby(['subject'])['valids'].count()/df.loc[(df['delay_times']==0.01)&(df.vector_answer == 1)].groupby(['subject'])['valids'].count()
 df_results['accuracy'] = df.loc[(df['delay_times']==0.01)].groupby(['subject'])['hit'].mean()
-df_results['lapse'] = 1 - df_results['accuracy'] 
+df_results['lapse'] = 1 - df_results['accuracy']
 
 df_results.reset_index(inplace=True)
 
 palette = sns.color_palette(['black'], len(df.subject.unique()))
-sns.regplot(x="lapse", y="prob_repeat", data=df_results, color='black',ci=68,ax=d,marker='.')      
-sns.scatterplot(x="lapse", y="prob_repeat", hue='subject',data=df_results, palette=palette,ax=d,legend=False)      
+sns.regplot(x="lapse", y="prob_repeat", data=df_results, color='black',ci=68,ax=d,marker='.')
+sns.scatterplot(x="lapse", y="prob_repeat", hue='subject',data=df_results, palette=palette,ax=d,legend=False)
 
 d.set_xlabel('Lapse rate')
 d.set_ylabel('Repeating bias')
@@ -254,7 +254,7 @@ df = df.copy()  # defragment before adding column
 df['repeat_reward_side'] = df.apply(repeat_reward_side, axis=1)
 df_results = pd.DataFrame()
 df_results['repeat_choice'] = (0.5* (df.loc[(df['repeat_reward_side']==1)].groupby(groupings)['valids'].count()
-                                     /df.loc[(df.reward_side == 0)].groupby(groupings)['valids'].count()) 
+                                     /df.loc[(df.reward_side == 0)].groupby(groupings)['valids'].count())
                              + 0.5*(df.loc[(df['repeat_reward_side']==2)].groupby(groupings)['valids'].count()
                                     /df.loc[(df.reward_side == 1)].groupby(groupings)['valids'].count()))
 df_results.reset_index(inplace=True)
@@ -277,8 +277,8 @@ for regressor, panel in zip(['SL','SR','SL:D','SR:D','exp_C','D:exp_C'], [e,e,f,
         light = 'grey'
     elif regressor == 'exp_C' or regressor == 'D:exp_C':
         main = 'indigo'
-        light = 'grey' 
-        
+        light = 'grey'
+
     if regressor == 'SR':
         plot = pd.DataFrame({'SL': coef_matrix['SL'], 'SR': coef_matrix['SR']})
         sns.violinplot(data=plot, palette=[COLORLEFT, COLORRIGHT], ax=panel,
@@ -293,7 +293,7 @@ for regressor, panel in zip(['SL','SR','SL:D','SR:D','exp_C','D:exp_C'], [e,e,f,
         const = 1
         panel.set_xlabel('Left          Right')
         panel.set_title('Stimulus $S_t$', fontsize=7)
- 
+
     elif regressor == 'SR:D':
         plot = pd.DataFrame({'SL:D': coef_matrix['SL:D'], 'SR:D': coef_matrix['SR:D']})
         # Layer 1: violin shape (shaded, no outline, below dots)
@@ -310,7 +310,7 @@ for regressor, panel in zip(['SL','SR','SL:D','SR:D','exp_C','D:exp_C'], [e,e,f,
         const = 1
         panel.set_xlabel('Left          Right')
         panel.set_title('Stimulus x Delay\n $S_t·D_t$', fontsize=7)
- 
+
     elif regressor == 'SR:T':
         plot = pd.DataFrame({'SL:T': coef_matrix['SL:T'], 'SR:T': coef_matrix['SR:T']})
         # Layer 1: violin shape (shaded, no outline, below dots)
@@ -320,14 +320,14 @@ for regressor, panel in zip(['SL','SR','SL:D','SR:D','exp_C','D:exp_C'], [e,e,f,
         # Layer 3: boxplot on top of dots
         sns.boxplot(data=plot, ax=panel,
                     width=0.15, showcaps=False, showfliers=False,
-                    boxprops=dict(zorder=4, linewidth=1, alpha=0.5), 
+                    boxprops=dict(zorder=4, linewidth=1, alpha=0.5),
                     whiskerprops=dict(zorder=4, linewidth=1),  color='black',
                     medianprops=dict(color='white', linewidth=1.5, zorder=5))
         xA    = np.random.normal(1, 0.15, len(coef_matrix))
         const = 1
         panel.set_xlabel('Left            Right')
         panel.set_title('Stimulus x Trial $S_t·T_t$', fontsize=7)
- 
+
     elif regressor == 'SR:D:T':
         plot = pd.DataFrame({'SL:D:T': coef_matrix['SL:D:T'], 'SR:D:T': coef_matrix['SR:D:T']})
         # Layer 1: violin shape (shaded, no outline, below dots)
@@ -343,13 +343,13 @@ for regressor, panel in zip(['SL','SR','SL:D','SR:D','exp_C','D:exp_C'], [e,e,f,
         xA    = np.random.normal(1, 0.15, len(coef_matrix))
         const = 1
         panel.set_xlabel('Left            Right')
- 
+
     elif regressor in ('SL', 'SL:D', 'SL:D:T', 'SL:T'):
         main  = COLORLEFT
         light = 'grey'
         xA    = np.random.normal(0, 0.15, len(coef_matrix))
         const = 0
- 
+
     else:
         const = 0
         xA    = np.random.normal(0, 0.2, len(coef_matrix))
@@ -382,37 +382,37 @@ for regressor, panel in zip(['SL','SR','SL:D','SR:D','exp_C','D:exp_C'], [e,e,f,
             sns.scatterplot(x=xA,y=regressor,data=coef_matrix,color=main,ax=panel,alpha=0.9,legend=False, zorder=3)
         else:
             sns.scatterplot(x=xA,y=regressor,data=coef_matrix,color='grey',ax=panel,alpha=0.9,legend=False ,zorder=3)
-            
+
     panel.set_xticks([])
     panel.set(ylabel=None)
     if regressor=='SR' or regressor=='SR:D'  or regressor=='SR:T' or  regressor=='SR:D:T':
         panel.set_xlim(-0.5,1.5)
     else:
         panel.set_xlim(-1.5,1.5)
-        
+
     if regressor=='D:exp_C':
         panel.set_ylim(-0.05,0.05)
     panel.set_ylabel('Weights')
     panel.locator_params(axis='y', nbins=3)
-    y_min, y_max = panel.get_ylim() 
-    
-    # print(regressor)    
-    # print(stats.ttest_1samp(coef_matrix[regressor],0)[1])    
-    
+    y_min, y_max = panel.get_ylim()
+
+    # print(regressor)
+    # print(stats.ttest_1samp(coef_matrix[regressor],0)[1])
+
     if stats.ttest_1samp(coef_matrix[regressor],0)[1] <=0.001:
-        panel.text(const-0.13, y_max, '***', fontsize=6) 
-        
+        panel.text(const-0.13, y_max, '***', fontsize=6)
+
     elif stats.ttest_1samp(coef_matrix[regressor],0)[1] <=0.01:
         panel.text(const-0.1, y_max, '**')
-    
+
     elif stats.ttest_1samp(coef_matrix[regressor],0)[1] <=0.05:
         panel.text(const-0.05, y_max, '*')
-   
+
     else:
         panel.text(const-0.1, y_max, 'ns', fontsize=6)
-    
+
     plt.gca().tick_params(direction='out') #direction
-   
+
 h.set_ylabel('')
 
 # -------------------------------------    panel i - Autocorrelogram  for correct  ------------------------------------------

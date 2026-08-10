@@ -28,12 +28,12 @@ os.chdir(path)
 save_path = str(FIGURES_OUT / 'supp_figures' / 'supp_fig_2_trial_index') + '/'
 
 sns.set_context('paper', rc={'axes.labelsize': 7,
-                            'lines.linewidth': 1, 
-                            'lines.markersize': 3, 
-                            'legend.fontsize': 7,  
+                            'lines.linewidth': 1,
+                            'lines.markersize': 3,
+                            'legend.fontsize': 7,
                             'xtick.major.size': 1,
-                            'xtick.labelsize': 6, 
-                            'ytick.major.size': 1, 
+                            'xtick.labelsize': 6,
+                            'ytick.major.size': 1,
                             'ytick.labelsize': 6,
                             'xtick.major.pad': 0,
                             'ytick.major.pad': 0,
@@ -74,7 +74,7 @@ file_name = 'global_behavior_10s'
 df = pd.read_csv(path+file_name+'.csv', index_col=0)
 
 df['T'] = df.apply(trials_normalized, axis=1)
-df['trial_label'] = df.apply(trials_label, axis=1) 
+df['trial_label'] = df.apply(trials_label, axis=1)
 df['running_accuracy'] = compute_window(df, 20,'hit')
 df['running_repeat'] = compute_window(df, 20,'repeat_choice')
 
@@ -216,8 +216,8 @@ for regressor, panel in zip(['SL:T','SR:T','SL:D:T','SR:D:T','exp_C:T','D:exp_C:
         light = 'grey'
     elif regressor == 'exp_C' or regressor == 'D:exp_C':
         main = 'indigo'
-        light = 'grey' 
-        
+        light = 'grey'
+
     if regressor=='SR':
         plot = pd.DataFrame({'SL': coef_matrix['SL'], 'SR': coef_matrix['SR']})
         sns.violinplot(data=plot, palette=[COLORLEFT, COLORRIGHT],ax=panel, width=0.5,saturation=0.6,linewidth=0)
@@ -226,7 +226,7 @@ for regressor, panel in zip(['SL:T','SR:T','SL:D:T','SR:D:T','exp_C:T','D:exp_C:
         const=1
         panel.set_xlabel('Left          Right')
         panel.set_title('Stimulus $S_t$', fontsize=7)
-    elif regressor=='SR:D': 
+    elif regressor=='SR:D':
         plot = pd.DataFrame({'SL:D': coef_matrix['SL:D'], 'SR:D': coef_matrix['SR:D']})
         sns.violinplot(data=plot, palette=[COLORLEFT, COLORRIGHT],ax=panel, width=0.5,saturation=0.6,linewidth=0)
         sns.violinplot(data=plot, palette=[COLORLEFT, COLORRIGHT],ax=panel, width=0.5,linewidth=1)
@@ -280,37 +280,37 @@ for regressor, panel in zip(['SL:T','SR:T','SL:D:T','SR:D:T','exp_C:T','D:exp_C:
             sns.scatterplot(x=xA,y=regressor,data=coef_matrix,color=main,ax=panel,alpha=0.9,legend=False)
         else:
             sns.scatterplot(x=xA,y=regressor,data=coef_matrix,color='grey',ax=panel,alpha=0.9,legend=False)
-            
+
     panel.set_xticks([])
     panel.set(ylabel=None)
     if regressor=='SR' or regressor=='SR:D'  or regressor=='SR:T' or  regressor=='SR:D:T':
         panel.set_xlim(-0.5,1.5)
     else:
         panel.set_xlim(-1.5,1.5)
-        
+
     if regressor=='D:exp_C':
         panel.set_ylim(-0.1,0.1)
     panel.set_ylabel('Weights')
     panel.locator_params(axis='y', nbins=3)
-    y_min, y_max = panel.get_ylim() 
-    
-    # print(regressor)    
-    # print(stats.ttest_1samp(coef_matrix[regressor],0)[1])    
-    
+    y_min, y_max = panel.get_ylim()
+
+    # print(regressor)
+    # print(stats.ttest_1samp(coef_matrix[regressor],0)[1])
+
     if stats.ttest_1samp(coef_matrix[regressor],0)[1] <=0.001:
-        panel.text(const-0.13, y_max, '***', fontsize=6) 
-        
+        panel.text(const-0.13, y_max, '***', fontsize=6)
+
     elif stats.ttest_1samp(coef_matrix[regressor],0)[1] <=0.01:
         panel.text(const-0.1, y_max, '**')
-    
+
     elif stats.ttest_1samp(coef_matrix[regressor],0)[1] <=0.05:
         panel.text(const-0.05, y_max, '*')
-   
+
     else:
         panel.text(const-0.1, y_max, 'ns', fontsize=6)
-    
+
     plt.gca().tick_params(direction='out') #direction
-   
+
 h.set_ylabel('')
 
 # ----------------------------------------------------------------------------------------------------------------

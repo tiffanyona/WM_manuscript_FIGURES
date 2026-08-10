@@ -46,12 +46,12 @@ save_path = str(DATA_DIR / 'supp_figures' / 'supp_fig_19_synch_session') + '/'  
 fig_out_path = str(FIGURES_OUT / 'supp_figures' / 'supp_fig_19_synch_session') + '/'
 cm = 1/2.54
 sns.set_context('paper', rc={'axes.labelsize': 7,
-                            'lines.linewidth': 1, 
-                            'lines.markersize': 3, 
-                            'legend.fontsize': 6,  
+                            'lines.linewidth': 1,
+                            'lines.markersize': 3,
+                            'legend.fontsize': 6,
                             'xtick.major.size': 1,
-                            'xtick.labelsize': 6, 
-                            'ytick.major.size': 1, 
+                            'xtick.labelsize': 6,
+                            'ytick.major.size': 1,
                             'ytick.labelsize': 6,
                             'xtick.major.pad': 0,
                             'ytick.major.pad': 0,

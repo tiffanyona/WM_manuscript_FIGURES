@@ -23,7 +23,7 @@ from elephant.kernels import GaussianKernel
 from rpy2.robjects.packages import importr
 import rpy2.robjects as ro
 from rpy2.robjects import pandas2ri
-import sys 
+import sys
 
 pandas2ri.activate()
 
@@ -51,12 +51,12 @@ path = str(DATA_DIR) + '/'
 os.chdir(path)
 cm = 1/2.54
 sns.set_context('paper', rc={'axes.labelsize': 7,
-                            'lines.linewidth': 1, 
-                            'lines.markersize': 3, 
-                            'legend.fontsize': 7,  
+                            'lines.linewidth': 1,
+                            'lines.markersize': 3,
+                            'legend.fontsize': 7,
                             'xtick.major.size': 1,
-                            'xtick.labelsize': 6, 
-                            'ytick.major.size': 1, 
+                            'xtick.labelsize': 6,
+                            'ytick.major.size': 1,
                             'ytick.labelsize': 6,
                             'xtick.major.pad': 0,
                             'ytick.major.pad': 0,
@@ -128,7 +128,7 @@ df_cum_sti_shuffle = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
 trained_trials = df_cum_sti_shuffle.session.unique()
 df_cum_sti = df_cum_sti[df_cum_sti['session'].isin(trained_trials)]
 
-plots.plot_results_session_summary_substract(fig, panel, df_cum_sti, df_cum_sti_shuffle, 
+plots.plot_results_session_summary_substract(fig, panel, df_cum_sti, df_cum_sti_shuffle,
                                   color = 'darkgreen', variable = variable, y_range = y_range, x_range = [-2,1.3], baseline=0)
 
 variable = 'RL_roll_1'
@@ -148,7 +148,7 @@ df_cum_sti_shuffle = df_cum_sti_shuffle[df_cum_sti_shuffle['session'].isin(train
 # trained_trials = df_cum_sti_shuffle.session.unique()
 # df_cum_sti = df_cum_sti[df_cum_sti['session'].isin(trained_trials)]
 
-plots.plot_results_session_summary_substract(fig, panel, df_cum_sti, df_cum_sti_shuffle, 
+plots.plot_results_session_summary_substract(fig, panel, df_cum_sti, df_cum_sti_shuffle,
                                   color = 'indigo', variable = variable, y_range = y_range, x_range = [-2,1.3], baseline=0)
 
 #### ------------------------- Response plot
@@ -172,7 +172,7 @@ df_cum_sti_shuffle = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
 # trained_trials = df_cum_sti_shuffle.session.unique()
 # df_cum_sti = df_cum_sti[df_cum_sti['session'].isin(trained_trials)]
 
-plots.plot_results_session_summary_substract(fig, panel, df_cum_res, df_cum_res_shuffle, 
+plots.plot_results_session_summary_substract(fig, panel, df_cum_res, df_cum_res_shuffle,
                                   color = 'darkgreen', variable = variable, y_range = y_range, x_range = [-1,3], baseline=0)
 
 variable = 'RL_roll_1'
@@ -193,7 +193,7 @@ df_cum_sti_shuffle = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
 # trained_trials = df_cum_sti_shuffle.session.unique()
 # df_cum_sti = df_cum_sti[df_cum_sti['session'].isin(trained_trials)]
 
-plots.plot_results_session_summary_substract(fig, panel, df_cum_res, df_cum_res_shuffle, 
+plots.plot_results_session_summary_substract(fig, panel, df_cum_res, df_cum_res_shuffle,
                                   color = 'indigo', variable = variable, y_range = y_range, x_range = [-1,3], baseline=0)
 
 # ---------------------------------------------------------------------------
@@ -219,10 +219,10 @@ df_cum_sti_shuffle = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
 # trained_trials = df_cum_sti_shuffle.session.unique()
 # df_cum_sti = df_cum_sti[df_cum_sti['session'].isin(trained_trials)]
 
-plots.plot_results_session_summary_substract(fig, b1, df_cum_sti, df_cum_sti_shuffle, 
+plots.plot_results_session_summary_substract(fig, b1, df_cum_sti, df_cum_sti_shuffle,
                                   color = 'darkgreen', variable = variable, y_range = y_range, x_range = [-2,1.3], baseline=0)
 
-plots.plot_results_session_summary_substract(fig, b2, df_cum_res, df_cum_res_shuffle, 
+plots.plot_results_session_summary_substract(fig, b2, df_cum_res, df_cum_res_shuffle,
                                   color = 'darkgreen', variable = variable, y_range = y_range, x_range = [-1,3], baseline=0)
 
 
@@ -244,10 +244,10 @@ df_cum_sti_shuffle = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
 
 # df_cum_sti = df_cum_sti[df_cum_sti['session'].isin(trained_trials)]
 
-plots.plot_results_session_summary_substract(fig, b1, df_cum_sti, df_cum_sti_shuffle, 
+plots.plot_results_session_summary_substract(fig, b1, df_cum_sti, df_cum_sti_shuffle,
                                   color = 'indigo', variable = variable, y_range = y_range, x_range = [-2,1.3], baseline=0)
 
-plots.plot_results_session_summary_substract(fig, b2, df_cum_res, df_cum_res_shuffle, 
+plots.plot_results_session_summary_substract(fig, b2, df_cum_res, df_cum_res_shuffle,
                                   color = 'indigo', variable = variable, y_range = y_range, x_range = [-1,3], baseline=0)
 
 
@@ -272,7 +272,7 @@ for color, variable,left,right in zip(colors,variables_combined,[h1, h1, h1, h1]
 
     # Aligmnent for Stimulus cue
 
-    real = np.array(np.mean(df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)].groupby('session').median().drop(columns=['score','fold']))) 
+    real = np.array(np.mean(df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)].groupby('session').median().drop(columns=['score','fold'])))
     times = df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
     times = np.array(times.drop(columns=['session','fold','score','subject','trial_type'],axis = 1).columns.astype(float))
 
@@ -304,7 +304,7 @@ for color, variable,left,right in zip(colors,variables_combined,[h1, h1, h1, h1]
     real = np.array(np.mean(df_cum_res.loc[(df_cum_res['trial_type'] == variable)].groupby('session').median().drop(columns=['score','fold'])))
     times = df_cum_res.loc[(df_cum_res['trial_type'] == variable)]
     times = np.array(times.drop(columns=['session','fold','score','subject','trial_type'],axis = 1).columns.astype(float))
-    
+
     df_lower = pd.DataFrame()
     df_upper = pd.DataFrame()
 
@@ -314,11 +314,11 @@ for color, variable,left,right in zip(colors,variables_combined,[h1, h1, h1, h1]
             df_new[iteration]= df_cum_shuffle_res.loc[(df_cum_shuffle_res.trial_type==variable)].groupby('times').mean()[iteration]
         except:
             df_new[iteration]= df_cum_shuffle_res.loc[(df_cum_shuffle_res.trial_type==variable)].groupby('times').mean()[str(float(iteration))]
-            
+
     y_mean= df_new.mean(axis=1).values
     upper =  df_new.quantile(q=0.975, interpolation='linear',axis=1) - y_mean
     lower =  df_new.quantile(q=0.025, interpolation='linear',axis=1) - y_mean
-    
+
     x=times
 
     # ax2.plot(x, y_mean, color=color)
@@ -332,11 +332,11 @@ for color, variable,left,right in zip(colors,variables_combined,[h1, h1, h1, h1]
     right.set_xlabel('Time from Go cue onset (s)')
     left.set_xlabel('Time from stimulus onset (s)')
     left.set_ylabel('Excess decoding\n accuracy')
-    left.set_xlim(-2,1)  
-    right.set_xlim(-1,2)  
-    
+    left.set_xlim(-2,1)
+    right.set_xlim(-1,2)
+
     # right.set_title('Mouse E20 2022-02-26')
-    
+
 # ---------------------------------------------------------------------------
 # Panel f — log-odds by state and epoch (mixed-effects model)
 # ---------------------------------------------------------------------------
@@ -443,11 +443,11 @@ for cluster_id in temp_df.cluster_id.unique():
     print(cluster_id)
     j=1
     j = convolveandplot(temp_df.loc[(temp_df.vector_answer == 0)&(temp_df.hit == 1)], i1, j1, variable='state', cluster_id = cluster_id, delay = delay, j=j,
-                       labels=['WM left','HB left'], colors=['darkgreen', 'indigo'], kernel=200)    
- 
+                       labels=['WM left','HB left'], colors=['darkgreen', 'indigo'], kernel=200)
+
     # j = convolveandplot(temp_df.loc[(temp_df.vector_answer == 0)&(temp_df.hit == 0)], i1, j1, variable='state', cluster_id = cluster_id, delay = delay, j=j,
-    #                    labels=['WM left','HB left'], colors=['lightgrey', 'lightgrey'], kernel=200) 
-    
+    #                    labels=['WM left','HB left'], colors=['lightgrey', 'lightgrey'], kernel=200)
+
     i1.set_ylim(0,19)
 
 
@@ -475,10 +475,10 @@ df_cum_res_shuffle['trial_type'] = 'WM_roll_1'
 trained_trials = df_cum_sti_shuffle.session.unique()
 df_cum_sti = df_cum_sti[df_cum_sti['session'].isin(trained_trials)]
 
-plots.plot_results_session_summary_substract(fig, e2, df_cum_sti, df_cum_sti_shuffle, 
+plots.plot_results_session_summary_substract(fig, e2, df_cum_sti, df_cum_sti_shuffle,
                                   color = 'darkgreen', variable = variable, y_range = y_range, x_range = [-4,1], baseline=0)
 
-plots.plot_results_session_summary_substract(fig, e3, df_cum_res, df_cum_res_shuffle, 
+plots.plot_results_session_summary_substract(fig, e3, df_cum_res, df_cum_res_shuffle,
                                   color = 'darkgreen', variable = variable, y_range = y_range, x_range = [-1,3], baseline=0)
 
 
@@ -498,10 +498,10 @@ df_cum_sti_shuffle['trial_type'] = variable
 df_cum_res_shuffle['trial_type'] = variable
 df_cum_sti = df_cum_sti[df_cum_sti['session'].isin(trained_trials)]
 
-plots.plot_results_session_summary_substract(fig, e2, df_cum_sti, df_cum_sti_shuffle, 
+plots.plot_results_session_summary_substract(fig, e2, df_cum_sti, df_cum_sti_shuffle,
                                   color = 'indigo', variable = variable, y_range = y_range, x_range = [-4,1], baseline=0)
 
-plots.plot_results_session_summary_substract(fig, e3, df_cum_res, df_cum_res_shuffle, 
+plots.plot_results_session_summary_substract(fig, e3, df_cum_res, df_cum_res_shuffle,
                                   color = 'indigo', variable = variable, y_range = y_range, x_range = [-1,3], baseline=0)
 
 x_range=[-1,4]
@@ -519,7 +519,7 @@ df_cum_sti = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
 
 # y_range = [0.45, 0.8]
 
-# plot_results_session_summary_substract(fig, ax2, df_cum_res, df_cum_res_shuffle, 
+# plot_results_session_summary_substract(fig, ax2, df_cum_res, df_cum_res_shuffle,
 #                                   color = 'indigo', variable = variable, y_range = y_range, x_range = [-1,4], baseline=0)
 
 plots.plot_results_session_summary(fig, e1, df_cum_res, ['darkgreen'], df_cum_sti.trial_type.unique(), epoch = 'Delay_OFF', x_range=x_range, y_range=y_range, baseline=0.5)
@@ -539,7 +539,7 @@ df_cum_sti = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
 
 # y_range = [0.45, 0.8]
 
-# plot_results_session_summary_substract(fig, ax2, df_cum_res, df_cum_res_shuffle, 
+# plot_results_session_summary_substract(fig, ax2, df_cum_res, df_cum_res_shuffle,
 #                                   color = 'indigo', variable = variable, y_range = y_range, x_range = [-1,4], baseline=0)
 
 plots.plot_results_session_summary(fig, e1, df_cum_res, ['indigo'], df_cum_res.trial_type.unique(), epoch = 'Delay_OFF', x_range=x_range, y_range=y_range, baseline=0.0)

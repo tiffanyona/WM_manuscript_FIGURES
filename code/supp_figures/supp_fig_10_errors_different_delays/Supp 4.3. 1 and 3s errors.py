@@ -29,12 +29,12 @@ import functions as plots
 save_path = str(FIGURES_OUT / 'supp_figures' / 'supp_fig_10_errors_different_delays') + '/'
 cm = 1/2.54
 sns.set_context('paper', rc={'axes.labelsize': 7,
-                            'lines.linewidth': 1, 
-                            'lines.markersize': 3, 
-                            'legend.fontsize': 7,  
+                            'lines.linewidth': 1,
+                            'lines.markersize': 3,
+                            'legend.fontsize': 7,
                             'xtick.major.size': 1,
-                            'xtick.labelsize': 6, 
-                            'ytick.major.size': 1, 
+                            'xtick.labelsize': 6,
+                            'ytick.major.size': 1,
                             'ytick.labelsize': 6,
                             'xtick.major.pad': 0,
                             'ytick.major.pad': 0,
@@ -78,7 +78,7 @@ df_cum_sti = pd.read_csv(path+file_name+'.csv', index_col=0)
 
 scores = df_cum_sti.groupby('session').score.mean().reset_index()
 list_exclude = scores.loc[scores.score<0.55].session.unique()
-df_cum_sti = df_cum_sti[~df_cum_sti['session'].isin(list_exclude)] 
+df_cum_sti = df_cum_sti[~df_cum_sti['session'].isin(list_exclude)]
 
 delay=1
 panel=a1
@@ -104,7 +104,7 @@ df_cum_sti = pd.read_csv(file_name+'.csv', index_col=0)
 
 scores = df_cum_sti.groupby('session').score.mean().reset_index()
 list_exclude = scores.loc[scores.score<0.55].session.unique()
-df_cum_sti = df_cum_sti[~df_cum_sti['session'].isin(list_exclude)] 
+df_cum_sti = df_cum_sti[~df_cum_sti['session'].isin(list_exclude)]
 
 delay=1
 panel=a2
@@ -127,7 +127,7 @@ df_cum_sti = pd.read_csv(file_name+'.csv', index_col=0)
 
 # scores = df_cum_sti.groupby('session').score.mean().reset_index()
 # list_exclude = scores.loc[scores.score<0.55].session.unique()
-# df_cum_sti = df_cum_sti[~df_cum_sti['session'].isin(list_exclude)] 
+# df_cum_sti = df_cum_sti[~df_cum_sti['session'].isin(list_exclude)]
 
 delay=1
 panel=a3
@@ -142,7 +142,7 @@ plots.plotsingledelay(df_cum_sti, panel, colors, variables_combined, delay, base
 panel.set_xlim(-2,6)
 panel.set_ylim(-0.1,0.4)
 panel.set_xlabel('Time from stimulus onset (s)')
-panel.locator_params(nbins=3) 
+panel.locator_params(nbins=3)
 
 # ------#########################################################################################-----------------------
 

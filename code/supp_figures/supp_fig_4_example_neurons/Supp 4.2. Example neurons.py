@@ -30,12 +30,12 @@ path = str(DATA_DIR) + '/'
 
 cm = 1/2.54
 sns.set_context('paper', rc={'axes.labelsize': 7,
-                            'lines.linewidth': 1, 
-                            'lines.markersize': 3, 
-                            'legend.fontsize': 7,  
+                            'lines.linewidth': 1,
+                            'lines.markersize': 3,
+                            'legend.fontsize': 7,
                             'xtick.major.size': 1,
-                            'xtick.labelsize': 6, 
-                            'ytick.major.size': 1, 
+                            'xtick.labelsize': 6,
+                            'ytick.major.size': 1,
                             'ytick.labelsize': 6,
                             'xtick.major.pad': 0,
                             'ytick.major.pad': 0,
@@ -118,13 +118,13 @@ def convolveandplot(df, upper_plot, lower_plot, variable='reward_side', cluster_
     cue_off=0.35
     start=-2.5
     stop= 5 + delay
-    
+
     neuron = new_convolve(df.loc[df.cluster_id==cluster_id], df, kernel)
 
-    # neuron = neuron.loc[neuron.delay != 0.1] # Remove trials with no delay if the studied segment is that one. 
+    # neuron = neuron.loc[neuron.delay != 0.1] # Remove trials with no delay if the studied segment is that one.
 
     # Align the data to the targeted align
-    neuron['time_centered'] = neuron['times'] - neuron[align] 
+    neuron['time_centered'] = neuron['times'] - neuron[align]
     neuron['time_centered'] = np.round(neuron.time_centered/1000, 2) #### estos es importante!!
     neuron['firing_'] = neuron['firing']*1000
 
@@ -132,7 +132,7 @@ def convolveandplot(df, upper_plot, lower_plot, variable='reward_side', cluster_
     df_results['firing'] = neuron.loc[(neuron.time_centered <= stop)&(neuron.delay == delay)].groupby(['time_centered',variable])['firing_'].mean()
     df_results['error'] = neuron.loc[(neuron.time_centered <= stop)&(neuron.delay == delay)].groupby(['time_centered',variable])['firing_'].std()
     df_results.reset_index(inplace=True)
-    
+
     panel = lower_plot
     for condition,color,name in zip([1,0],colors,labels):
         y_mean= df_results[df_results[variable]==condition].firing
@@ -146,12 +146,12 @@ def convolveandplot(df, upper_plot, lower_plot, variable='reward_side', cluster_
         panel.plot(x, upper, color=color, alpha=0.0, linewidth=0)
         panel.fill_between(x, lower, upper, alpha=0.2, color=color, linewidth=0)
 
-    panel.set_xlim(start,stop)  
-    
-    y = np.arange(0,100,0.1)     
-    panel.fill_betweenx(y, cue_on,cue_off, color='lightgrey', alpha=1, linewidth=0)  
+    panel.set_xlim(start,stop)
+
+    y = np.arange(0,100,0.1)
+    panel.fill_betweenx(y, cue_on,cue_off, color='lightgrey', alpha=1, linewidth=0)
     panel.fill_betweenx(y, cue_off+delay,cue_off+delay+.2, color='lightgrey', alpha=1, linewidth=0)
-    panel.set_ylim(0,max( df_results['firing'])+np.mean(df_results['error']))  
+    panel.set_ylim(0,max( df_results['firing'])+np.mean(df_results['error']))
     panel.set_ylabel('Firing rate (Hz)')
     # axis labels and legend
     lower_plot.legend(frameon=False)
@@ -159,19 +159,19 @@ def convolveandplot(df, upper_plot, lower_plot, variable='reward_side', cluster_
     if label:
         panel.set_xlabel('Time from stimulus onset (s)')
     # panel.set_ylabel('Firing rate (spks/s)')
-    panel.locator_params(nbins=4) 
+    panel.locator_params(nbins=4)
 
     if spikes:
         pass
     else:
         return j
-    
+
     panel = upper_plot
     SpikesRight = (df.loc[(df[variable] == 1)&(df.cluster_id == cluster_id)&(df.delay == delay)])
     SpikesLeft = (df.loc[(df[variable] == 0)&(df.cluster_id == cluster_id)&(df.delay == delay)])
 
-    SpikesRight['a_'+align] = SpikesRight['fixed_times'] - SpikesRight['Stimulus_ON'] 
-    SpikesLeft['a_'+align] = SpikesLeft['fixed_times'] - SpikesLeft['Stimulus_ON'] 
+    SpikesRight['a_'+align] = SpikesRight['fixed_times'] - SpikesRight['Stimulus_ON']
+    SpikesLeft['a_'+align] = SpikesLeft['fixed_times'] - SpikesLeft['Stimulus_ON']
 
     trial=1
     spikes = []
@@ -209,16 +209,16 @@ def convolveandplot(df, upper_plot, lower_plot, variable='reward_side', cluster_
 
     panel.set_ylabel('Trials (n)')
     panel.set_ylim(0,j)
-    panel.set_xlim(start,stop)  
+    panel.set_xlim(start,stop)
     upper_plot.set(xlabel=None)
-    
+
     y = np.arange(0,j+1,0.1)
     panel.fill_betweenx(y, cue_on,cue_off, color='lightgrey', alpha=1, linewidth=0)
     panel.fill_betweenx(y, cue_off+delay,cue_off+delay+.2, color='lightgrey', alpha=1, linewidth=0)
-    
-    panel.locator_params(nbins=5) 
+
+    panel.locator_params(nbins=5)
     upper_plot.get_xaxis().set_visible(False)
-    
+
     return j
 
 def plot_decoder(left, df_cum_sti,baseline=0.5,individual_sessions=False, colors=['black'], upper_limit=0.2, variables_combined=['WM_roll_1']):
@@ -230,12 +230,12 @@ def plot_decoder(left, df_cum_sti,baseline=0.5,individual_sessions=False, colors
                 times = np.array(df_cum_sti.columns[:-4]).astype(float)
             except:
                 times = np.array(df_cum_sti.columns[1:]).astype(float)
-    
-        
+
+
             x=times
             for i in range(len(real)):
                 left.plot(times,real.iloc[i][1:-1], color=color,alpha=0.1)
-                
+
         # Aligmnent for Stimulus cue
         real = np.array(df_cum_sti.loc[:, (df_cum_sti.columns != 'session_shuffle')
                                        &(df_cum_sti.columns != 'fold')].mean())
@@ -250,13 +250,13 @@ def plot_decoder(left, df_cum_sti,baseline=0.5,individual_sessions=False, colors
         mean_surr = []
         df_lower = pd.DataFrame()
         df_upper = pd.DataFrame()
-    
+
         # df_for_boots = df_cum_sti.loc[:, df_cum_sti.columns != 'session_shuffle']
         df_for_boots = df_cum_sti.loc[:, (df_cum_sti.columns != 'session_shuffle')
                                        &(df_cum_sti.columns != 'fold')].groupby('session').mean().reset_index()
         for timepoint in time_points:
             mean_surr = []
-    
+
             # recover the values for that specific timepoint
             array = df_for_boots[timepoint].to_numpy()
 
@@ -265,22 +265,22 @@ def plot_decoder(left, df_cum_sti,baseline=0.5,individual_sessions=False, colors
                 x = np.random.choice(array, size=len(array), replace=True)
                 # recover the mean of that new distribution
                 mean_surr.append(np.mean(x))
-    
+
             df_lower.at[0,timepoint] = np.percentile(mean_surr, 0.5)
             df_upper.at[0,timepoint] = np.percentile(mean_surr, 99.5)
-        
+
         x=times
         lower =  df_lower.iloc[0].values
         upper =  df_upper.iloc[0].values
         left.plot(x, lower, color=color, linestyle = '',alpha=0.6, linewidth=0)
         left.plot(x, upper, color=color, linestyle = '',alpha=0.6, linewidth=0)
         left.fill_between(x, lower, upper, alpha=0.2, color=color, linewidth=0)
-        
+
         # lower =  real - 2*df_for_boots.std()
         # upper =  real + 2*df_for_boots.std()
         lower =  df_cum_sti.quantile(0.025)
         upper =  df_cum_sti.quantile(0.975)
-    
+
         left.plot(times,real, color=color)
 
         left.fill_betweenx(np.arange(-baseline-0.1,baseline+.5,0.1), 0,0.35, color='lightgrey', alpha=1, linewidth=0)
@@ -299,17 +299,17 @@ def new_convolve(nx,df, kernel=200):
 
     errors_=[] ##indexes and neurons without enough spikes to make a spiketrain
     frames=[]
-   
+
     # Iterate for each trial in that session
     for T in df.trial.unique():
         if T > nx.iloc[0].trial_start+1 and T < nx.iloc[0].trial_end+1:
             # Take the spike times for that trial
             nxt = nx.loc[nx['trial']==T]['fixed_times']
 
-            # !!!! IMPORTANT use the main df that has all the trials. If you use the filtered nx, some trials may not appear if they were no spikes there. 
+            # !!!! IMPORTANT use the main df that has all the trials. If you use the filtered nx, some trials may not appear if they were no spikes there.
             dft = df.loc[df['trial']==T]
 
-            # try: 
+            # try:
             ############################################################ Get the times of the spikes
             times_spikes = nxt
             times_spikes = times_spikes*1000 #transform to ms
@@ -317,20 +317,20 @@ def new_convolve(nx,df, kernel=200):
             ############################################################ Set the strat and end time of the train
             stop_time =  (dft.END.unique()[0])*1000*ms ## End of the trial in ms
             try:
-                start_time = (dft.START_adjusted.unique()[0]-0.1)*1000*ms ## Start of the trial in ms    
+                start_time = (dft.START_adjusted.unique()[0]-0.1)*1000*ms ## Start of the trial in ms
             except:
-                start_time = dft.START.unique()[0]*1000*ms ## Start of the trial in ms   
-                    
+                start_time = dft.START.unique()[0]*1000*ms ## Start of the trial in ms
+
             ############################################################ Spiketrain
-            spiketrain = SpikeTrain(times_spikes, units=ms, t_stop=stop_time, t_start=start_time) 
+            spiketrain = SpikeTrain(times_spikes, units=ms, t_stop=stop_time, t_start=start_time)
 
             ############################################################ Convoluted firing rate
             histogram_rate = time_histogram([spiketrain], 20*ms, output='rate')
-            gaus_rate = instantaneous_rate(spiketrain, sampling_period=20*ms, kernel=GaussianKernel(kernel*ms)) #s.d of Suzuki & Gottlieb 
+            gaus_rate = instantaneous_rate(spiketrain, sampling_period=20*ms, kernel=GaussianKernel(kernel*ms)) #s.d of Suzuki & Gottlieb
             times_ = gaus_rate.times.rescale(ms)
             firing = gaus_rate.rescale(histogram_rate.dimensionality).magnitude.flatten()
 
-            ############################################################ Dataframe 
+            ############################################################ Dataframe
             df_trial = pd.DataFrame({'times':times_, 'firing':firing}) #dataframe con times y firing
             df_trial['trial']=T
             df_trial['Delay_OFF']= dft.Delay_OFF.unique()[0]*1000
@@ -359,37 +359,37 @@ def plotsingledelay(df_cum_sti, panel, colors, variables_combined, delay):
     y_lower=baseline
 
     for color, variable in zip(colors,variables_combined):
-    
+
         # Aligmnent for Stimulus cue
         real = np.array(df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)&(df_cum_sti['delay'] == delay)].drop(columns=['trial_type', 'delay','session','fold','score']).mean(axis=0))
         times = df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)&(df_cum_sti['delay'] == delay)]
         times = np.array(times.drop(columns=['trial_type', 'delay','session','fold','score'],axis = 1).columns.astype(float))
-    
+
         df_lower = pd.DataFrame()
         df_upper = pd.DataFrame()
-    
+
         for timepoint in times:
             mean_surr = []
-    
+
             # recover the values for that specific timepoint
             try:
                 array = df_cum_sti.loc[(df_cum_sti.trial_type ==variable)&(df_cum_sti['delay'] == delay)].drop(columns='delay').groupby('session').mean()[str(timepoint)].to_numpy()
             except:
                 array = df_cum_sti.loc[(df_cum_sti.trial_type ==variable)&(df_cum_sti['delay'] == delay)].drop(columns='delay').groupby('session').mean()[timepoint].to_numpy()
-    
+
             # iterate several times with resampling: chose X time among the same list of values
             for iteration in range(1000):
                 x = np.random.choice(array, size=len(array), replace=True)
                 # recover the mean of that new distribution
                 mean_surr.append(np.mean(x))
-    
+
             df_lower.at[0,timepoint] = np.percentile(mean_surr, 2.5)
             df_upper.at[0,timepoint] = np.percentile(mean_surr, 97.5)
-    
+
         lower =  df_lower.iloc[0].values
         upper =  df_upper.iloc[0].values
         x=times
-    
+
         panel.plot(times,real, color=color)
         panel.plot(x, lower, color=color, linestyle = '',alpha=0.6, linewidth=0)
         panel.plot(x, upper, color=color, linestyle = '',alpha=0.6, linewidth=0)
@@ -405,9 +405,9 @@ def plotsingledelay(df_cum_sti, panel, colors, variables_combined, delay):
         panel.set_ylim(y_lower,y_upper+0.05)
         if panel=='crimson':
             panel.set_xlabel('Time to stimulus onset (s)')
-            
+
 # ----------------------------------------------------------------------------------------------------------------
-            
+
 # -----------------############################## A Panel - Crossdecoder for 3s  #######################-----------------------
 
 # file_name = 'crossdecoder_WM_roll_1_3s_alignedstimulus_nosubstract'

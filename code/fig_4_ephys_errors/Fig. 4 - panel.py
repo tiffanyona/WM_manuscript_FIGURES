@@ -144,7 +144,7 @@ j0.set_xlabel('Testing time from Stimulus onset (s)')
 # Panel e — session example
 # ===========================================================================
 delays = [10]
-file_name = '\WMcorrectincorrect_10s_session_example'
+file_name = r'\WMcorrectincorrect_10s_session_example'
 df_cum_sti    = pd.read_csv(path + file_name + '.csv', index_col=0)
 df_cum_shuffle = pd.read_csv(path + file_name + '_shuffle.csv', index_col=0)
 
@@ -184,7 +184,7 @@ for delay in delays:
             j3.fill_betweenx(np.arange(-0.1, 0.6, 0.1), delay + 0.3, delay + 0.5,
                              color='grey', alpha=.5, linewidth=0)
             j3.set_xlim(-2, 14)
-            j3.set_ylabel('Excess decoding /n accuracy')
+            j3.set_ylabel('Excess decoding \n accuracy')
         except Exception:
             print('not this condition for this delay')
             continue
@@ -192,7 +192,7 @@ for delay in delays:
 # ===========================================================================
 # Panel f — single neuron correct vs incorrect
 # ===========================================================================
-file_name = '\single_neuron_10s'
+file_name = r'\single_neuron_10s'
 df = pd.read_csv(path + file_name + '.csv', index_col=0)
 delay = 10; cluster_id = 153
 
@@ -422,7 +422,6 @@ ax.set_xticklabels([f"{t:}" for t in nice_times], rotation=360)
 ax.set_xlabel("Time from stimulus onset (s)")
 ax.xaxis.set_visible(False)
 
-# --- cell 3 ---
 sns.lineplot(x='times', y='log_odds', data=aggregated_df, color='black',
              errorbar='ci', err_style='band', err_kws={"edgecolor": "none"}, ax=i_line)
 sns.despine(ax=i_line)
@@ -436,7 +435,7 @@ i_line.set_xticks(np.arange(-2, 15, 2))
 i_line.set_ylim(-1, 1)
 
 # ===========================================================================
-# Panel j — reversal-aligned heatmap + lineplot 
+# Panel j — reversal-aligned heatmap + lineplot
 # ===========================================================================
 
 df_change_points = pd.DataFrame(change_points, columns=['trial_change', 'time'])
@@ -465,7 +464,7 @@ for i_row, trial in enumerate(heatmap_data.index):
         rows = test.loc[test.times == t_mark, 'time_reversal_aligned']
         if not rows.empty:
             x_pos = heatmap_data.columns.get_loc(rows.iloc[0])
-            ax.scatter(x_pos, i_row + 0.5, color='black', s=10, marker='|', linewidths=0.5)
+            ax.scatter(x_pos, i_row + 0.5, color='black', size=2, marker='|', linewidths=0.5)
 
 ax.set_xticks(x_positions)
 ax.set_xticklabels([f"{t:}" for t in nice_times], rotation=360)

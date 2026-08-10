@@ -48,12 +48,12 @@ path = str(DATA_DIR / 'fig_5_ephys_repl') + '/'
 os.chdir(path)
 cm = 1/2.54
 sns.set_context('paper', rc={'axes.labelsize': 7,
-                            'lines.linewidth': 1, 
-                            'lines.markersize': 3, 
-                            'legend.fontsize': 7,  
+                            'lines.linewidth': 1,
+                            'lines.markersize': 3,
+                            'legend.fontsize': 7,
                             'xtick.major.size': 1,
-                            'xtick.labelsize': 6, 
-                            'ytick.major.size': 1, 
+                            'xtick.labelsize': 6,
+                            'ytick.major.size': 1,
                             'ytick.labelsize': 6,
                             'xtick.major.pad': 0,
                             'ytick.major.pad': 0,
@@ -111,7 +111,7 @@ df_cum_sti = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
 
 scores = df_cum_sti.groupby('session').score.mean().reset_index()
 list_exclude = scores.loc[scores.score<0.55].session.unique()
-df_cum_sti = df_cum_sti[~df_cum_sti['session'].isin(list_exclude)] 
+df_cum_sti = df_cum_sti[~df_cum_sti['session'].isin(list_exclude)]
 
 #Variables for testing
 # colors=['darkgreen','crimson','indigo', 'purple']
@@ -120,16 +120,16 @@ df_cum_sti = df_cum_sti[~df_cum_sti['session'].isin(list_exclude)]
 # ratios = [0.6,0.6,0.4,0.4]
 # variables_combined=[variables[0]+'_'+str(hits[0]),variables[1]+'_'+str(hits[1]),variables[2]+'_'+str(hits[2]),
 #                    variables[3]+'_'+str(hits[3])]
-  
+
 #Variables for testing
 colors=['darkgreen','indigo']
 variables = ['WM_roll','RL_roll']
 hits = [1,1]
 ratios = [0.6,0.4]
 variables_combined=[variables[0]+'_'+str(hits[0]),variables[1]+'_'+str(hits[1])]
-     
+
 plot_decoder([a1,a1,a1,a1], df_cum_sti,baseline=0.0,upper_limit = 0.4,  show_axis=True, individual_sessions=False, align='Stimulus_ON', colors=colors, variables_combined=variables_combined)
-a1.set_xlim(-1.5,1)  
+a1.set_xlim(-1.5,1)
 a1.locator_params(axis='x', nbins=4)
 
 os.chdir(path)
@@ -142,10 +142,10 @@ df_cum_res= pd.read_csv(file_name+'_res.csv', index_col=0)
 
 scores = df_cum_res.groupby('session').score.mean().reset_index()
 list_exclude = scores.loc[scores.score<0.6].session.unique()
-df_cum_res = df_cum_res[~df_cum_res['session'].isin(list_exclude)] 
-       
+df_cum_res = df_cum_res[~df_cum_res['session'].isin(list_exclude)]
+
 plot_decoder([a2,a2,a2,a2], df_cum_res,baseline=0.0, upper_limit = 0.4, show_axis=False, individual_sessions=False, align='Delay_OFF', colors=colors, variables_combined=variables_combined)
-a2.set_xlim(-1,2.)  
+a2.set_xlim(-1,2.)
 a2.locator_params(axis='x', nbins=4)
 
 
@@ -167,10 +167,10 @@ a2.locator_params(axis='x', nbins=4)
 # ratios = [0.6,0.6,0.4,0.4]
 # variables_combined=[variables[0]+'_'+str(hits[0]),variables[1]+'_'+str(hits[1]),variables[2]+'_'+str(hits[2]),
 #                    variables[3]+'_'+str(hits[3])]
-       
+
 # plot_decoder_shuffle([d1,d1,d1,d1], df_cum_sti,baseline=0.5,upper_limit=0.3, align='Stimulus_ON', colors=colors, variables_combined=variables_combined)
 # plot_decoder_shuffle([d2,d2,d2,d2], df_cum_res,baseline=0.5,upper_limit=0.3, align='Stimulus_ON', colors=colors, variables_combined=variables_combined)
-    
+
 # ---------------------------------------------------------------------------
 # Panel c cont. — delay decoder data loading
 # ---------------------------------------------------------------------------
@@ -184,11 +184,11 @@ file_name = 'RLandWM_roll0.6_delay_V5'
 
 scores = df_cum_sti.groupby('session').score.mean().reset_index()
 list_exclude = scores.loc[scores.score<0.55].session.unique()
-df_cum_sti = df_cum_sti[~df_cum_sti['session'].isin(list_exclude)] 
+df_cum_sti = df_cum_sti[~df_cum_sti['session'].isin(list_exclude)]
 
 scores = df_cum_res.groupby('session').score.mean().reset_index()
 list_exclude = scores.loc[scores.score<0.55].session.unique()
-df_cum_res = df_cum_res[~df_cum_res['session'].isin(list_exclude)] 
+df_cum_res = df_cum_res[~df_cum_res['session'].isin(list_exclude)]
 
 df_cum_sti = pd.read_csv(file_name+'_sti.csv', index_col=0)
 df_cum_res= pd.read_csv(file_name+'_res.csv', index_col=0)
@@ -199,12 +199,12 @@ variables = ['WM_roll','RL_roll']
 hits = [1,1]
 ratios = [0.6,0.4]
 variables_combined=[variables[0]+'_'+str(hits[0]),variables[1]+'_'+str(hits[1])]
-       
-plot_decoder([b1,b1,b1,b1], df_cum_sti,baseline=0.0,upper_limit=0.3, align='Stimulus_ON', colors=colors, variables_combined=variables_combined)
-plot_decoder([b2,b2,b2,b2], df_cum_res,baseline=0.0,upper_limit=0.3, show_axis = False, align='Delay_OFF', colors=colors, variables_combined=variables_combined)    
 
-b1.set_xlim(-1.5,1)  
-b2.set_xlim(-1,2)  
+plot_decoder([b1,b1,b1,b1], df_cum_sti,baseline=0.0,upper_limit=0.3, align='Stimulus_ON', colors=colors, variables_combined=variables_combined)
+plot_decoder([b2,b2,b2,b2], df_cum_res,baseline=0.0,upper_limit=0.3, show_axis = False, align='Delay_OFF', colors=colors, variables_combined=variables_combined)
+
+b1.set_xlim(-1.5,1)
+b2.set_xlim(-1,2)
 
 # ---------------------------------------------------------------------------
 # Panel e — example session cross-decoder (E20 2022-02-26; h1: stim, h2: response)
@@ -227,7 +227,7 @@ for color, variable,left,right in zip(colors,variables_combined,[h1, h1, h1, h1]
 
     # Aligmnent for Stimulus cue
 
-    real = np.array(np.mean(df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)].groupby('session').median().drop(columns=['score','fold']))) 
+    real = np.array(np.mean(df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)].groupby('session').median().drop(columns=['score','fold'])))
     times = df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
     times = np.array(times.drop(columns=['session','fold','score','subject','trial_type'],axis = 1).columns.astype(float))
 
@@ -259,7 +259,7 @@ for color, variable,left,right in zip(colors,variables_combined,[h1, h1, h1, h1]
     real = np.array(np.mean(df_cum_res.loc[(df_cum_res['trial_type'] == variable)].groupby('session').median().drop(columns=['score','fold'])))
     times = df_cum_res.loc[(df_cum_res['trial_type'] == variable)]
     times = np.array(times.drop(columns=['session','fold','score','subject','trial_type'],axis = 1).columns.astype(float))
-    
+
     df_lower = pd.DataFrame()
     df_upper = pd.DataFrame()
 
@@ -269,11 +269,11 @@ for color, variable,left,right in zip(colors,variables_combined,[h1, h1, h1, h1]
             df_new[iteration]= df_cum_shuffle_res.loc[(df_cum_shuffle_res.trial_type==variable)].groupby('times').mean()[iteration]
         except:
             df_new[iteration]= df_cum_shuffle_res.loc[(df_cum_shuffle_res.trial_type==variable)].groupby('times').mean()[str(float(iteration))]
-            
+
     y_mean= df_new.mean(axis=1).values
     upper =  df_new.quantile(q=0.975, interpolation='linear',axis=1) - y_mean
     lower =  df_new.quantile(q=0.025, interpolation='linear',axis=1) - y_mean
-    
+
     x=times
 
     # ax2.plot(x, y_mean, color=color)
@@ -287,11 +287,11 @@ for color, variable,left,right in zip(colors,variables_combined,[h1, h1, h1, h1]
     right.set_xlabel('Time from response onset (s)')
     left.set_xlabel('Time from stimulus onset (s)')
     left.set_ylabel('Decoding\n accuracy')
-    left.set_xlim(-1.5,1)  
-    right.set_xlim(-1,2)  
-    
+    left.set_xlim(-1.5,1)
+    right.set_xlim(-1,2)
+
     right.set_title('Mouse E20 2022-02-26')
-    
+
 # ---------------------------------------------------------------------------
 # Panel d — log-odds by state and epoch (subplot f; mixed-effects model)
 # ---------------------------------------------------------------------------
@@ -302,14 +302,14 @@ df_final = pd.read_csv(path+file_name+'.csv', index_col=0)
 
 # scores = df_final.groupby('session').score.mean().reset_index()
 # list_exclude = scores.loc[scores.score<0.55].session.unique()
-# df_final = df_final[~df_final['session'].isin(list_exclude)] 
+# df_final = df_final[~df_final['session'].isin(list_exclude)]
 
 # df_results = df_final.loc[(df_final.trial_type=='WM_roll_1')|(df_final.trial_type=='WM_roll_0')].groupby(['session', 'trial_type','epoch']).logs.mean()
 # df_results = df_results.reset_index()
 
-# plot = pd.DataFrame({'Correct WM early': df_results.loc[(df_results.trial_type == 'WM_roll_1')&(df_results.epoch == 'early')].logs.values, 
+# plot = pd.DataFrame({'Correct WM early': df_results.loc[(df_results.trial_type == 'WM_roll_1')&(df_results.epoch == 'early')].logs.values,
 #                      'Incorrect WM early':  df_results.loc[(df_results.trial_type == 'WM_roll_0')&(df_results.epoch == 'early')].logs.values,
-#                     'Correct WM late': df_results.loc[(df_results.trial_type == 'WM_roll_1')&(df_results.epoch == 'late')].logs.values, 
+#                     'Correct WM late': df_results.loc[(df_results.trial_type == 'WM_roll_1')&(df_results.epoch == 'late')].logs.values,
 #                     'Incorrect WM late':  df_results.loc[(df_results.trial_type == 'WM_roll_0')&(df_results.epoch == 'late')].logs.values})
 
 panel=f
@@ -420,10 +420,10 @@ with PdfPages(path +  filename[:-4]+'_population.pdf') as pdf:
         j=1
         j = convolveandplot(temp_df.loc[(temp_df.vector_answer == 0)&(temp_df.hit == 1)], i1, j1, variable='state', cluster_id = cluster_id, delay = delay, j=j,
                            labels=['WM left','HB left'], colors=['darkgreen', 'indigo'], kernel=200, add_state=True)
- 
+
         # j = convolveandplot(temp_df.loc[(temp_df.vector_answer == 0)&(temp_df.hit == 0)], i1, j1, variable='state', cluster_id = cluster_id, delay = delay, j=j,
-        #                    labels=['WM left','HB left'], colors=['lightgrey', 'lightgrey'], kernel=200) 
-        
+        #                    labels=['WM left','HB left'], colors=['lightgrey', 'lightgrey'], kernel=200)
+
         i1.set_ylim(0,19)
 
 
@@ -443,15 +443,15 @@ df_cum_res= pd.read_csv(path+file_name+'_res.csv', index_col=0)
 df_cum_sti= pd.read_csv(path+file_name+'_sti.csv', index_col=0)
 trained_trials = df_cum_sti.session.unique()
 
-df_cum_res = df_cum_res[df_cum_res['session'].isin(trained_trials[:-1])] 
-df_cum_sti = df_cum_sti[df_cum_sti['session'].isin(trained_trials[:-1])] 
+df_cum_res = df_cum_res[df_cum_res['session'].isin(trained_trials[:-1])]
+df_cum_sti = df_cum_sti[df_cum_sti['session'].isin(trained_trials[:-1])]
 
 file_name = 'trainedall_testedRL_previous_vector_answer_shuffle_V11'
 df_cum_res_shuffle = pd.read_csv(path+file_name+'_res.csv', index_col=0)
 df_cum_sti_shuffle = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
 
-df_cum_res_shuffle = df_cum_res_shuffle[df_cum_res_shuffle['session'].isin(trained_trials)] 
-df_cum_sti_shuffle = df_cum_sti_shuffle[df_cum_sti_shuffle['session'].isin(trained_trials)] 
+df_cum_res_shuffle = df_cum_res_shuffle[df_cum_res_shuffle['session'].isin(trained_trials)]
+df_cum_sti_shuffle = df_cum_sti_shuffle[df_cum_sti_shuffle['session'].isin(trained_trials)]
 
 plots.plot_results_shuffle_substraction(df_cum_sti, df_cum_res, df_cum_sti_shuffle, df_cum_res_shuffle, ['indigo'], variables_combined, fig = True, ax1=e1, ax2=e2)
 
@@ -459,15 +459,15 @@ file_name = 'trainedall_testedWM_previous_vector_answer_shuffle_V11'
 df_cum_res_shuffle = pd.read_csv(path+file_name+'_res.csv', index_col=0)
 df_cum_sti_shuffle = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
 
-df_cum_res_shuffle = df_cum_res_shuffle[df_cum_res_shuffle['session'].isin(trained_trials)] 
-df_cum_sti_shuffle = df_cum_sti_shuffle[df_cum_sti_shuffle['session'].isin(trained_trials)] 
+df_cum_res_shuffle = df_cum_res_shuffle[df_cum_res_shuffle['session'].isin(trained_trials)]
+df_cum_sti_shuffle = df_cum_sti_shuffle[df_cum_sti_shuffle['session'].isin(trained_trials)]
 
 file_name = 'trainedall_testedWM_previous_vector_answer_after_correct_V11'
 df_cum_res= pd.read_csv(path+file_name+'_res.csv', index_col=0)
 df_cum_sti= pd.read_csv(path+file_name+'_sti.csv', index_col=0)
 
-df_cum_res = df_cum_res[df_cum_res['session'].isin(trained_trials)] 
-df_cum_sti = df_cum_sti[df_cum_sti['session'].isin(trained_trials)] 
+df_cum_res = df_cum_res[df_cum_res['session'].isin(trained_trials)]
+df_cum_sti = df_cum_sti[df_cum_sti['session'].isin(trained_trials)]
 
 plots.plot_results_shuffle_substraction(df_cum_sti, df_cum_res, df_cum_sti_shuffle, df_cum_res_shuffle, ['darkgreen'], variables_combined, fig = True, ax1=e1, ax2=e2)
 

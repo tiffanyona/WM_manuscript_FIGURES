@@ -33,12 +33,12 @@ save_path = str(FIGURES_OUT / 'supp_figures' / 'supp_fig_8')
 
 cm = 1/2.54
 sns.set_context('paper', rc={'axes.labelsize': 7,
-                            'lines.linewidth': 1, 
-                            'lines.markersize': 3, 
-                            'legend.fontsize': 7,  
+                            'lines.linewidth': 1,
+                            'lines.markersize': 3,
+                            'legend.fontsize': 7,
                             'xtick.major.size': 1,
-                            'xtick.labelsize': 6, 
-                            'ytick.major.size': 1, 
+                            'xtick.labelsize': 6,
+                            'ytick.major.size': 1,
                             'ytick.labelsize': 6,
                             'xtick.major.pad': 0,
                             'ytick.major.pad': 0,
@@ -69,7 +69,7 @@ fig.text(0.5, 0.5, 'd', fontsize=10, fontweight='bold', va='top')
 
 # -----------------###########################################################################################################-----------------------
 
-file_name = '\single_delay_WM_roll0.6_delay_0.25_all_V3'
+file_name = r'\single_delay_WM_roll0.6_delay_0.25_all_V3'
 df_cum_sti = pd.read_csv(path+file_name+'.csv', index_col=0)
 
 list_sessions = df_cum_sti.session.unique()
@@ -84,7 +84,7 @@ list_sessions = df_cum_sti.session.unique()
 
 scores = df_cum_sti.groupby('session').score.mean().reset_index()
 list_exclude = scores.loc[scores.score<0.55].session.unique()
-df_cum_sti = df_cum_sti[~df_cum_sti['session'].isin(list_exclude)] 
+df_cum_sti = df_cum_sti[~df_cum_sti['session'].isin(list_exclude)]
 
 #Variables for testing
 colors=['crimson', 'pink']
@@ -108,14 +108,14 @@ panel.locator_params(axis='y', nbins=4)
 
 # scores = df_final.groupby('session').score.mean().reset_index()
 # list_exclude = scores.loc[scores.score<0.55].session.unique()
-# df_final = df_final[~df_final['session'].isin(list_exclude)] 
+# df_final = df_final[~df_final['session'].isin(list_exclude)]
 
 # # df_results = df_final.loc[(df_final.trial_type=='WM_roll_1')|(df_final.trial_type=='WM_roll_0')].groupby(['session', 'trial_type','epoch']).logs.mean()
 # # df_results = df_results.reset_index()
 
-# # plot = pd.DataFrame({'Correct WM early': df_results.loc[(df_results.trial_type == 'WM_roll_1')&(df_results.epoch == 'early')].logs.values, 
+# # plot = pd.DataFrame({'Correct WM early': df_results.loc[(df_results.trial_type == 'WM_roll_1')&(df_results.epoch == 'early')].logs.values,
 # #                      'Incorrect WM early':  df_results.loc[(df_results.trial_type == 'WM_roll_0')&(df_results.epoch == 'early')].logs.values,
-# #                     'Correct WM late': df_results.loc[(df_results.trial_type == 'WM_roll_1')&(df_results.epoch == 'late')].logs.values, 
+# #                     'Correct WM late': df_results.loc[(df_results.trial_type == 'WM_roll_1')&(df_results.epoch == 'late')].logs.values,
 # #                     'Incorrect WM late':  df_results.loc[(df_results.trial_type == 'WM_roll_0')&(df_results.epoch == 'late')].logs.values})
 
 # panel = d1
@@ -134,9 +134,9 @@ panel.locator_params(axis='y', nbins=4)
 # Against zero early:
 # WM incorrec:        Ttest_1sampResult(statistic=-2.7477504654505056, pvalue=0.011462877761353584)
 # RL incorrec:        Ttest_1sampResult(statistic=-0.06301202488782576, pvalue=0.9503824394776591)
-    
+
 #     late
-    
+
 # WM incorrec:        Ttest_1sampResult(statistic=3.863943233938716, pvalue=0.0006336180802942003)
 # RL incorrec:        Ttest_1sampResult(statistic=3.1384435804116797, pvalue=0.0041947215329948264)
 
@@ -145,7 +145,7 @@ panel.locator_params(axis='y', nbins=4)
 
 # (Intercept)     0.4762594  0.1684837 2.826739
 
-# state           0.2313577  0.1954282 1.183850   10.8273  1   0.001000 ** 
+# state           0.2313577  0.1954282 1.183850   10.8273  1   0.001000 **
 
 # epochlate       0.3980418  0.1646347 2.417728  21.2205  1  4.094e-06 ***
 
@@ -155,7 +155,7 @@ panel.locator_params(axis='y', nbins=4)
 # ----------------------------------------------------------------------------------------------------------------------------
 
 os.chdir(path)
-file_name = '\slope_comparison_paired_sessions'
+file_name = r'\slope_comparison_paired_sessions'
 df = pd.read_csv(path+file_name+'.csv', index_col=0)
 
 list_sessions = df.session.unique()
@@ -226,10 +226,10 @@ df_cum_sti = df_cum_sti[df_cum_sti['session'].isin(trained_trials)]
 
 y_range = [-0.10, 0.3]
 
-plots.plot_results_session_summary_substract(fig, b, df_cum_sti, df_cum_sti_shuffle, 
+plots.plot_results_session_summary_substract(fig, b, df_cum_sti, df_cum_sti_shuffle,
                                   color = 'indigo', variable = variable, y_range = y_range, x_range = [-2,1.125], baseline=0)
 
-plots.plot_results_session_summary_substract(fig, c, df_cum_res, df_cum_res_shuffle, 
+plots.plot_results_session_summary_substract(fig, c, df_cum_res, df_cum_res_shuffle,
                                   color = 'indigo', variable = variable, y_range = y_range, x_range = [-1,4], baseline=0)
 # c.locator_params(axis='x', nbins=6)
 b.locator_params(axis='x', nbins=4)
@@ -263,10 +263,10 @@ numeric_columns = ['-0.88', '-0.62', '-0.38', '-0.12', '0.12', '0.38', '0.62', '
        '1.12', '1.38', '1.62', '1.88', '2.12', '2.38', '2.62', '2.88', '3.12', '3.38', '3.62']
 df_cum_res[numeric_columns] += 0.5
 
-plots.plot_results_session_summary_substract(fig, d, df_cum_sti, df_cum_sti_shuffle, 
+plots.plot_results_session_summary_substract(fig, d, df_cum_sti, df_cum_sti_shuffle,
                                   color = 'black', variable = variable, y_range = y_range, x_range = [-2,1.3], baseline=0)
 
-plots.plot_results_session_summary_substract(fig, e, df_cum_res, df_cum_res_shuffle, 
+plots.plot_results_session_summary_substract(fig, e, df_cum_res, df_cum_res_shuffle,
                                   color = 'black', variable = variable, y_range = y_range, x_range = [-1,3], baseline=0)
 
 variable = 'RL_roll_1'
@@ -279,11 +279,11 @@ df_cum_sti = df_cum_sti.loc[df_cum_sti.trial_type == variable]
 df_cum_res = df_cum_res.loc[df_cum_res.trial_type == variable]
 
 panel = d
-plots.plot_results_session_summary(fig, panel, df_cum_sti, colors = ['indigo'], variables_combined = [variable], 
+plots.plot_results_session_summary(fig, panel, df_cum_sti, colors = ['indigo'], variables_combined = [variable],
                                    y_range = y_range, x_range = [-2,1.125], epoch = 'Stimulus_ON', baseline=0.5)
 
 panel = e
-plots.plot_results_session_summary(fig, panel, df_cum_res, colors = ['indigo'], variables_combined = [variable], 
+plots.plot_results_session_summary(fig, panel, df_cum_res, colors = ['indigo'], variables_combined = [variable],
                                    y_range = y_range, x_range =  [-1,4], epoch = 'Delay_OFF', baseline=0.5)
 
 d.locator_params(axis='x', nbins=4)
@@ -321,10 +321,10 @@ numeric_columns = ['-0.88', '-0.62', '-0.38', '-0.12', '0.12', '0.38', '0.62', '
        '1.12', '1.38', '1.62', '1.88', '2.12', '2.38', '2.62', '2.88', '3.12', '3.38', '3.62']
 df_cum_res[numeric_columns] += 0.5
 
-plots.plot_results_session_summary_substract(fig, f, df_cum_sti, df_cum_sti_shuffle, 
+plots.plot_results_session_summary_substract(fig, f, df_cum_sti, df_cum_sti_shuffle,
                                   color = 'darkgreen', variable = variable, y_range = y_range, x_range = [-2,1.3], baseline=0)
 
-plots.plot_results_session_summary_substract(fig, g, df_cum_res, df_cum_res_shuffle, 
+plots.plot_results_session_summary_substract(fig, g, df_cum_res, df_cum_res_shuffle,
                                   color = 'darkgreen', variable = variable, y_range = y_range, x_range = [-1,3], baseline=0)
 
 
@@ -339,11 +339,11 @@ df_cum_res = df_cum_res.loc[df_cum_res.trial_type == variable]
 
 
 panel = f
-plots.plot_results_session_summary(fig, panel, df_cum_sti, colors = ['black'], variables_combined = [variable], 
+plots.plot_results_session_summary(fig, panel, df_cum_sti, colors = ['black'], variables_combined = [variable],
                                    y_range = y_range, x_range = [-2,1.125], epoch = 'Stimulus_ON', baseline=0.5)
 
 panel = g
-plots.plot_results_session_summary(fig, panel, df_cum_res, colors = ['black'], variables_combined = [variable], 
+plots.plot_results_session_summary(fig, panel, df_cum_res, colors = ['black'], variables_combined = [variable],
                                    y_range = y_range, x_range =  [-1,4], epoch = 'Delay_OFF', baseline=0.5)
 
 f.locator_params(axis='x', nbins=4)
@@ -365,11 +365,11 @@ g.locator_params(axis='y', nbins=4)
 
 
 # panel = f
-# plots.plot_results_session_summary(fig, panel, df_cum_sti, colors = ['indigo'], variables_combined = [variable], 
+# plots.plot_results_session_summary(fig, panel, df_cum_sti, colors = ['indigo'], variables_combined = [variable],
 #                                    y_range = y_range, x_range = [-2,1.125], epoch = 'Stimulus_ON', baseline=0.5)
 
 # panel = g
-# plots.plot_results_session_summary(fig, panel, df_cum_res, colors = ['indigo'], variables_combined = [variable], 
+# plots.plot_results_session_summary(fig, panel, df_cum_res, colors = ['indigo'], variables_combined = [variable],
 #                                    y_range = y_range, x_range =  [-1,4], epoch = 'Delay_OFF', baseline=0.5)
 
 # #####################
@@ -384,11 +384,11 @@ g.locator_params(axis='y', nbins=4)
 # df_cum_res = df_cum_res.loc[df_cum_res.trial_type == variable]
 
 # panel = f
-# plots.plot_results_session_summary(fig, panel, df_cum_sti, colors = ['darkgreen'], variables_combined = [variable], 
+# plots.plot_results_session_summary(fig, panel, df_cum_sti, colors = ['darkgreen'], variables_combined = [variable],
 #                                    y_range = y_range, x_range = [-2,1.125], epoch = 'Stimulus_ON', baseline=0.5)
 
 # panel = g
-# plots.plot_results_session_summary(fig, panel, df_cum_res, colors = ['darkgreen'], variables_combined = [variable], 
+# plots.plot_results_session_summary(fig, panel, df_cum_res, colors = ['darkgreen'], variables_combined = [variable],
 #                                    y_range = y_range, x_range =  [-1,4], epoch = 'Delay_OFF', baseline=0.5)
 
 # g.locator_params(axis='x', nbins=4)

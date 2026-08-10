@@ -1,0 +1,8 @@
+[lint]
+select = ["E", "W", "F"]
+ignore = [
+  "E402",  # module-import-not-at-top: all scripts modify sys.path before imports
+  "E501",  # line-too-long: not enforced in scientific code
+  "F401",  # unused-import: many imports used dynamically or in notebooks
+  "F811",  # redefinition of unused name
+]

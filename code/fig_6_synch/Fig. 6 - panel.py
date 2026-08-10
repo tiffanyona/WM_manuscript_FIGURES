@@ -31,7 +31,7 @@ from neo.core import SpikeTrain
 from quantities import ms, s
 from elephant.statistics import time_histogram
 
-import os 
+import os
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -49,12 +49,12 @@ save_path = str(FIGURES_OUT / 'fig_6_synch') + '/'
 path = str(DATA_DIR/ 'fig_6_synch') + '/'
 cm = 1/2.54
 sns.set_context('paper', rc={'axes.labelsize': 7,
-                            'lines.linewidth': 1, 
-                            'lines.markersize': 3, 
-                            'legend.fontsize': 6,  
+                            'lines.linewidth': 1,
+                            'lines.markersize': 3,
+                            'legend.fontsize': 6,
                             'xtick.major.size': 1,
-                            'xtick.labelsize': 6, 
-                            'ytick.major.size': 1, 
+                            'xtick.labelsize': 6,
+                            'ytick.major.size': 1,
                             'ytick.labelsize': 6,
                             'xtick.major.pad': 0,
                             'ytick.major.pad': 0,
@@ -78,7 +78,7 @@ g1 = fig.add_subplot(gs[3, 0])
 g2 = fig.add_subplot(gs[4, 0])
 h1 = fig.add_subplot(gs[3, 2])
 h2 = fig.add_subplot(gs[4, 2])
-i1 = fig.add_subplot(gs[3:5, 3:5]) # 
+i1 = fig.add_subplot(gs[3:5, 3:5]) #
 d = fig.add_subplot(gs[5, 0:3])
 
 j1 = fig.add_subplot(gs[0:2, 5:7])
@@ -101,7 +101,7 @@ fig.text(0.56, 0.53, 'f', fontsize=10, fontweight='bold', va='top')
 # panel = b
 # sns.boxplot(x='subject',  y='R_WM', data=df_final, ax=panel)
 # panel.scatter(np.random.uniform(8.75,9.25,len(df_final)),df_final['R_WM'], s=1, alpha=0.5, color='black')
-# panel.errorbar(9, np.mean(df_final['R_WM']),yerr=stats.sem(df_final['R_WM']),marker='o',markersize= 4, color='black',zorder=1)  
+# panel.errorbar(9, np.mean(df_final['R_WM']),yerr=stats.sem(df_final['R_WM']),marker='o',markersize= 4, color='black',zorder=1)
 # panel.hlines(xmin=0, xmax=9, y=0, linestyle=':')
 # panel.set_xlabel('')
 
@@ -130,8 +130,8 @@ cue_off=0.4
 start=-2
 stop =  max(dft['a_'+align])
 
-# Align to specific epoch, in this case Stimulus 
-big_data['time_centered'] = big_data['times'] - big_data['Stimulus_ON'] 
+# Align to specific epoch, in this case Stimulus
+big_data['time_centered'] = big_data['times'] - big_data['Stimulus_ON']
 big_data['time_centered'] = np.round(big_data.time_centered/1000, 2) #### estos es importante!!
 big_data['firing_'] = big_data['firing']*1000
 
@@ -151,11 +151,11 @@ for N in df_results.neuron.unique():
     panel.plot(x, y_mean, label=N, alpha=0.5)
 #                 sns.lineplot(x='time_centered',y='firing',data=df_results)
 
-panel.set_xlim(start,stop)   
+panel.set_xlim(start,stop)
 panel.set_xlabel('Time from stimulus onset (s)')
 
-y = np.arange(0,120,0.1)     
-panel.fill_betweenx(y, cue_on,cue_off, color='lightgrey', alpha=.8)  
+y = np.arange(0,120,0.1)
+panel.fill_betweenx(y, cue_on,cue_off, color='lightgrey', alpha=.8)
 panel.fill_betweenx(y, cue_off+delay,cue_off+delay+.2, color='grey', alpha=.8)
 panel.set_ylabel('Firing rate\n(spks/s)')
 
@@ -195,7 +195,7 @@ panel.set_title('Session')
 
 y = np.arange(0,j+1,0.1)
 panel.fill_betweenx(y, cue_on,cue_off, color='lightgrey', alpha=1)
-panel.fill_betweenx(y, cue_off+delay,cue_off+delay+.2, color='grey', alpha=1)  
+panel.fill_betweenx(y, cue_off+delay,cue_off+delay+.2, color='grey', alpha=1)
 
 panel=a3
 
@@ -305,7 +305,7 @@ panel.fill_between(df_session['trial'],0.9 , 2.5, where=df_session['WM_roll'] <=
                  facecolor='indigo', alpha=0.3)
 panel.fill_between(df_session['trial'], 0.9, 2.5,  where=df_session['WM_roll'] >= threshold,
                  facecolor='darkgreen', alpha=0.3)
-sns.lineplot(x="trial", y="synch_window",data=df_session, color='black',ci=68,ax=panel)      
+sns.lineplot(x="trial", y="synch_window",data=df_session, color='black',ci=68,ax=panel)
 panel.set_ylabel('Synch')
 panel.set_ylim(0.9,max(df_session.synch_window)+0.3)
 panel.set_xlabel('Trials')
@@ -375,8 +375,8 @@ panel.hlines(y=0, xmin=-0.5, xmax=2.5, linestyle=":")
 
 for const, regressor in zip(range(3),['r_acc_shuff','r_repeat_shuff','r_WM_shuff']):
     if stats.ttest_1samp(df_corr[regressor],0)[1] <=0.001:
-        panel.text(const-0.12,  0.3, '***') 
-        
+        panel.text(const-0.12,  0.3, '***')
+
 
     elif stats.ttest_1samp(df_corr[regressor],0)[1] <=0.01:
         panel.text(const-0.08,  0.3, '**')

@@ -30,12 +30,12 @@ analysis_path = str(DATA_DIR) + '/fig_2_model/'
 
 cm = 1/2.54
 sns.set_context('paper', rc={'axes.labelsize': 7,
-                            'lines.linewidth': 1, 
-                            'lines.markersize': 3, 
-                            'legend.fontsize': 7,  
+                            'lines.linewidth': 1,
+                            'lines.markersize': 3,
+                            'legend.fontsize': 7,
                             'xtick.major.size': 1,
-                            'xtick.labelsize': 6, 
-                            'ytick.major.size': 1, 
+                            'xtick.labelsize': 6,
+                            'ytick.major.size': 1,
                             'ytick.labelsize': 6,
                             'xtick.major.pad': 0,
                             'ytick.major.pad': 0,
@@ -77,17 +77,17 @@ full_fit = full_fit.loc[full_fit.delay == 10]
 
 for regressor, panel, color in zip(['pi', 't11','t22'],[a, a, a], ['darkgreen','grey','grey']):
     if regressor == 'pi':
-        xA = np.random.normal(0, 0.1, len(full_fit))  
+        xA = np.random.normal(0, 0.1, len(full_fit))
         sns.scatterplot(x=xA,y=regressor,data=full_fit, ax=panel, color=color, legend=False, alpha=0.7, size=1)
 
     elif regressor == 't11':
-        xA = np.random.normal(1, 0.1, len(full_fit))  
+        xA = np.random.normal(1, 0.1, len(full_fit))
         sns.scatterplot(x=xA,y=regressor,data=full_fit, ax=panel, color=color, legend=False,alpha=0.7, size=1)
 
     elif regressor == 't22':
-        xA = np.random.normal(2, 0.1, len(full_fit))  
+        xA = np.random.normal(2, 0.1, len(full_fit))
         sns.scatterplot(x=xA,y=regressor,data=full_fit, ax=panel, color=color, legend=False, alpha=0.7, size=1)
-    
+
     panel.set_ylabel('')
     panel.set_xticks([])
     panel.set_xlim(-0.7,0.7)
@@ -107,7 +107,7 @@ for regressor, panel, color in zip(['pi', 't11','t22'],[a, a, a], ['darkgreen','
 
     panel.hlines(y=0,xmin=-1,xmax=2.5,linestyle=':')
     panel.locator_params(axis='y', nbins=5)
-    y_min, y_max = panel.get_ylim()  
+    y_min, y_max = panel.get_ylim()
     panel.locator_params(nbins=3)
 
 panel = a

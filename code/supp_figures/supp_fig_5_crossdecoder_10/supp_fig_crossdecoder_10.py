@@ -30,12 +30,12 @@ path = str(DATA_DIR) + '/'
 
 cm = 1/2.54
 sns.set_context('paper', rc={'axes.labelsize': 7,
-                            'lines.linewidth': 1, 
-                            'lines.markersize': 3, 
-                            'legend.fontsize': 7,  
+                            'lines.linewidth': 1,
+                            'lines.markersize': 3,
+                            'legend.fontsize': 7,
                             'xtick.major.size': 1,
-                            'xtick.labelsize': 6, 
-                            'ytick.major.size': 1, 
+                            'xtick.labelsize': 6,
+                            'ytick.major.size': 1,
                             'ytick.labelsize': 6,
                             'xtick.major.pad': 0,
                             'ytick.major.pad': 0,
@@ -69,13 +69,13 @@ def plot_decoder(left, df,baseline=0.5,individual_sessions=False, align='Stimulu
                 times = np.array(df.columns[:-4]).astype(float)
             except:
                 times = np.array(df.columns[1:]).astype(float)
-        
+
             left.set_xlabel('Time (s) to Cue')
-        
+
             x=times
             for i in range(len(real)):
                 left.plot(times,real.iloc[i][1:-1], color=color,alpha=0.1)
-                
+
         try:
             df_loop = df.loc[(df['trial_type'] == variable)]
         except:
@@ -84,7 +84,7 @@ def plot_decoder(left, df,baseline=0.5,individual_sessions=False, align='Stimulu
         # Select only columns where the column name is a number or can be transformed to a number
         numeric_columns = df_loop.columns[df_loop.columns.to_series().apply(pd.to_numeric, errors='coerce').notna()]
 
-        real = np.array(np.mean(df_loop.groupby('session').mean()[numeric_columns])) 
+        real = np.array(np.mean(df_loop.groupby('session').mean()[numeric_columns]))
         times = df_loop[numeric_columns].columns.astype(float)
 
 
@@ -96,12 +96,12 @@ def plot_decoder(left, df,baseline=0.5,individual_sessions=False, align='Stimulu
         mean_surr = []
         df_lower = pd.DataFrame()
         df_upper = pd.DataFrame()
-    
+
         df_for_boots = df_loop.groupby('session').mean()[numeric_columns]
 
         for timepoint in df_results['times']:
             mean_surr = []
-    
+
             # recover the values for that specific timepoint
             array = df_for_boots[str(timepoint)].to_numpy()
 
@@ -110,17 +110,17 @@ def plot_decoder(left, df,baseline=0.5,individual_sessions=False, align='Stimulu
                 x = np.random.choice(array, size=len(array), replace=True)
                 # recover the mean of that new distribution
                 mean_surr.append(np.mean(x))
-    
+
             df_lower.at[0,timepoint] = np.percentile(mean_surr, 0.5)
             df_upper.at[0,timepoint] = np.percentile(mean_surr, 99.5)
-        
+
         x=times
         lower =  df_lower.iloc[0].values
         upper =  df_upper.iloc[0].values
         left.plot(x, lower, color=color, linestyle = '',alpha=0.6, linewidth=0)
         left.plot(x, upper, color=color, linestyle = '',alpha=0.6, linewidth=0)
         left.fill_between(x, lower, upper, alpha=0.2, color=color, linewidth=0)
-    
+
         left.plot(times,real, color=color)
 
         left.fill_betweenx(np.arange(-baseline-0.1,baseline+.5,0.1), 0,0.45, color='lightgrey', alpha=1, linewidth=0)
@@ -129,13 +129,13 @@ def plot_decoder(left, df,baseline=0.5,individual_sessions=False, align='Stimulu
         left.axhline(y=baseline,linestyle=':',color='black')
         left.set_xlabel('Testing time from stimulus onset (s)')
         left.set_ylabel('Excess decoding\n accuracy')
-        
+
         y = np.arange(-1,1.15,0.1)
         if align == 'Stimulus_ON':
             left.fill_betweenx(y, 0,.35, color='lightgrey', alpha=1, linewidth=0)
         elif align == 'Delay_OFF':
-            left.fill_betweenx(y, 0,0.2, color='lightgrey', alpha=1, linewidth=0)  
-    
+            left.fill_betweenx(y, 0,0.2, color='lightgrey', alpha=1, linewidth=0)
+
         if show_axis==False:
             left.spines['left'].set_visible(False)
 
@@ -146,37 +146,37 @@ def plotsingledelay(df_cum_sti, panel, colors, variables_combined, delay, start=
     y_lower=baseline
 
     for color, variable in zip(colors,variables_combined):
-    
+
         # Aligmnent for Stimulus cue
         real = np.array(df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)&(df_cum_sti['delay'] == delay)].drop(columns=['trial_type', 'delay','session','fold','score']).mean(axis=0))
         times = df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)&(df_cum_sti['delay'] == delay)]
         times = np.array(times.drop(columns=['trial_type', 'delay','session','fold','score'],axis = 1).columns.astype(float))
-    
+
         df_lower = pd.DataFrame()
         df_upper = pd.DataFrame()
-    
+
         for timepoint in times:
             mean_surr = []
-    
+
             # recover the values for that specific timepoint
             try:
                 array = df_cum_sti.loc[(df_cum_sti.trial_type ==variable)&(df_cum_sti['delay'] == delay)].drop(columns='delay').groupby('session').mean()[str(timepoint)].to_numpy()
             except:
                 array = df_cum_sti.loc[(df_cum_sti.trial_type ==variable)&(df_cum_sti['delay'] == delay)].drop(columns='delay').groupby('session').mean()[timepoint].to_numpy()
-    
+
             # iterate several times with resampling: chose X time among the same list of values
             for iteration in range(1000):
                 x = np.random.choice(array, size=len(array), replace=True)
                 # recover the mean of that new distribution
                 mean_surr.append(np.mean(x))
-    
+
             df_lower.at[0,timepoint] = np.percentile(mean_surr, 2.5)
             df_upper.at[0,timepoint] = np.percentile(mean_surr, 97.5)
-    
+
         lower =  df_lower.iloc[0].values
         upper =  df_upper.iloc[0].values
         x=times
-    
+
         panel.plot(times,real, color=color)
         panel.plot(x, lower, color=color, linestyle = '',alpha=0.6, linewidth=0)
         panel.plot(x, upper, color=color, linestyle = '',alpha=0.6, linewidth=0)

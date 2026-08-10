@@ -22,7 +22,7 @@ import numpy as np
 import seaborn as sns
 from scipy import stats
 from scipy import special
-import json 
+import json
 from sklearn.linear_model import LogisticRegression
 from scipy.optimize import curve_fit
 #Import all needed libraries
@@ -52,12 +52,12 @@ import functions as plots
 save_path = str(FIGURES_OUT / 'Fig. 5. Errors in WM') + '/'
 cm = 1/2.54
 sns.set_context('paper', rc={'axes.labelsize': 7,
-                            'lines.linewidth': 1, 
-                            'lines.markersize': 3, 
-                            'legend.fontsize': 7,  
+                            'lines.linewidth': 1,
+                            'lines.markersize': 3,
+                            'legend.fontsize': 7,
                             'xtick.major.size': 1,
-                            'xtick.labelsize': 6, 
-                            'ytick.major.size': 1, 
+                            'xtick.labelsize': 6,
+                            'ytick.major.size': 1,
                             'ytick.labelsize': 6,
                             'xtick.major.pad': 0,
                             'ytick.major.pad': 0,
@@ -83,7 +83,7 @@ d1 = fig.add_subplot(gs[3, 0:4])
 d2 = fig.add_subplot(gs[4, 0:4])
 d3 = fig.add_subplot(gs[5, 0:4])
 
-def single_trial_with_decoder(df, df_decoder, big_data, filename, T, panels = [], threshold = 0.4, 
+def single_trial_with_decoder(df, df_decoder, big_data, filename, T, panels = [], threshold = 0.4,
                               align = 'Stimulus_ON', show_y = True ):
 
     delay = df.loc[df.trial==T].delay.unique()[0]
@@ -93,27 +93,27 @@ def single_trial_with_decoder(df, df_decoder, big_data, filename, T, panels = []
     stop=4+delay
     # stop= max(df.loc[df.trial==T]['a_'+align])
     endrange = max(df.loc[df.trial==T]['a_'+align])
-    
+
     ### ------ Filter neurons with substantial weight in the decoder
     window='Delay_OFF--0.5-0'
     path = str(ANALYSIS_DATA) + '/'
     file_name = 'weights for the modelling_complete'
     df_weights = pd.read_csv(path+file_name+'.csv', index_col=0)
     df_weights = df_weights.loc[df_weights.session == filename]
-    
+
     significant_neurons = df_weights.loc[(df_weights[window] > threshold)|(df_weights[window] < -threshold)].neuron.unique()
     df = df[df['cluster_id'].isin(significant_neurons)]
-    
-    # Align to specific epoch, in this case Stimulus 
-    big_data['time_centered'] = big_data['times'] - big_data['Stimulus_ON'] 
+
+    # Align to specific epoch, in this case Stimulus
+    big_data['time_centered'] = big_data['times'] - big_data['Stimulus_ON']
     big_data['time_centered'] = np.round(big_data.time_centered/1000, 2) #### estos es importante!!
     big_data['firing_'] = big_data['firing']*1000
-    
+
     df_results = pd.DataFrame(dtype=float)
     df_results['firing'] = big_data.loc[(big_data.time_centered <= stop)].groupby(['time_centered','neuron'])['firing_'].mean()
     df_results['error'] = big_data.loc[(big_data.time_centered <= stop)].groupby(['time_centered','neuron'])['firing_'].std()
     df_results.reset_index(inplace=True)
-    
+
     # This piece of code is to filter neurons with lower than 1 Hz firing across the session
     filter_neuron = df_results.groupby('neuron').firing.mean().reset_index()
     filter_neuron = (df_results.loc[(df_results.time_centered>0)&(df_results.time_centered<delay+0.2)]
@@ -121,25 +121,25 @@ def single_trial_with_decoder(df, df_decoder, big_data, filename, T, panels = []
     filter_neuron = filter_neuron.loc[filter_neuron.firing > 0.5]
     neurons = filter_neuron.neuron.unique()
     df_results = df_results.loc[df_results.neuron.isin(neurons)]
-    
+
     significant_left_neurons = df_weights.loc[(df_weights["Delay_OFF--0.5-0"] < -threshold)].neuron.unique()
     significant_right_neurons = df_weights.loc[(df_weights["Delay_OFF--0.5-0"] > threshold)].neuron.unique()
-    
+
     left = df_results[df_results['neuron'].isin(significant_right_neurons)].groupby('time_centered').firing.mean().values
     right = df_results[df_results['neuron'].isin(significant_left_neurons)].groupby('time_centered').firing.mean().values
-    
+
     panel = panels[1]
     x = df_results[df_results['neuron'].isin(significant_right_neurons)].groupby('time_centered').firing.mean().index
     panel.plot(x,  df_results[df_results['neuron'].isin(significant_right_neurons)].groupby('time_centered').firing.mean().values, color=COLORRIGHT)
-    
+
     x = df_results[df_results['neuron'].isin(significant_left_neurons)].groupby('time_centered').firing.mean().index
     panel.plot(x,  df_results[df_results['neuron'].isin(significant_left_neurons)].groupby('time_centered').firing.mean().values, color=COLORLEFT)
-    
-    panel.set_xlim(start,stop)  
+
+    panel.set_xlim(start,stop)
     panel.set_ylabel('Firing rate (spks/s)')
-    
-    y = np.arange(0,75,0.1)     
-    panel.fill_betweenx(y, cue_on,cue_off, color='lightgrey', alpha=.8)  
+
+    y = np.arange(0,75,0.1)
+    panel.fill_betweenx(y, cue_on,cue_off, color='lightgrey', alpha=.8)
     panel.fill_betweenx(y, cue_off+delay,cue_off+delay+.2, color='lightgrey', alpha=.8)
     panel.set_ylim(0,max(df_results.groupby('time_centered').firing.mean().values)+5)
     panel.xaxis.set_tick_params(labelbottom=False)
@@ -150,23 +150,23 @@ def single_trial_with_decoder(df, df_decoder, big_data, filename, T, panels = []
     weights = []
     dft = df.loc[df.trial ==T]
     dft = dft.loc[dft.cluster_id.isin(neurons)]
-    
+
     start_FR = 0
     stop_FR = delay
     df['a_Stimulus_ON'] = df['fixed_times'] - df['Stimulus_ON']
-    
+
     for N in dft.cluster_id.unique():
         # spikes = dft.loc[(dft.cluster_id==N)]['a_'+align].values
         spikes = dft.loc[(dft.cluster_id==N)&(dft['a_'+align] > start_FR)&(dft['a_'+align]<stop_FR)].fixed_times.values
         FR_mean.append(len(spikes)/abs(stop_FR-start_FR))
         weights.append(df_weights.loc[df_weights.neuron == N][window].values)
         cluster_id.append(N)
-    
+
     df_spikes = pd.DataFrame(list(zip(cluster_id,FR_mean, weights)), columns =['cluster_id','FR','weights'])
     df_spikes = df_spikes.sort_values('FR')
     # df_spikes = df_spikes.sort_values('weights')
     df_spikes['new_order'] = np.arange(len(df_spikes))
-    
+
     dft = pd.merge(df_spikes, dft, on=['cluster_id'])
 
     right = 1
@@ -188,17 +188,17 @@ def single_trial_with_decoder(df, df_decoder, big_data, filename, T, panels = []
             left-=1
         spikes = dft.loc[dft.new_order==N]['a_'+align].values
         panel.plot(spikes,np.repeat(j, len(spikes)), '|', markersize=3.5, color=color_selectivity, zorder=3)
-    
+
     panel.set_ylabel('Single units')
     panel.set_ylim(0,len(dft.new_order.unique())+1)
     panel.set_ylabel('Neurons')
 
     y = np.arange(0,len(dft.new_order.unique())+1,0.1)
     panel.fill_betweenx(y, cue_on,cue_off, color='lightgrey', alpha=1)
-    panel.fill_betweenx(y, cue_off+delay,cue_off+delay+.2, color='lightgrey', alpha=1)    
+    panel.fill_betweenx(y, cue_off+delay,cue_off+delay+.2, color='lightgrey', alpha=1)
     panel.set_xlim(start,stop)
     panel.xaxis.set_tick_params(labelbottom=False)
-    
+
     # axis labels and legend
     # if T == 21:
     #     panel.set_title('Trial: ' + str(T) + '; WM_roll: '+str(0.1)+'; Hit: '+str(dft.hit.unique()[0])+ '; Side: '+str(dft.reward_side.unique()[0]))
@@ -207,7 +207,7 @@ def single_trial_with_decoder(df, df_decoder, big_data, filename, T, panels = []
 
 ##  --------------------------Decoder plot
     panel = panels[2]
-    
+
     panel.plot(df_decoder['times'],df_decoder['real'], color='grey')
     if abs(min(df_decoder['real'])) > max(df_decoder['real']):
         max_true=abs(min(df_decoder['real']))+0.5
@@ -220,15 +220,15 @@ def single_trial_with_decoder(df, df_decoder, big_data, filename, T, panels = []
     panel.set_xlabel('Time from stimulus onset (s)')
     panel.set_ylabel('Log odds')
     panel.set_xlim(start,stop)
-    
+
     if show_y == False:
         panel[0].yaxis.set_tick_params(labelbottom=False)
         panel[1].yaxis.set_tick_params(labelbottom=False)
         panel[2].yaxis.set_tick_params(labelbottom=False)
-        
 
-    
-        
+
+
+
 # -----------------############################## Example trial correct  #######################-----------------------
 
 path = str(ANALYSIS_DATA) + '/'

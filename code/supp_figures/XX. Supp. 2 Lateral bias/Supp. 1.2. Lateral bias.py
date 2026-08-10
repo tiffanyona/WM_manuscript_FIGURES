@@ -27,12 +27,12 @@ path = str(DATA_DIR) + '/'
 os.chdir(path)
 
 sns.set_context('paper', rc={'axes.labelsize': 7,
-                            'lines.linewidth': 1, 
-                            'lines.markersize': 3, 
-                            'legend.fontsize': 7,  
+                            'lines.linewidth': 1,
+                            'lines.markersize': 3,
+                            'legend.fontsize': 7,
                             'xtick.major.size': 1,
-                            'xtick.labelsize': 6, 
-                            'ytick.major.size': 1, 
+                            'xtick.labelsize': 6,
+                            'ytick.major.size': 1,
                             'ytick.labelsize': 6,
                             'xtick.major.pad': 0,
                             'ytick.major.pad': 0,
@@ -50,7 +50,7 @@ c = fig.add_subplot(gs[0, 4:6])
 d = fig.add_subplot(gs[0, 6:8])
 e = fig.add_subplot(gs[1, 0:2])
 f = fig.add_subplot(gs[1, 2:4])
-g = fig.add_subplot(gs[1, 4:6]) 
+g = fig.add_subplot(gs[1, 4:6])
 # d = fig.add_subplot(gs[1, 3:5])  # span 2 rows and 2 columns
 h = fig.add_subplot(gs[1, 6:8])  # span 2 rows and 1 column
 i = fig.add_subplot(gs[2, 0:2])
@@ -82,7 +82,7 @@ fig.text(0.75, 0.25, 'o', fontsize=10, fontweight='bold', va='top')
 
 def plot_lateral_delay(df, animal, panel):
     df_subject= df.loc[df.subject==animal]
-    
+
     sns.lineplot(x='delay_times',y='hit', hue='reward_side', palette=[COLORLEFT,COLORRIGHT], marker='o', data=df_subject, ax=panel, legend=False)
     sns.lineplot(x='delay_times',y='hit', color='black', data=df_subject, ax=panel, marker='o')
     panel.set_ylim(0.45,1)
@@ -92,7 +92,7 @@ def plot_lateral_delay(df, animal, panel):
     panel.text(x=4,y=0.95, s=animal, fontsize=8)
     panel.set_xticks([0,1,3,10])
     panel.locator_params(nbins=4)
-    
+
 # -----------------###############################################################-----------------------
 
 #-----------------############################## A Panel #################################-----------------------

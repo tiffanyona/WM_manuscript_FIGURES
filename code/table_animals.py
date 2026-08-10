@@ -28,7 +28,7 @@ df = pd.read_csv(path+file_name+'.csv', index_col=0)
 animal_list = ['C13', 'C10b', 'C19', 'N08', 'N07', 'N03', 'N04', 'N02', 'N05',
        'C39', 'C37', 'C38', 'C36', 'N19', 'N27', 'N24', 'N28', 'N26',
        'N25', 'E08', 'E10', 'E05', 'E03', 'E07', 'E11', 'E13', 'E14',
-       'E12', 'E22', 'E16', 'E20', 'E17', 'E19', 'E04','E15','C12', 'C15', 'C18', 'C20', 'C22', 
+       'E12', 'E22', 'E16', 'E20', 'E17', 'E19', 'E04','E15','C12', 'C15', 'C18', 'C20', 'C22',
        'N09', 'N11', 'C28', 'C34','N22', 'N21', 'E06', 'E21', 'E18']
 
 df = df.loc[df['subject'].isin(animal_list)]
@@ -86,11 +86,11 @@ for filename in os.listdir(os.getcwd()):
         print(filename)
     else:
         continue
-    
+
     neurons.append(len(df.cluster_id.unique()))
     values.append(len(df.new_trial.unique()))
     animal.append(filename[:3])
-    
+
 from collections import Counter
 
 # Using Counter to count repetitions
@@ -101,4 +101,4 @@ session = []
 for key, value in count_dict.items():
     session.append(value)
     print(f"{key}: {value} times")
-    
+
