@@ -88,7 +88,7 @@ fig.text(0.25, 0.25, 'm', fontsize=10, fontweight='bold', va='top')
 fig.text(0.5, 0.25, 'n', fontsize=10, fontweight='bold', va='top')
 fig.text(0.75, 0.25, 'o', fontsize=10, fontweight='bold', va='top')
 
-#-----------------############################## A Panel #################################-----------------------
+#-----------------############################## B - C Panel #################################-----------------------
 file_name = 'global_behavior_10_paper'
 df = pd.read_csv(path+file_name+'.csv', index_col=0, low_memory=False)
 
@@ -138,7 +138,7 @@ f_statistic, p_value = stats.f_oneway(group1, group2, group3, group4)
 # ----------------------------------------------------------------------------------------
 
 
-# -----------------############################## B Panel #################################-----------------------
+# -----------------############################## D Panel #################################-----------------------
 df_temp=pd.DataFrame()
 df_cumulative = pd.DataFrame()
 
@@ -167,7 +167,7 @@ b.text(x=-0.018,y=0.9, s= 'R='+ str(round(r_value**2,3))+'\nP= '+ str(round(p_va
 # ----------------------------------------------------------------------------------------------------------------
 
 
-# -----------------############################## B2 Panel #################################-----------------------
+# -----------------############################## E Panel #################################-----------------------
 df_results = pd.DataFrame()
 # df_results['repeat_choice'] = df.loc[df['presented_delays']=='0.01,1.0,3.0,10.0'].groupby(['subject'])['repeat_choice'].mean()
 df_results['acc0'] = df.loc[(df['delay_times']==0.01)].groupby(['subject'])['hit'].mean()
@@ -189,7 +189,7 @@ b2.text(x=0.05,y=0.7, s= 'R= '+ str(round(r_value**2,3))+'\nP= '+ str(round(p_va
 # ----------------------------------------------------------------------------------------------------------------
 
 
-# -----------------############################## C Panel #################################-----------------------
+# -----------------############################## F - G Panel #################################-----------------------
 groupings=['subject','delay_times']
 df_results = pd.DataFrame()
 df_results['repeat_choice'] = 0.5* df.loc[(df['repeat_choice_side']==1)].groupby(groupings)['valids'].count()/df.loc[(df.vector_answer == 0)].groupby(groupings)['valids'].count() + 0.5*df.loc[(df['repeat_choice_side']==2)].groupby(groupings)['valids'].count()/df.loc[(df.vector_answer == 1)].groupby(groupings)['valids'].count()
@@ -229,7 +229,7 @@ c2.set_ylim(0.4,0.8)
 # ----------------------------------------------------------------------------------------------------------------
 
 
-# -----------------############################## D Panel #################################-----------------------
+# -----------------############################## H Panel #################################-----------------------
 df_results = pd.DataFrame()
 # df_results['repeat_choice'] = df.loc[df['presented_delays']=='0.01,1.0,3.0,10.0'].groupby(['subject'])['repeat_choice'].mean()
 df_results['prob_repeat'] = 0.5* df.loc[(df['delay_times']==0.01)&(df['repeat_choice_side']==1)].groupby(['subject'])['valids'].count()/df.loc[(df['delay_times']==0.01)&(df.vector_answer == 0)].groupby(['subject'])['valids'].count() + 0.5*df.loc[(df['delay_times']==0.01)&(df['repeat_choice_side']==2)].groupby(['subject'])['valids'].count()/df.loc[(df['delay_times']==0.01)&(df.vector_answer == 1)].groupby(['subject'])['valids'].count()
@@ -265,7 +265,7 @@ plt.locator_params(nbins=3)
 
 # ----------------------------------------------------------------------------------------------------------------
 
-# -----------------############################## E Panel GLM results #################################-----------------------
+# -----------------############################## L - O Panel GLM results #################################-----------------------
 
 file_name = 'GLMM_final_data'
 coef_matrix = pd.read_csv(path+file_name+'.csv',  index_col=0)
@@ -281,15 +281,13 @@ for regressor, panel in zip(['SL','SR','SL:D','SR:D','exp_C','D:exp_C'], [e,e,f,
         
     if regressor == 'SR':
         plot = pd.DataFrame({'SL': coef_matrix['SL'], 'SR': coef_matrix['SR']})
-        # Layer 1: violin shape (shaded, no outline, below dots)
         sns.violinplot(data=plot, palette=[COLORLEFT, COLORRIGHT], ax=panel,
-                       width=0.8, saturation=0.4, linewidth=0,
+                       width=0.6, saturation=0.4, linewidth=0,
                        inner=None, zorder=1)
-        # Layer 3: boxplot on top of dots
-        sns.boxplot(data=plot, palette=[COLORLEFT, COLORRIGHT], ax=panel,
+        sns.boxplot(data=plot, ax=panel,
                     width=0.15, showcaps=False, showfliers=False,
-                    boxprops=dict(zorder=4, linewidth=1),
-                    whiskerprops=dict(zorder=4, linewidth=1),
+                    boxprops=dict(zorder=4, linewidth=1, alpha=0.5),
+                    whiskerprops=dict(zorder=4, linewidth=1), color='black',
                     medianprops=dict(color='white', linewidth=1.5, zorder=5))
         xA    = np.random.normal(1, 0.15, len(coef_matrix))
         const = 1
@@ -300,12 +298,12 @@ for regressor, panel in zip(['SL','SR','SL:D','SR:D','exp_C','D:exp_C'], [e,e,f,
         plot = pd.DataFrame({'SL:D': coef_matrix['SL:D'], 'SR:D': coef_matrix['SR:D']})
         # Layer 1: violin shape (shaded, no outline, below dots)
         sns.violinplot(data=plot, palette=[COLORLEFT, COLORRIGHT], ax=panel,
-                       width=0.8, saturation=0.4, linewidth=0,
+                       width=0.6, saturation=0.4, linewidth=0,
                        inner=None, zorder=1)
         # Layer 3: boxplot on top of dots
-        sns.boxplot(data=plot, palette=[COLORLEFT, COLORRIGHT], ax=panel,
+        sns.boxplot(data=plot, ax=panel,
                     width=0.15, showcaps=False, showfliers=False,
-                    boxprops=dict(zorder=4, linewidth=1),
+                    boxprops=dict(zorder=4, linewidth=1, alpha=0.5), color='black',
                     whiskerprops=dict(zorder=4, linewidth=1),
                     medianprops=dict(color='white', linewidth=1.5, zorder=5))
         xA    = np.random.normal(1, 0.15, len(coef_matrix))
@@ -320,10 +318,10 @@ for regressor, panel in zip(['SL','SR','SL:D','SR:D','exp_C','D:exp_C'], [e,e,f,
                        width=0.8, saturation=0.4, linewidth=0,
                        inner=None, zorder=1)
         # Layer 3: boxplot on top of dots
-        sns.boxplot(data=plot, palette=[COLORLEFT, COLORRIGHT], ax=panel,
+        sns.boxplot(data=plot, ax=panel,
                     width=0.15, showcaps=False, showfliers=False,
-                    boxprops=dict(zorder=4, linewidth=1),
-                    whiskerprops=dict(zorder=4, linewidth=1),
+                    boxprops=dict(zorder=4, linewidth=1, alpha=0.5), 
+                    whiskerprops=dict(zorder=4, linewidth=1),  color='black',
                     medianprops=dict(color='white', linewidth=1.5, zorder=5))
         xA    = np.random.normal(1, 0.15, len(coef_matrix))
         const = 1
@@ -337,10 +335,10 @@ for regressor, panel in zip(['SL','SR','SL:D','SR:D','exp_C','D:exp_C'], [e,e,f,
                        width=0.8, saturation=0.4, linewidth=0,
                        inner=None, zorder=1)
         # Layer 3: boxplot on top of dots
-        sns.boxplot(data=plot, palette=[COLORLEFT, COLORRIGHT], ax=panel,
+        sns.boxplot(data=plot, ax=panel,
                     width=0.15, showcaps=False, showfliers=False,
-                    boxprops=dict(zorder=4, linewidth=1),
-                    whiskerprops=dict(zorder=4, linewidth=1),
+                    boxprops=dict(zorder=4, linewidth=1, alpha=0.5),
+                    whiskerprops=dict(zorder=4, linewidth=1), color='black',
                     medianprops=dict(color='white', linewidth=1.5, zorder=5))
         xA    = np.random.normal(1, 0.15, len(coef_matrix))
         const = 1
@@ -364,11 +362,12 @@ for regressor, panel in zip(['SL','SR','SL:D','SR:D','exp_C','D:exp_C'], [e,e,f,
         # Layer 3: boxplot on top of dots
         sns.boxplot(x=coef_matrix['const'].astype(float),
                     y=coef_matrix[regressor].astype(float),
-                    data=coef_matrix, color=main, ax=panel,
+                    data=coef_matrix, ax=panel,
                     width=0.15, showcaps=False, showfliers=False,
-                    boxprops=dict(zorder=4, linewidth=1),
-                    whiskerprops=dict(zorder=4, linewidth=1),
+                    boxprops=dict(zorder=4, linewidth=1, alpha=0.5),
+                    whiskerprops=dict(zorder=4, linewidth=1),  color='black',
                     medianprops=dict(color='white', linewidth=1.5, zorder=5))
+
         if regressor == 'exp_C':
             panel.set_title('Previous Choices $C_{t-k}$', fontsize=7)
         if regressor == 'D:exp_C':
@@ -416,7 +415,7 @@ for regressor, panel in zip(['SL','SR','SL:D','SR:D','exp_C','D:exp_C'], [e,e,f,
    
 h.set_ylabel('')
 
-# -------------------------------------           Autocorrelogram  for correct  ------------------------------------------
+# -------------------------------------    panel i - Autocorrelogram  for correct  ------------------------------------------
 
 file_name = 'hit_autocorrelation'
 corr = pd.read_csv(path+file_name+'.csv', index_col=0)
@@ -460,7 +459,7 @@ except RuntimeError:
 panel.set_xlabel('Trial lag')
 panel.set_title('Choice outcome', fontsize=8)
 
-# -------------------------------------           Autocorrelogram  for repetition    ------------------------------------------
+# -------------------------------------   panel j -   Autocorrelogram  for repetition    ------------------------------------------
 file_name = 'repeat_autocorrelation'
 corr = pd.read_csv(path+file_name+'.csv', index_col=0)
 corr = corr[:25]
