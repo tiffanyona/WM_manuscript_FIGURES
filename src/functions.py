@@ -210,7 +210,8 @@ def single_trial_with_decoder(df, df_decoder, big_data, filename, T, panels = []
     panel.plot(x,  df_results[df_results['neuron'].isin(significant_left_neurons)].groupby('time_centered').firing.mean().values, color=COLORLEFT)
 
     panel.set_xlim(start,stop)
-    panel.set_ylabel('Firing rate (spks/s)')
+    # panel.set_ylabel('Firing rate (spks/s)')
+    panel.xaxis.set_visible(False)
 
     y = np.arange(0,75,0.1)
     panel.fill_betweenx(y, cue_on,cue_off, color='lightgrey', alpha=.8)
@@ -269,6 +270,7 @@ def single_trial_with_decoder(df, df_decoder, big_data, filename, T, panels = []
     panel.fill_betweenx(y, cue_off+delay,cue_off+delay+.2, color='lightgrey', alpha=1)
     panel.set_xlim(start,stop)
     panel.xaxis.set_tick_params(labelbottom=False)
+    panel.xaxis.set_visible(False)
 
     # axis labels and legend
     # if T == 21:

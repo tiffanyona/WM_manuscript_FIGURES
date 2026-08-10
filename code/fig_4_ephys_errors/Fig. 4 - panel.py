@@ -69,12 +69,12 @@ gs = gridspec.GridSpec(nrows=8, ncols=2, figure=fig,
 
 # Original subplots
 # g and h: nested GridSpec with hspace=0 so the 3 subpanels are joined
-gs_g = gridspec.GridSpecFromSubplotSpec(3, 1, subplot_spec=gs[3:6, 1:2], hspace=0)
+gs_g = gridspec.GridSpecFromSubplotSpec(3, 1, subplot_spec=gs[3:6, 1:2], hspace=0.05)
 a1 = fig.add_subplot(gs_g[0])
 a2 = fig.add_subplot(gs_g[1])
 a3 = fig.add_subplot(gs_g[2])
 
-gs_h = gridspec.GridSpecFromSubplotSpec(3, 1, subplot_spec=gs[3:6, 0:1], hspace=0)
+gs_h = gridspec.GridSpecFromSubplotSpec(3, 1, subplot_spec=gs[3:6, 0:1], hspace=0.05)
 b1 = fig.add_subplot(gs_h[0])
 b2 = fig.add_subplot(gs_h[1])
 b3 = fig.add_subplot(gs_h[2])
@@ -86,10 +86,13 @@ j3 = fig.add_subplot(gs[1, 1:2])
 k  = fig.add_subplot(gs[2, 1:2])
 
 # New panels i and j
-i_heat = fig.add_subplot(gs[6, 0:1])
-i_line = fig.add_subplot(gs[7, 0:1])
-j_heat = fig.add_subplot(gs[6, 1:2])
-j_line = fig.add_subplot(gs[7, 1:2])
+gs_i = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs[6:7, 0:1], hspace=0.05,height_ratios=[3, 1])
+i_heat = fig.add_subplot(gs_i[0])
+i_line = fig.add_subplot(gs_i[1])
+
+gs_j = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs[6:7, 1:2], hspace=0.05,height_ratios=[3, 1])
+j_heat = fig.add_subplot(gs_j[0])
+j_line = fig.add_subplot(gs_j[1])
 
 # Panel labels — y positions match row tops in the 8-row GridSpec
 # height_ratios=[1,1,1,1,1,1,2.5,0.8] total=9.3, span=0.92 (top=0.97,bot=0.05)
@@ -177,7 +180,7 @@ for delay in delays:
             j3.plot(times, lower + real - 0.5, color=color, linestyle='', alpha=0.6, linewidth=0)
             j3.plot(times, upper + real - 0.5, color=color, linestyle='', alpha=0.6, linewidth=0)
             j3.fill_between(times, lower + real - 0.5, upper + real - 0.5, alpha=0.2, color=color, linewidth=0)
-            j3.set_ylim(-0.1, 0.5)
+            j3.set_ylim(-0.3, 0.5)
             j3.axhline(y=0, linestyle=':', color='black')
             j3.fill_betweenx(np.arange(-0.1, 0.6, 0.1), 0, 0.4,
                              color='lightgrey', alpha=1, linewidth=0)
@@ -197,12 +200,12 @@ df = pd.read_csv(path + file_name + '.csv', index_col=0)
 delay = 10; cluster_id = 153
 
 # Incorrect trials in grey (background)
-temp_df = df.loc[(df.WM_roll > 0.6) & (df.hit == 0)]
+temp_df = df.loc[(df.WM_roll > 0.6) & (df.hit == 1)]
 plots.convolveandplot(temp_df, k, k, variable='reward_side',
                       cluster_id=cluster_id, delay=delay, j=1,
                       alpha=0.3, colors=['grey','grey'], spikes=False)
 # Correct trials in COLORRIGHT/COLORLEFT
-temp_df = df.loc[(df.WM_roll > 0.6) & (df.hit == 1)]
+temp_df = df.loc[(df.WM_roll > 0.6) & (df.hit == 0)]
 plots.convolveandplot(temp_df, k, k, variable='reward_side',
                       cluster_id=cluster_id, delay=delay, j=1,
                       labels=['Right stimulus','Left stimulus'],
@@ -222,24 +225,18 @@ df_final = pd.read_csv(path + file_name + '.csv', index_col=0)
 panel = g2
 df_results = df_final.groupby(['session','trial_type','epoch']).log_odds.mean().reset_index()
 
-# Box plot layer 1: zero linewidth (invisible boxes, just for positioning)
 sns.boxplot(x='trial_type', y='log_odds', hue='epoch',
             order=['WM_roll_1','WM_roll_0'], showcaps=False, showfliers=False,
             palette=['darkgreen','lightgreen','crimson','lightcoral'],
-            linewidth=0, ax=panel, data=df_results, width=0., legend=False)
-# Box plot layer 2: visible boxes
-sns.boxplot(x='trial_type', y='log_odds', hue='epoch',
-            order=['WM_roll_1','WM_roll_0'], showcaps=False, showfliers=False,
-            palette=['darkgreen','lightgreen','crimson','lightcoral'],
-            medianprops=dict(color="white"),
-            linewidth=1, ax=panel, data=df_results, showmeans=True, width=0.5,
+            medianprops=dict(color="white", linewidth=1), gap =0.5,
+            linewidth=0, ax=panel, data=df_results, width=0.5,
             legend=False)
 
 # Scatter dots — filled circles; Incorrect Early = open circles to match target
 for xpos, tt, ep, col, fc in [
     (-0.25, 'WM_roll_1', 'early', 'darkgreen',  'darkgreen'),
     ( 0.25, 'WM_roll_1', 'late',  'lightgreen', 'lightgreen'),
-    ( 0.75, 'WM_roll_0', 'early', 'crimson',    'none'),      # open circles
+    ( 0.75, 'WM_roll_0', 'early', 'crimson',    'red'),      # open circles
     ( 1.25, 'WM_roll_0', 'late',  'lightcoral', 'lightcoral'),
 ]:
     df_plots = df_results.loc[(df_results.trial_type==tt) & (df_results.epoch==ep)]
@@ -249,7 +246,7 @@ for xpos, tt, ep, col, fc in [
 
 panel.set_ylim(-2.5, 5)
 panel.axhline(y=0, linestyle=':', color='black')
-panel.set_ylabel('Decoding accuracy (log odds)')
+panel.set_ylabel('Decoding accuracy \n (log odds)')
 panel.set_xlabel('')
 
 # x-axis: 4 ticks at box positions, labelled Early/Late/Early/Late
@@ -317,6 +314,7 @@ plt.setp(a1.get_xticklabels(), visible=False)
 plt.setp(a2.get_xticklabels(), visible=False)
 a1.set_xlabel('')
 a2.set_xlabel('')
+a1.set_title("E17_2022-02-02_17-13-06 (T83)", fontsize=6, fontweight='bold')
 
 T = 185
 df_decoder = pd.read_csv(path_repl + 'decoder_' + str(T) + '_' + filename, index_col=0)
@@ -328,7 +326,7 @@ plt.setp(b1.get_xticklabels(), visible=False)
 plt.setp(b2.get_xticklabels(), visible=False)
 b1.set_xlabel('')
 b2.set_xlabel('')
-
+b1.set_title("E17_2022-02-02_17-13-06 (T183)", fontsize=6, fontweight='bold')
 # ===========================================================================
 # Panel i — stimulus-aligned heatmap + lineplot  (notebook cells 1, 2, 3)
 # ===========================================================================
@@ -417,6 +415,7 @@ x_positions = [np.argmin(np.abs(heatmap_data.columns - t)) for t in nice_times]
 cbar = ax.collections[0].colorbar
 cbar.set_ticks([-2, -1, 0, 1, 2])
 cbar.set_ticklabels(['-2', '-1', '0', '1', '2'])
+cbar.set_title.set_text('Log Odds')
 ax.set_xticks(x_positions)
 ax.set_xticklabels([f"{t:}" for t in nice_times], rotation=360)
 ax.set_xlabel("Time from stimulus onset (s)")
@@ -464,7 +463,7 @@ for i_row, trial in enumerate(heatmap_data.index):
         rows = test.loc[test.times == t_mark, 'time_reversal_aligned']
         if not rows.empty:
             x_pos = heatmap_data.columns.get_loc(rows.iloc[0])
-            ax.scatter(x_pos, i_row + 0.5, color='black', size=2, marker='|', linewidths=0.5)
+            ax.scatter(x_pos, i_row + 0.5, color='black', s=2, marker='|', linewidths=0.5)
 
 ax.set_xticks(x_positions)
 ax.set_xticklabels([f"{t:}" for t in nice_times], rotation=360)
@@ -502,7 +501,7 @@ j_line.set_ylim(-1.25, 1.25)
 # Finalise
 # ===========================================================================
 plt.subplots_adjust(left=0.07, bottom=0.05, right=0.97, top=0.97,
-                    wspace=0.5, hspace=0.5)
+                    wspace=0.75, hspace=0.75)
 sns.despine()
 # plt.savefig(save_path+'/Fig_4_panel_revised.svg', bbox_inches='tight', dpi=300)
 plt.show()

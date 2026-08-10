@@ -25,8 +25,6 @@ import rpy2.robjects as ro
 from rpy2.robjects import pandas2ri
 import sys
 
-pandas2ri.activate()
-
 base     = importr('base')
 car      = importr('car')
 stats    = importr('stats')
@@ -39,6 +37,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from config import ROOT, FIGURES_OUT, DATA_DIR
 sys.path.insert(0, str(ROOT / 'src'))
 sys.path.append("G:/Mi unidad/WORKING_MEMORY/EXPERIMENTS/ELECTROPHYSIOLOGY/ANALYSIS/functions/")
+
 from functions import add_stat_annotation, convolveandplot, new_convolve
 # sys.path.append("G:/My Drive/WORKING_MEMORY/EXPERIMENTS/ELECTROPHYSIOLOGY/ANALYSIS/functions/")
 
@@ -46,7 +45,7 @@ from functions import add_stat_annotation, convolveandplot, new_convolve
 import functions as plots
 
 save_path = str(FIGURES_OUT / 'fig_5_ephys_repl') + '/'
-path = str(DATA_DIR) + '/'
+path = str(DATA_DIR/ 'fig_5_ephys_repl') + '/'
 
 os.chdir(path)
 cm = 1/2.54

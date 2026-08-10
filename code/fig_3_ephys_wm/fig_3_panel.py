@@ -5,6 +5,7 @@ COLORRIGHT = '#FF8D3F'
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import matplotlib as mpl
+from matplotlib.ticker import FixedLocator, FixedFormatter
 import os
 import pandas as pd
 import numpy as np
@@ -12,11 +13,6 @@ import seaborn as sns
 from scipy import stats
 import warnings
 warnings.filterwarnings('ignore', category=UserWarning, message='.*FigureCanvasAgg.*')
-
-from neo.core import SpikeTrain
-from quantities import ms
-from elephant.statistics import time_histogram, instantaneous_rate
-from elephant.kernels import GaussianKernel
 from cycler import cycler
 
 from pathlib import Path
@@ -44,16 +40,16 @@ sns.set_context('paper', rc={'axes.labelsize': 7,
                               'xlabel.labelpad': -10})
 
 fig = plt.figure(figsize=(15*cm, 30.*cm))
-gs = gridspec.GridSpec(nrows=7, ncols=9, figure=fig,
-                       height_ratios=[1.2, 1.0, 1.2, 1.0, 0.9, 0.9, 0.9],
-                       left=0.09, right=0.97, top=0.93, bottom=0.05,
-                       wspace=0.8, hspace=0.55)
+gs = gridspec.GridSpec(nrows=7, ncols=10, figure=fig,
+                       height_ratios=[1.2, 1.0, 1.2, 1.0, 1.2, 0.9, 0.9],
+                       left=0.09, right=0.97, top=0.91, bottom=0.05,
+                       wspace=0.9, hspace=0.95)
 
 # Right column
-a  = fig.add_subplot(gs[0:4, 4:9])   # heatmap -> panel c
-b  = fig.add_subplot(gs[4,   4:9])   # decoder d
-c  = fig.add_subplot(gs[5,   4:9])   # decoder e
-d  = fig.add_subplot(gs[6,   4:9])   # decoder f
+a  = fig.add_subplot(gs[0:4, 5:10])   # heatmap -> panel c
+b  = fig.add_subplot(gs[4,   5:10])   # decoder d
+c  = fig.add_subplot(gs[5,   5:10])   # decoder e
+d  = fig.add_subplot(gs[6,   5:10])   # decoder f
 
 # Left column panel a: nested raster(3):PSTH(2)
 gs_a = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs[0:2, 0:4],
@@ -67,17 +63,17 @@ gs_b = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs[2:4, 0:4],
 e  = fig.add_subplot(gs_b[0])
 f  = fig.add_subplot(gs_b[1])
 
-# Panel g: same height as one decoder row
-g1 = fig.add_subplot(gs[4:6, 0:4])
+# Panel g
+g1 = fig.add_subplot(gs[4, 0:4])
 
 # Panel labels
-fig.text(0.01, 0.99, 'a', fontsize=10, fontweight='bold', va='top')
-fig.text(0.01, 0.67, 'b', fontsize=10, fontweight='bold', va='top')
-fig.text(0.50, 0.99, 'c', fontsize=10, fontweight='bold', va='top')
-fig.text(0.50, 0.55, 'd', fontsize=10, fontweight='bold', va='top')
-fig.text(0.50, 0.38, 'e', fontsize=10, fontweight='bold', va='top')
-fig.text(0.50, 0.22, 'f', fontsize=10, fontweight='bold', va='top')
-fig.text(0.01, 0.55, 'g', fontsize=10, fontweight='bold', va='top')
+fig.text(0.01, 0.93, 'a', fontsize=10, fontweight='bold', va='top')
+fig.text(0.01, 0.661,'b', fontsize=10, fontweight='bold', va='top')
+fig.text(0.50, 0.93, 'c', fontsize=10, fontweight='bold', va='top')
+fig.text(0.50, 0.392,'d', fontsize=10, fontweight='bold', va='top')
+fig.text(0.50, 0.270,'e', fontsize=10, fontweight='bold', va='top')
+fig.text(0.50, 0.160,'f', fontsize=10, fontweight='bold', va='top')
+fig.text(0.01, 0.392,'g', fontsize=10, fontweight='bold', va='top')
 
 # ---------------------------------------------------------------------------
 # Panel c — heatmap
@@ -106,37 +102,58 @@ hm = sns.heatmap(df_new - df_shuffle_mean.T, fmt='', linewidth=0.0, rasterized=T
                  ax=panel, xticklabels=df_new.columns, cbar=False)
 hm.invert_yaxis()
 
-_xlabels = ["-2",'','',"","","","","","0",'',"","","","","","","2","","",
-            "","","","","","4","","","","","","","","6","","","","","","","","8"]
-panel.set_xticks(range(len(df_new.columns)))
-panel.set_xticklabels(_xlabels[:len(df_new.columns)], fontsize=5)
-_ylabels = ["-2",'','',"","0",'',"","","2","","","","4","","","","6","","","","8"]
-panel.set_yticks(range(len(df_new.index)))
-panel.set_yticklabels((_ylabels + [''] * len(df_new.index))[:len(df_new.index)], fontsize=5)
+# X ticks
+_test_times = np.array([float(col) for col in df_new.columns])
+_x_int_ticks = [-2, 0, 2, 4, 6, 8]
+_x_tick_pos  = [np.argmin(np.abs(_test_times - t)) for t in _x_int_ticks]
+panel.set_xticks(_x_tick_pos)
+panel.set_xticklabels([str(t) for t in _x_int_ticks], fontsize=5)
+
+# Y ticks
+_train_times_all = np.array([np.mean([float(v.split('_')[0]), float(v.split('_')[1])])
+                              for v in df_new.index])
+_y_int_ticks = [-2, 0, 2, 4, 6, 8]
+_y_tick_pos  = [np.argmin(np.abs(_train_times_all - t)) for t in _y_int_ticks]
+panel.set_yticks(_y_tick_pos)
+panel.set_yticklabels([str(t) for t in _y_int_ticks], fontsize=5)
 panel.set_xlabel("Testing time from stimulus onset (s)")
 panel.set_ylabel("Training time from stimulus onset (s)")
+
+# ← Force y-axis to left LAST, after all seaborn heatmap calls
+panel.yaxis.set_label_position('left')
+panel.yaxis.tick_left()
+panel.tick_params(axis='y', left=True, right=False,
+                  labelleft=True, labelright=False)
 
 n_rows = len(df_new.index)
 train_times = np.array([np.mean([float(v.split('_')[0]), float(v.split('_')[1])])
                         for v in df_new.index])
 row_t0  = int(np.argmin(np.abs(train_times - 0.0)))
 row_t35 = int(np.argmin(np.abs(train_times - 3.5)))
+
+# White horizontal separator lines between epochs
 for row_y in [row_t0, row_t35]:
     panel.axhline(y=row_y, color='white', linewidth=0.8, zorder=5)
-panel.text(-0.3, row_t0 / 2,           'Stimulus', color='white', fontsize=5,
-           va='center', ha='right', clip_on=False)
-panel.text(-0.3, (row_t0 + row_t35)/2, 'Delay',    color='white', fontsize=5,
-           va='center', ha='right', clip_on=False)
-panel.text(-0.3, (row_t35 + n_rows)/2, 'Response', color='white', fontsize=5,
-           va='center', ha='right', clip_on=False)
 
+# Epoch labels — use axes-fraction x so they're independent of data coords
+panel.text(-0.12, row_t0/2,           'Stimulus', color='white', fontsize=5,
+           va='center', ha='right', clip_on=False,
+           transform=panel.get_yaxis_transform())
+panel.text(-0.12, (row_t0+row_t35)/2, 'Delay',    color='white', fontsize=5,
+           va='center', ha='right', clip_on=False,
+           transform=panel.get_yaxis_transform())
+panel.text(-0.12, (row_t35+n_rows)/2, 'Response', color='white', fontsize=5,
+           va='center', ha='right', clip_on=False,
+           transform=panel.get_yaxis_transform())
+
+# Stim / Go labels inside top of heatmap
 test_times = np.array([float(col) for col in df_new.columns])
 col_stim = int(np.argmin(np.abs(test_times - 0.175)))
 col_go   = int(np.argmin(np.abs(test_times - 3.45)))
-panel.text(col_stim, n_rows + 0.4, 'Stim', color='black', fontsize=5,
-           ha='center', va='bottom', clip_on=False)
-panel.text(col_go,   n_rows + 0.4, 'Go',   color='black', fontsize=5,
-           ha='center', va='bottom', clip_on=False)
+panel.text(col_stim, n_rows - 1, 'Stim', color='white', fontsize=5,
+           ha='center', va='top', clip_on=True)
+panel.text(col_go,   n_rows - 1, 'Go',   color='white', fontsize=5,
+           ha='center', va='top', clip_on=True)
 
 first = True
 df_diagonal = pd.DataFrame()
@@ -174,10 +191,13 @@ for panel, df_cum_sti, df_shuffle, upper_limit in zip(
 b.set_title('Stimulus code', fontweight='bold', fontsize=7)
 c.set_title('Delay code',    fontweight='bold', fontsize=7)
 d.set_title('Response code', fontweight='bold', fontsize=7)
+b.set_ylabel('Excess decoding')
+c.set_ylabel('Excess decoding')
+d.set_ylabel('Excess decoding')
+d.set_xlabel('Time from stimulus onset (s)')
 
 # ---------------------------------------------------------------------------
 # Panel a — population raster (h2) + PSTH (h1)
-# Set viridis cycler immediately before plotting h1 lines
 # ---------------------------------------------------------------------------
 big_data = pd.read_csv(path + 'single_trial_example_237.csv', index_col=0)
 n_neurons = big_data['neuron'].nunique()
@@ -199,8 +219,7 @@ df_results['firing'] = (big_data.loc[big_data.time_centered <= stop]
                         .groupby(['time_centered', 'neuron'])['firing_'].mean())
 df_results.reset_index(inplace=True)
 
-# Set viridis right before the h1 plot loop
-viridis_colors = plt.cm.viridis(np.linspace(0, 1, n_neurons))
+viridis_colors = plt.cm.viridis(np.linspace(0.05, 0.95, n_neurons))
 h1.set_prop_cycle(cycler(color=viridis_colors))
 
 panel = h1
@@ -235,12 +254,13 @@ panel.set_ylabel('Single units')
 panel.set_ylim(0, j); panel.set_xlim(start, stop)
 panel.axes.get_xaxis().set_visible(False)
 y = np.arange(0, j+1, 0.1)
-panel.fill_betweenx(y, cue_on, cue_off,                 color='grey',      alpha=1, linewidth=0)
+panel.xaxis.set_visible(False)
+panel.fill_betweenx(y, cue_on, cue_off,                 color='lightgrey',      alpha=1, linewidth=0)
 panel.fill_betweenx(y, cue_off+delay, cue_off+delay+.2, color='lightgrey', alpha=1, linewidth=0)
 h2.set_title('Session E20 2022-02-14', fontsize=7)
 
 # ---------------------------------------------------------------------------
-# Panel b — single neuron (uses COLORRIGHT/COLORLEFT via convolveandplot)
+# Panel b — single neuron
 # ---------------------------------------------------------------------------
 df_sn   = pd.read_csv(path + 'single_neuron_10s.csv', index_col=0)
 df_sn   = df_sn.loc[df_sn.WM_roll > 0.6]
@@ -248,6 +268,16 @@ temp_df = df_sn.loc[(df_sn.WM_roll > 0.6) & (df_sn.hit == 1)]
 j = convolveandplot(temp_df, e, f, variable='reward_side',
                     cluster_id=153, delay=10, j=1)
 e.set_title('Session E20 2022-02-14 - Cluster 153', fontsize=7)
+
+for ax in [e, f]:
+    leg = ax.get_legend()
+    if leg is not None:
+        for text in leg.get_texts():
+            t = text.get_text()
+            if 'right' in t.lower():
+                text.set_text('Right')
+            elif 'left' in t.lower():
+                text.set_text('Left')
 
 # ---------------------------------------------------------------------------
 # Panel g — code overlap
@@ -259,13 +289,13 @@ orderlist = ['Stim x Late Delay', 'Late Delay x Response',
              'Early x Late Delay', 'Late Delay x Late Delay*']
 
 sns.stripplot(x='condition', y='vector', data=df_temp, order=orderlist,
-              jitter=0.2, size=3, color='black', edgecolor='black',
+              jitter=0.2, size=2, color='black', edgecolor='black',
               ax=panel, linewidth=0.1, zorder=3)
 sns.boxplot(x='condition', y='vector', data=df_temp, order=orderlist,
-            color='lightgrey', width=0.45, fliersize=3, linewidth=0.8,
+            color='lightgrey', width=0.5, fliersize=0, medianprops={'color': 'black', 'linewidth': 0.8}, linewidth=0,
             ax=panel, zorder=2)
 
-panel.hlines(y=0., xmin=-0.5, xmax=len(orderlist)-0.5, linestyle=':')
+panel.hlines(y=0., xmin=-0.5, xmax=len(orderlist)-0.5, linestyle=':', color='black')
 panel.set_xlabel('')
 panel.set_ylim(-1.2, 1.4)
 panel.set_xticks(range(len(orderlist)))
@@ -288,22 +318,43 @@ yb = max(vals_e.max(), vals_l.max()) + 0.25
 panel.plot([2, 2, 3, 3], [yb, yb+0.04, yb+0.04, yb], color='black', linewidth=0.8)
 panel.text(2.5, yb + 0.05, star_rel, ha='center', va='bottom', fontsize=7)
 
-# ---------------------------------------------------------------------------
-# Finalise + colorbar
-# ---------------------------------------------------------------------------
 sns.despine()
 plt.locator_params(nbins=5)
 
-# Draw to get accurate heatmap position, then place colorbar just above it
+for _ax in [h2, e, b, c]:
+    _ax.spines['bottom'].set_visible(False)
+    _ax.spines['top'].set_visible(False)
+    _ax.spines['right'].set_visible(False)
+    _ax.tick_params(bottom=False, labelbottom=False)
+h2.set_xlabel('')
+e.set_xlabel('')
+b.set_xlabel('')
+c.set_xlabel('')
+
+# Draw so square=True has fully resized axes before we measure position
 fig.canvas.draw()
-pos = a.get_position()
-cax = fig.add_axes([pos.x0, pos.y1 + 0.01, pos.width * 0.85, 0.012])
-norm = mpl.colors.TwoSlopeNorm(vmin=-0.1, vcenter=0.0, vmax=0.3)
-cmap = hm.collections[0].cmap
-cb   = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm, orientation='horizontal')
+
+# Use get_window_extent to get true post-square=True pixel bounds
+renderer  = fig.canvas.get_renderer()
+bbox_disp = a.get_window_extent(renderer=renderer)
+bbox_fig  = bbox_disp.transformed(fig.transFigure.inverted())
+
+cax = fig.add_axes([bbox_fig.x0 +0.01,
+                    bbox_fig.y1 + 0.1,
+                    bbox_fig.width * 0.85,
+                    0.010])
+
+norm      = mpl.colors.Normalize(vmin=-0.1, vmax=0.3)
+cmap_orig = hm.collections[0].cmap
+cb = mpl.colorbar.ColorbarBase(cax, cmap=cmap_orig, norm=norm, orientation='horizontal')
+cb.ax.invert_xaxis()
+
+# ← FixedLocator prevents matplotlib auto-ticking from overriding our values
+cb.ax.xaxis.set_major_locator(FixedLocator([-0.1, 0.0, 0.1, 0.2, 0.3]))
+cb.ax.xaxis.set_major_formatter(FixedFormatter(['-0.1', '0', '0.1', '0.2', '0.3']))
 cb.ax.xaxis.set_ticks_position('top')
 cb.ax.xaxis.set_label_position('top')
-cb.set_label('Excess decoding', fontsize=6, labelpad=2)
+cb.ax.set_xlabel('Excess decoding', fontsize=6, labelpad=2)
 cb.ax.tick_params(labelsize=5)
 
 # plt.savefig(save_path + '/Fig_3_ephys_wm_revised.svg', bbox_inches='tight', dpi=300)
