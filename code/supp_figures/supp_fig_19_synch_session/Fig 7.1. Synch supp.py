@@ -14,67 +14,33 @@ Created on Wed Dec 28 12:06:44 2022
 COLORLEFT = 'teal'
 COLORRIGHT = '#FF8D3F'
 
-import statsmodels.api as sm
-from statsmodels.formula.api import ols
-from statsmodels.stats.anova import anova_lm
-from statsmodels.stats.anova import AnovaRM
-from statsmodels.graphics.factorplots import interaction_plot
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
 import matplotlib.gridspec as gridspec
-import matplotlib.patches as mpatches
-import matplotlib as mpl
-import os
 import pandas as pd
 import numpy as np
 import seaborn as sns
 from scipy import stats
-from scipy import special
-import json
 import warnings
 warnings.filterwarnings('ignore', 'FigureCanvasAgg is non-interactive')
-from sklearn.linear_model import LogisticRegression
-from scipy.optimize import curve_fit
 #Import all needed libraries
-from matplotlib.lines import Line2D
-from statsmodels.genmod.bayes_mixed_glm import BinomialBayesMixedGLM
-from matplotlib.backends.backend_pdf import PdfPages
-from statannotations.Annotator import Annotator as _StAnn
-def add_stat_annotation(ax, data=None, x=None, y=None, hue=None,
-                        order=None, hue_order=None, box_pairs=None,
-                        test='Mann-Whitney', text_format='star', loc='inside',
-                        verbose=2, **kwargs):
-    if 'line_offset_to_box' in kwargs:
-        kwargs['line_offset_to_group'] = kwargs.pop('line_offset_to_box')
-    if 'linewidth' in kwargs:
-        kwargs['line_width'] = kwargs.pop('linewidth')
-    ann = _StAnn(ax, box_pairs, data=data, x=x, y=y, hue=hue,
-                 order=order, hue_order=hue_order)
-    ann.configure(test=test, text_format=text_format, loc=loc,
-                  verbose=verbose, **kwargs)
-    return ann.apply_and_annotate()
 from neo.core import SpikeTrain
-from quantities import ms, s, Hz
+from quantities import ms, s
 
 from neo.core import SpikeTrain
-from quantities import ms, s, Hz
-from elephant.statistics import mean_firing_rate
-from elephant.statistics import time_histogram, instantaneous_rate
-from elephant.kernels import GaussianKernel
-from elephant.statistics import mean_firing_rate
+from quantities import ms, s
+from elephant.statistics import time_histogram
 
-import os 
 import numpy as np
 import pandas as pd
-import scipy.io
 import seaborn as sns
 
-from cycler import cycler
 
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
-from config import ROOT, ANALYSIS_DATA, FIGURES_OUT, DATA_DIR
+from config import ROOT, FIGURES_OUT, DATA_DIR
+sys.path.insert(0, str(ROOT / 'src'))
+from functions import add_stat_annotation, trials_synch, synch_trial, distribution
 
 save_path = str(DATA_DIR / 'supp_figures' / 'supp_fig_19_synch_session') + '/'  # input data
 fig_out_path = str(FIGURES_OUT / 'supp_figures' / 'supp_fig_19_synch_session') + '/'
@@ -101,115 +67,6 @@ b = fig.add_subplot(gs[0, 2:3])
 
 fig.text(0.01, 1, 'a', fontsize=10, fontweight='bold', va='top')
 fig.text(0.65, 1, 'b', fontsize=10, fontweight='bold', va='top')
-
-##################################### Functions #####################
-
-def trials(row):
-    val = 0
-    val = row['T']/row['total trials']
-    return val
-
-def synch_trial(df, T, lower_plot, upper_plot = None, trial=0, start=-2, stop=0, color='indigo', surrogates=100, bins=20):
-    dft = df.loc[df.trial ==T]
-    align='Stimulus_ON'
-    # stop = dft.delay.unique()[0]+5 # end of analyzed window
-    delay = dft.delay.unique()[0]
-    #Filter for the last 2 seconds of the ITI
-    dft = dft.loc[(dft['a_'+align]>start)&(dft['a_'+align]<stop)]
-    
-    # Recover amount of neurons that were being registered at that trial interval
-    n_neurons = len(df.cluster_id.unique())
-    times_spikes = dft['a_'+align].values
-    times_spikes = times_spikes*1000*ms #transform to ms
-    
-    ############################################################ Set the strat and end time of the train
-    stop_time =  stop*1000*ms ## End of the trial in ms
-    start_time = start*1000*ms ## Start of the trial in ms     
-    
-    ############################################################ Spiketrain
-    spiketrain = SpikeTrain(times_spikes, units=ms, t_stop=stop_time, t_start=start_time) 
-    
-    ############################################################ 
-    histogram_rate = time_histogram([spiketrain], bins*ms, output='rate')
-    times_ = histogram_rate.times.rescale(s)
-    firing_real = histogram_rate.rescale(histogram_rate.dimensionality).magnitude.flatten()
-    
-    real_std=np.std(firing_real) # Store the real std value
-    
-    #         t1_start = process_time() 
-    list_std = []
-    for i in range(surrogates):
-        # Create a random shuffle for the same amount of spikes in that interval
-        random_float_list = np.random.uniform(start, stop, len(times_spikes))
-        surrogate_spikes = np.array(random_float_list)*1000*ms #transform to ms
-        spiketrain = SpikeTrain(surrogate_spikes, units=ms, t_stop=stop_time, t_start=start_time) 
-    
-        histogram_rate = time_histogram([spiketrain], bins*ms, output='rate')
-        times_ = histogram_rate.times.rescale(s)
-        firing = histogram_rate.rescale(histogram_rate.dimensionality).magnitude.flatten()
-    
-        list_std.append(np.std(firing))
-    
-    # Organized by cluster_id and corrected for FR ____________________________
-    cluster_id=[]
-    FR_mean=[]
-    
-    for N in df.cluster_id.unique():
-        spikes = dft.loc[dft.cluster_id==N]['a_'+align].values
-        FR_mean.append(len(spikes)/abs(stop-start))
-        cluster_id.append(N)
-    
-    df_spikes = pd.DataFrame(list(zip(cluster_id,FR_mean)), columns =['cluster_id','FR'])
-    df_spikes = df_spikes.sort_values('FR')
-    df_spikes['new_order'] = np.arange(len(df_spikes))
-    
-    dft = pd.merge(df_spikes, dft, on=['cluster_id'])
-    
-    print('Synch:', real_std/np.mean(list_std), '; WM:', str(dft.WM_roll.unique()[0]))
-    
-    if upper_plot != None:
-        panel = upper_plot
-        panel.set_title(trial)
-        j=0
-        for N in dft.new_order.unique():
-            spikes = dft.loc[dft.new_order==N]['a_'+align].values
-            j+=1
-            panel.plot(spikes,np.repeat(j, len(spikes)), '|', markersize=1, color='black', zorder=1)
-    
-    panel = lower_plot
-    panel.plot(times_,firing_real/n_neurons*1000, color=color, linewidth=0.5)
-    # y = np.arange(0,j+1,0.1)
-    # panel.fill_betweenx(y, cue_on,cue_off, color='grey', alpha=.4)
-    # panel.fill_betweenx(y, cue_off+delay,cue_off+delay+.2, color='beige', alpha=.8)
-    panel.set_ylim(0,15)
-    panel.set_ylabel('Firing rate\n(spks/s)')
-    
-    
-def distribution(df_final, variable='WM_roll'):
-    r_value_lower=[]
-    r_value_upper =[]
-    for animal in df_final.animal.unique():
-        test_df = df_final.loc[df_final.animal==animal]
-        test_df = test_df.dropna()
-        corr_synch = test_df['synch'].values
-
-        r_value_list=[]
-        for animal in df_final.animal.unique():
-            try:
-                corr_WM = df_final.loc[df_final.animal==animal][variable].values[-len(corr_synch):]
-                slope, intercept, r_value, p_value, std_err = stats.linregress(corr_synch,corr_WM)
-                # print('Slope WM:'+str(round(slope,3))+' Intercept:'+ str(round(intercept,3))+ ' R_value:'+ str(round(r_value,3)) + ' P_value:'+ str(round(p_value,3)) + ' Std_err:'+ str(std_err))
-                r_value_list.append(r_value)
-            except:
-
-                continue
-        # r_value_upper.append(np.quantile(r_value_list, 0.9))
-        # r_value_lower.append(np.quantile(r_value_list, 0.1))
-        r_value_upper.append(np.mean(r_value_list))
-    return r_value_upper
-
-    #######################################################################################
-    
 
 # ----------------------------------------------------------------------------------------------------------------
 

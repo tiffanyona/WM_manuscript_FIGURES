@@ -4,47 +4,15 @@ Created on Tue Dec  5 22:56:46 2023
 
 @author: Tiffany
 """
-import statsmodels.api as sm
-from statsmodels.formula.api import ols
-from statsmodels.stats.anova import anova_lm
-from statsmodels.stats.anova import AnovaRM
-from statsmodels.graphics.factorplots import interaction_plot
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
-import matplotlib.patches as mpatches
-from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
-from scipy import stats
-from scipy import special
-import json 
-from sklearn.linear_model import LogisticRegression
-from scipy.optimize import curve_fit
-from matplotlib.lines import Line2D
 import os
 import pandas as pd
 import numpy as np
-import seaborn as sns
-from statsmodels.genmod.bayes_mixed_glm import BinomialBayesMixedGLM
-from statannotations.Annotator import Annotator as _StAnn
-def add_stat_annotation(ax, data=None, x=None, y=None, hue=None,
-                        order=None, hue_order=None, box_pairs=None,
-                        test='Mann-Whitney', text_format='star', loc='inside',
-                        verbose=2, **kwargs):
-    if 'line_offset_to_box' in kwargs:
-        kwargs['line_offset_to_group'] = kwargs.pop('line_offset_to_box')
-    if 'linewidth' in kwargs:
-        kwargs['line_width'] = kwargs.pop('linewidth')
-    ann = _StAnn(ax, box_pairs, data=data, x=x, y=y, hue=hue,
-                 order=order, hue_order=hue_order)
-    ann.configure(test=test, text_format=text_format, loc=loc,
-                  verbose=verbose, **kwargs)
-    return ann.apply_and_annotate()
-
 # path = 'G:/Mi unidad/WORKING_MEMORY/PAPER/WM_manuscript_FIGURES/Fig. 3. Pharma/'
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from config import ROOT, ANALYSIS_DATA, FIGURES_OUT, DATA_DIR, EPHYS_SESSIONS
+from config import FIGURES_OUT, DATA_DIR, EPHYS_SESSIONS
 
 path = str(DATA_DIR) + '/'
 

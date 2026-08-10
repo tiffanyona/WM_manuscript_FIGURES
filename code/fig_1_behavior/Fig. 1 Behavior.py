@@ -27,6 +27,8 @@ from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from config import ROOT, FIGURES_OUT, DATA_DIR
+sys.path.insert(0, str(ROOT / 'src'))
+from functions import add_stat_annotation, repeat_reward_side, exp_decay
 
 path = str(DATA_DIR) + '/fig_1_behavior/'
 save_path = str(FIGURES_OUT) + '/fig_1_behavior/'
@@ -85,28 +87,6 @@ fig.text(0.01, 0.25, 'l', fontsize=10, fontweight='bold', va='top')
 fig.text(0.25, 0.25, 'm', fontsize=10, fontweight='bold', va='top')
 fig.text(0.5, 0.25, 'n', fontsize=10, fontweight='bold', va='top')
 fig.text(0.75, 0.25, 'o', fontsize=10, fontweight='bold', va='top')
-
-# -----------------############################## FUNCTIONS #################################-----------------------
-
-def repeat_reward_side(row):
-    '''
-
-    '''
-    # Compare the current response with the previous one. If that matches, return a 1 meaning it repeated. 
-    if row['trials'] != 0:
-        # Compare the current response with the previous one. .  
-        if row['reward_side'] == row['previous_reward_side']:
-            # if it matched and the answer was 1, it means that it repeated a right response
-            if row['reward_side'] == 1:
-                return 2
-            # if it matched and the answer was 0, it means that it repeated a left response
-            else:
-                return 1
-        # Alternations
-        else:
-            return 0
-    else:
-        return np.nan
 
 #-----------------############################## A Panel #################################-----------------------
 file_name = 'global_behavior_10_paper'
@@ -299,63 +279,110 @@ for regressor, panel in zip(['SL','SR','SL:D','SR:D','exp_C','D:exp_C'], [e,e,f,
         main = 'indigo'
         light = 'grey' 
         
-    if regressor=='SR':
+    if regressor == 'SR':
         plot = pd.DataFrame({'SL': coef_matrix['SL'], 'SR': coef_matrix['SR']})
-        sns.violinplot(data=plot, palette=[COLORLEFT, COLORRIGHT],ax=panel, width=0.5,saturation=0.6,linewidth=0)
-        sns.violinplot(data=plot, palette=[COLORLEFT, COLORRIGHT],ax=panel, width=0.5,linewidth=1)
-        xA = np.random.normal(1, 0.15, len(coef_matrix))
-        const=1
+        # Layer 1: violin shape (shaded, no outline, below dots)
+        sns.violinplot(data=plot, palette=[COLORLEFT, COLORRIGHT], ax=panel,
+                       width=0.8, saturation=0.4, linewidth=0,
+                       inner=None, zorder=1)
+        # Layer 3: boxplot on top of dots
+        sns.boxplot(data=plot, palette=[COLORLEFT, COLORRIGHT], ax=panel,
+                    width=0.15, showcaps=False, showfliers=False,
+                    boxprops=dict(zorder=4, linewidth=1),
+                    whiskerprops=dict(zorder=4, linewidth=1),
+                    medianprops=dict(color='white', linewidth=1.5, zorder=5))
+        xA    = np.random.normal(1, 0.15, len(coef_matrix))
+        const = 1
         panel.set_xlabel('Left          Right')
         panel.set_title('Stimulus $S_t$', fontsize=7)
-    elif regressor=='SR:D': 
+ 
+    elif regressor == 'SR:D':
         plot = pd.DataFrame({'SL:D': coef_matrix['SL:D'], 'SR:D': coef_matrix['SR:D']})
-        sns.violinplot(data=plot, palette=[COLORLEFT, COLORRIGHT],ax=panel, width=0.5,saturation=0.6,linewidth=0)
-        sns.violinplot(data=plot, palette=[COLORLEFT, COLORRIGHT],ax=panel, width=0.5,linewidth=1)
-        xA = np.random.normal(1, 0.15, len(coef_matrix))
-        panel.set_title('Stimulus x Delay\n $S_t·D_t$', fontsize=7)
+        # Layer 1: violin shape (shaded, no outline, below dots)
+        sns.violinplot(data=plot, palette=[COLORLEFT, COLORRIGHT], ax=panel,
+                       width=0.8, saturation=0.4, linewidth=0,
+                       inner=None, zorder=1)
+        # Layer 3: boxplot on top of dots
+        sns.boxplot(data=plot, palette=[COLORLEFT, COLORRIGHT], ax=panel,
+                    width=0.15, showcaps=False, showfliers=False,
+                    boxprops=dict(zorder=4, linewidth=1),
+                    whiskerprops=dict(zorder=4, linewidth=1),
+                    medianprops=dict(color='white', linewidth=1.5, zorder=5))
+        xA    = np.random.normal(1, 0.15, len(coef_matrix))
+        const = 1
         panel.set_xlabel('Left          Right')
-        const=1
-    elif regressor=='SR:T':
+        panel.set_title('Stimulus x Delay\n $S_t·D_t$', fontsize=7)
+ 
+    elif regressor == 'SR:T':
         plot = pd.DataFrame({'SL:T': coef_matrix['SL:T'], 'SR:T': coef_matrix['SR:T']})
-        sns.violinplot(data=plot, palette=[COLORLEFT, COLORRIGHT],ax=panel, width=0.5,saturation=0.6,linewidth=0)
-        sns.violinplot(data=plot, palette=[COLORLEFT, COLORRIGHT],ax=panel, width=0.5,linewidth=1)
-        xA = np.random.normal(1, 0.15, len(coef_matrix))
-        const=1
+        # Layer 1: violin shape (shaded, no outline, below dots)
+        sns.violinplot(data=plot, palette=[COLORLEFT, COLORRIGHT], ax=panel,
+                       width=0.8, saturation=0.4, linewidth=0,
+                       inner=None, zorder=1)
+        # Layer 3: boxplot on top of dots
+        sns.boxplot(data=plot, palette=[COLORLEFT, COLORRIGHT], ax=panel,
+                    width=0.15, showcaps=False, showfliers=False,
+                    boxprops=dict(zorder=4, linewidth=1),
+                    whiskerprops=dict(zorder=4, linewidth=1),
+                    medianprops=dict(color='white', linewidth=1.5, zorder=5))
+        xA    = np.random.normal(1, 0.15, len(coef_matrix))
+        const = 1
         panel.set_xlabel('Left            Right')
         panel.set_title('Stimulus x Trial $S_t·T_t$', fontsize=7)
-
-    elif regressor=='SR:D:T':
+ 
+    elif regressor == 'SR:D:T':
         plot = pd.DataFrame({'SL:D:T': coef_matrix['SL:D:T'], 'SR:D:T': coef_matrix['SR:D:T']})
-        sns.violinplot(data=plot, palette=[COLORLEFT, COLORRIGHT],ax=panel, width=0.5,saturation=0.6,linewidth=0)
-        sns.violinplot(data=plot, palette=[COLORLEFT, COLORRIGHT],ax=panel, width=0.5,linewidth=1)
-        xA = np.random.normal(1, 0.15, len(coef_matrix))
+        # Layer 1: violin shape (shaded, no outline, below dots)
+        sns.violinplot(data=plot, palette=[COLORLEFT, COLORRIGHT], ax=panel,
+                       width=0.8, saturation=0.4, linewidth=0,
+                       inner=None, zorder=1)
+        # Layer 3: boxplot on top of dots
+        sns.boxplot(data=plot, palette=[COLORLEFT, COLORRIGHT], ax=panel,
+                    width=0.15, showcaps=False, showfliers=False,
+                    boxprops=dict(zorder=4, linewidth=1),
+                    whiskerprops=dict(zorder=4, linewidth=1),
+                    medianprops=dict(color='white', linewidth=1.5, zorder=5))
+        xA    = np.random.normal(1, 0.15, len(coef_matrix))
+        const = 1
         panel.set_xlabel('Left            Right')
-        const=1
-    elif regressor == 'SL' or regressor == 'SL:D'or regressor == 'SL:D:T'or regressor == 'SL:T':
-        main= COLORLEFT
+ 
+    elif regressor in ('SL', 'SL:D', 'SL:D:T', 'SL:T'):
+        main  = COLORLEFT
         light = 'grey'
-        xA = np.random.normal(0, 0.15, len(coef_matrix))
-        const=0
-        pass
+        xA    = np.random.normal(0, 0.15, len(coef_matrix))
+        const = 0
+ 
     else:
-        const=0
-        xA = np.random.normal(0, 0.2, len(coef_matrix))
-        sns.violinplot(x=coef_matrix['const'].astype(float),y=coef_matrix[regressor].astype(float), data=coef_matrix, width=0.5, color=main,ax=panel, saturation=0.6,linewidth=0)
-        sns.violinplot(x=coef_matrix['const'].astype(float),y=coef_matrix[regressor].astype(float), data=coef_matrix, width=0.5, color=main,ax=panel, legend=False,linewidth=1)
+        const = 0
+        xA    = np.random.normal(0, 0.2, len(coef_matrix))
+        # Layer 1: violin shape (shaded, no outline, below dots)
+        sns.violinplot(x=coef_matrix['const'].astype(float),
+                       y=coef_matrix[regressor].astype(float),
+                       data=coef_matrix, width=0.8, color=main, ax=panel,
+                       saturation=0.4, linewidth=0,
+                       inner=None, zorder=1)
+        # Layer 3: boxplot on top of dots
+        sns.boxplot(x=coef_matrix['const'].astype(float),
+                    y=coef_matrix[regressor].astype(float),
+                    data=coef_matrix, color=main, ax=panel,
+                    width=0.15, showcaps=False, showfliers=False,
+                    boxprops=dict(zorder=4, linewidth=1),
+                    whiskerprops=dict(zorder=4, linewidth=1),
+                    medianprops=dict(color='white', linewidth=1.5, zorder=5))
         if regressor == 'exp_C':
             panel.set_title('Previous Choices $C_{t-k}$', fontsize=7)
         if regressor == 'D:exp_C':
             panel.set_title('Previous Choices\n x Delay $C_{t-k}·D_t$', fontsize=7)
         panel.set_xlabel('')
 
-    panel.hlines(y=0,xmin=-2,xmax=2,linestyle=':')
+    panel.hlines(y=0,xmin=-2,xmax=2,linestyle=':', color='black')
     try:
-        sns.scatterplot(x=xA,y=regressor,data=coef_matrix,hue=coef_matrix[regressor+'_sig'],palette={0: light, 1: main},ax=panel,alpha=0.9,legend=False)
+        sns.scatterplot(x=xA,y=regressor,data=coef_matrix,hue=coef_matrix[regressor+'_sig'],palette={0: light, 1: main},ax=panel,alpha=0.9,legend=False, zorder=3)
     except:
         if coef_matrix[regressor+'_sig'].all()==1:
-            sns.scatterplot(x=xA,y=regressor,data=coef_matrix,color=main,ax=panel,alpha=0.9,legend=False)
+            sns.scatterplot(x=xA,y=regressor,data=coef_matrix,color=main,ax=panel,alpha=0.9,legend=False, zorder=3)
         else:
-            sns.scatterplot(x=xA,y=regressor,data=coef_matrix,color='grey',ax=panel,alpha=0.9,legend=False)
+            sns.scatterplot(x=xA,y=regressor,data=coef_matrix,color='grey',ax=panel,alpha=0.9,legend=False ,zorder=3)
             
     panel.set_xticks([])
     panel.set(ylabel=None)
@@ -407,9 +434,6 @@ y_data = mean.values
 valid = ~np.isnan(y_data)
 x_fit = x_data[valid]
 y_fit = y_data[valid]
-
-def exp_decay(x, a, tau):
-    return a * np.exp(-x / tau)
 
 p0 = [y_fit[0] - y_fit[-1], len(x_fit) / 3]
 

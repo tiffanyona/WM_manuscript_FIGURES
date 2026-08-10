@@ -8,48 +8,20 @@ Created on Wed Dec 28 11:51:57 2022
 COLORLEFT = 'teal'
 COLORRIGHT = '#FF8D3F'
 
-import statsmodels.api as sm
-from statsmodels.formula.api import ols
-from statsmodels.stats.anova import anova_lm
-from statsmodels.stats.anova import AnovaRM
-from statsmodels.graphics.factorplots import interaction_plot
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import matplotlib.patches as mpatches
-from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
 from scipy import stats
-from scipy import special
-import json 
-from sklearn.linear_model import LogisticRegression
-from scipy.optimize import curve_fit
-from matplotlib.lines import Line2D
 import os
 import pandas as pd
 import numpy as np
 import seaborn as sns
-from statsmodels.genmod.bayes_mixed_glm import BinomialBayesMixedGLM
-from statannotations.Annotator import Annotator as _StAnn
-def add_stat_annotation(ax, data=None, x=None, y=None, hue=None,
-                        order=None, hue_order=None, box_pairs=None,
-                        test='Mann-Whitney', text_format='star', loc='inside',
-                        verbose=2, **kwargs):
-    if 'line_offset_to_box' in kwargs:
-        kwargs['line_offset_to_group'] = kwargs.pop('line_offset_to_box')
-    if 'linewidth' in kwargs:
-        kwargs['line_width'] = kwargs.pop('linewidth')
-    ann = _StAnn(ax, box_pairs, data=data, x=x, y=y, hue=hue,
-                 order=order, hue_order=hue_order)
-    ann.configure(test=test, text_format=text_format, loc=loc,
-                  verbose=verbose, **kwargs)
-    return ann.apply_and_annotate()
-
-import warnings
-
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
-from config import ROOT, ANALYSIS_DATA, FIGURES_OUT, DATA_DIR
+from config import ROOT, FIGURES_OUT, DATA_DIR
+sys.path.insert(0, str(ROOT / 'src'))
+from functions import add_stat_annotation, repeat_reward_side
 
 path = str(DATA_DIR) + '/'
 os.chdir(path)
@@ -107,28 +79,6 @@ fig.text(0.01, 0.25, 'l', fontsize=10, fontweight='bold', va='top')
 fig.text(0.25, 0.25, 'm', fontsize=10, fontweight='bold', va='top')
 fig.text(0.5, 0.25, 'n', fontsize=10, fontweight='bold', va='top')
 fig.text(0.75, 0.25, 'o', fontsize=10, fontweight='bold', va='top')
-
-# -----------------############################## FUNCTIONS #################################-----------------------
-
-def repeat_reward_side(row):
-    '''
-
-    '''
-    # Compare the current response with the previous one. If that matches, return a 1 meaning it repeated. 
-    if row['trials'] != 0:
-        # Compare the current response with the previous one. .  
-        if row['reward_side'] == row['previous_reward_side']:
-            # if it matched and the answer was 1, it means that it repeated a right response
-            if row['reward_side'] == 1:
-                return 2
-            # if it matched and the answer was 0, it means that it repeated a left response
-            else:
-                return 1
-        # Alternations
-        else:
-            return 0
-    else:
-        return np.nan
 
 def plot_lateral_delay(df, animal, panel):
     df_subject= df.loc[df.subject==animal]

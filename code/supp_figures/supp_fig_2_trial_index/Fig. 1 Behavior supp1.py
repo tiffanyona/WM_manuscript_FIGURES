@@ -8,48 +8,20 @@ Created on Wed Dec 28 11:51:57 2022
 COLORLEFT = 'teal'
 COLORRIGHT = '#FF8D3F'
 
-import statsmodels.api as sm
-from statsmodels.formula.api import ols
-from statsmodels.stats.anova import anova_lm
-from statsmodels.stats.anova import AnovaRM
-from statsmodels.graphics.factorplots import interaction_plot
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import matplotlib.patches as mpatches
-from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
 from scipy import stats
-from scipy import special
-import json 
-from sklearn.linear_model import LogisticRegression
-from scipy.optimize import curve_fit
-from matplotlib.lines import Line2D
 import os
 import pandas as pd
 import numpy as np
 import seaborn as sns
-from statsmodels.genmod.bayes_mixed_glm import BinomialBayesMixedGLM
-from statannotations.Annotator import Annotator as _StAnn
-def add_stat_annotation(ax, data=None, x=None, y=None, hue=None,
-                        order=None, hue_order=None, box_pairs=None,
-                        test='Mann-Whitney', text_format='star', loc='inside',
-                        verbose=2, **kwargs):
-    if 'line_offset_to_box' in kwargs:
-        kwargs['line_offset_to_group'] = kwargs.pop('line_offset_to_box')
-    if 'linewidth' in kwargs:
-        kwargs['line_width'] = kwargs.pop('linewidth')
-    ann = _StAnn(ax, box_pairs, data=data, x=x, y=y, hue=hue,
-                 order=order, hue_order=hue_order)
-    ann.configure(test=test, text_format=text_format, loc=loc,
-                  verbose=verbose, **kwargs)
-    return ann.apply_and_annotate()
-
-import warnings
-
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
-from config import ROOT, ANALYSIS_DATA, FIGURES_OUT, DATA_DIR
+from config import ROOT, FIGURES_OUT, DATA_DIR
+sys.path.insert(0, str(ROOT / 'src'))
+from functions import add_stat_annotation, compute_window, trials_normalized, trials_label, compute_window, trials_normalized, trials_label
 
 path = str(DATA_DIR) + '/'
 os.chdir(path)
@@ -97,53 +69,11 @@ fig.text(0.75, 0.5, 'g', fontsize=10, fontweight='bold', va='top')
 fig.text(0.5, 0.25, 'h', fontsize=10, fontweight='bold', va='top')
 fig.text(0.75, 0.25, 'i', fontsize=10, fontweight='bold', va='top')
 
-# -----------------############################## FUNCTIONS #################################-----------------------
-
-def compute_window(data, runningwindow, option):
-    """
-    Computes a rolling average with a length of runningwindow samples.
-    """
-    performance = []
-    end=False
-    for i in range(len(data)):
-        if data['trials'].iloc[i] <= runningwindow:
-            # Store the first index of that session
-            if end == False:
-                start=i
-                end=True
-            performance.append(round(np.mean(data[option].iloc[start:i + 1]), 2))
-            # performance.append(np.nan)
-        else:
-            end=False
-            performance.append(round(np.mean(data[option].iloc[i - runningwindow:i]), 2))
-    return performance
-
-def trials(row):
-    val = 0
-    val = np.around(row['trials']/(row['total_trials']),2)
-    return val
-
-def trials_label(row):
-    val = 0
-    if row['T'] <0.5:
-        val = 'Early'
-        return val
-    elif row['T'] >=0.5:
-        val = 'Late'
-        return val
-    else:
-        val = 'Mid'
-        return val
-    return val
-
-# -----------------###############################################################-----------------------
-
-
 #-----------------############################## A Panel #################################-----------------------
 file_name = 'global_behavior_10s'
 df = pd.read_csv(path+file_name+'.csv', index_col=0)
 
-df['T'] = df.apply(trials, axis=1)
+df['T'] = df.apply(trials_normalized, axis=1)
 df['trial_label'] = df.apply(trials_label, axis=1) 
 df['running_accuracy'] = compute_window(df, 20,'hit')
 df['running_repeat'] = compute_window(df, 20,'repeat_choice')
@@ -326,7 +256,6 @@ for regressor, panel in zip(['SL:T','SR:T','SL:D:T','SR:D:T','exp_C:T','D:exp_C:
         light = 'grey'
         xA = np.random.normal(0, 0.1, len(coef_matrix))
         const=0
-        pass
     else:
         const=0
         xA = np.random.normal(0, 0.15, len(coef_matrix))

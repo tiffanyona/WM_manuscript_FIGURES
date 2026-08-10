@@ -7,50 +7,23 @@ Created on Wed Dec 28 12:06:44 2022
 COLORLEFT = 'teal'
 COLORRIGHT = '#FF8D3F'
 
-import statsmodels.api as sm
-from statsmodels.formula.api import ols
-from statsmodels.stats.anova import anova_lm
-from statsmodels.stats.anova import AnovaRM
-from statsmodels.graphics.factorplots import interaction_plot
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import matplotlib.patches as mpatches
-import os
 import pandas as pd
 import numpy as np
 import seaborn as sns
-from scipy import stats
-from scipy import special
-import json
 import warnings
 warnings.filterwarnings('ignore', 'FigureCanvasAgg is non-interactive')
 warnings.filterwarnings('ignore', 'Attempting to set identical low and high xlims')
-from sklearn.linear_model import LogisticRegression
 from scipy.optimize import curve_fit
 #Import all needed libraries
-from matplotlib.lines import Line2D
-from statsmodels.genmod.bayes_mixed_glm import BinomialBayesMixedGLM
-from matplotlib.backends.backend_pdf import PdfPages
-from statannotations.Annotator import Annotator as _StAnn
-def add_stat_annotation(ax, data=None, x=None, y=None, hue=None,
-                        order=None, hue_order=None, box_pairs=None,
-                        test='Mann-Whitney', text_format='star', loc='inside',
-                        verbose=2, **kwargs):
-    if 'line_offset_to_box' in kwargs:
-        kwargs['line_offset_to_group'] = kwargs.pop('line_offset_to_box')
-    if 'linewidth' in kwargs:
-        kwargs['line_width'] = kwargs.pop('linewidth')
-    ann = _StAnn(ax, box_pairs, data=data, x=x, y=y, hue=hue,
-                 order=order, hue_order=hue_order)
-    ann.configure(test=test, text_format=text_format, loc=loc,
-                  verbose=verbose, **kwargs)
-    return ann.apply_and_annotate()
-
 from pathlib import Path
 
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
-from config import ROOT, ANALYSIS_DATA, FIGURES_OUT, DATA_DIR
+from config import ROOT, FIGURES_OUT, DATA_DIR
+sys.path.insert(0, str(ROOT / 'src'))
+from functions import add_stat_annotation, exp_decay, figureplot, compute_window_centered
 
 save_path = str(FIGURES_OUT / 'supp_figures' / 'supp_fig_3_extra_results_model')
 analysis_path = str(DATA_DIR) + '/fig_2_model/'
@@ -93,71 +66,6 @@ fig.text(0.5, 0.66, 'e', fontsize=10, fontweight='bold', va='top')
 
 fig.text(0.01, 0.37, 'f', fontsize=10, fontweight='bold', va='top')
 fig.text(0.25, 0.37, 'g', fontsize=10, fontweight='bold', va='top')
-
-# -----------------############################## FUNCTIONS #################################-----------------------
-def exponential_decay(x, a, tau):
-    return a * np.exp(-x / tau)
-
-def figureplot(new_df_real,new_df,panel):
-    Left = 'teal'
-    Right = '#FF8D3F'
-
-    # --------------------------------------
-    df_results =pd.DataFrame()
-    df_results['accuracy'] = new_df_real.groupby(['delays','session','stim'])['hit'].mean()
-    df_results.reset_index(inplace=True)      
-
-    sns.lineplot(x='delays',y='accuracy',data=df_results, ci=67, markeredgewidth = 0.2, ax=panel,marker='o',color='black', linestyle = '', err_style="bars")
-    sns.lineplot(x='delays',y='accuracy',hue='stim',data=df_results, markeredgewidth = 0.2, ax=panel, marker='o', palette=[Left,Right], linestyle = '', err_style="bars",legend=False)
-
-    df_results =pd.DataFrame()
-    df_results['accuracy'] = new_df.groupby(['delays','session'])['hit'].mean()
-    df_results.reset_index(inplace=True)   
-    sns.lineplot(x='delays',y='accuracy',data=df_results,color='black', ax=panel,  markersize=3)
-
-    df_results =pd.DataFrame()
-    df_results['accuracy'] = new_df.groupby(['delays','stim','session'])['hit'].mean()
-    df_results.reset_index(inplace=True)   
-    sns.lineplot(x='delays',y='accuracy',hue='stim',markeredgewidth = 0.2, data=df_results,  markersize=3, ax=panel, palette=[Left,Right], legend=False)
-
-    panel.set_ylim(0.4,1)
-    panel.hlines(xmin=0,xmax=10, y=0.5, linestyles = ':')
-    panel.set_xlabel("Delay (s)")
-    panel.set_ylabel(" Accuracy")
-    panel.locator_params(nbins=3)
-
-
-def compute_window_centered(data, runningwindow,option):
-    """
-    Computes a rolling average with a length of runningwindow samples.
-    """
-    performance = []
-    start_on=False
-    for i in range(len(data)):
-        if data['trial'].iloc[i] <= int(runningwindow/2):
-            # Store the first index of that session for the first initial trials
-            if start_on == False:
-                start=i
-                start_on=True
-            performance.append(round(np.mean(data[option].iloc[start:i + int(runningwindow/2)]), 2))
-        elif i < (len(data)-runningwindow):
-            if data['trial'].iloc[i] > data['trial'].iloc[i+runningwindow]:
-                # Store the last values for the end of the session
-                if end == True:
-                    end_value = i+runningwindow-1
-                    end = False
-                performance.append(round(np.mean(data[option].iloc[i:end_value]), 2))
-                
-            else: # Rest of the session
-                start_on=False
-                end = True
-                performance.append(round(np.mean(data[option].iloc[i - int(runningwindow/2):i+int(runningwindow/2)]), 2))
-            
-        else:
-            performance.append(round(np.mean(data[option].iloc[i:len(data)]), 2))
-    return performance
-#____________________________________________________________________________________________________________________
-
 
 # ----------------------------------------------------------------------------------------------------------------
 # -----------------############################## D Panel - Parameter values for HMM fiting #################################-----------------------
@@ -301,7 +209,7 @@ color = 'darkgreen'
 corr = cumulative_autocorrelation_hit_model[:25].mean(axis=1)
 
 panel.plot(np.arange(1,len(corr)+1), corr ,marker='.', linestyle='', color='grey')
-params, cov = curve_fit(exponential_decay, np.arange(len(corr)), corr.values)
+params, cov = curve_fit(exp_decay, np.arange(len(corr)), corr.values)
 print(params[1])
 
 
@@ -340,7 +248,7 @@ panel.hlines(y=0,xmin=0,xmax=25,linestyles=':')
 panel.set_xlabel('Trial indexes')
 panel.set_xlim(0,25)
 
-params, cov = curve_fit(exponential_decay, np.arange(len(corr.mean(axis=1))), corr.mean(axis=1).values)
+params, cov = curve_fit(exp_decay, np.arange(len(corr.mean(axis=1))), corr.mean(axis=1).values)
 print(params[1])
 # ------------------------------------------------------------------------------------------------------------
 
@@ -349,7 +257,7 @@ color = 'indigo'
 corr = cumulative_autocorrelation_repeat_model.mean(axis=1)
 
 panel.plot(np.arange(1,len(corr)+1), corr ,marker='.', linestyle='', color='grey')
-params, cov = curve_fit(exponential_decay, np.arange(len(corr)), corr.values)
+params, cov = curve_fit(exp_decay, np.arange(len(corr)), corr.values)
 print(params[1])
 
 corr = cumulative_autocorrelation_repeat_data[:25]
@@ -385,7 +293,7 @@ panel.plot(np.arange(1,len(corr)+1), mean ,marker='', color=color)
 panel.hlines(y=0,xmin=0,xmax=25,linestyles=':')
 panel.set_xlabel('Trial indexes')
 panel.set_xlim(0,25)
-params, cov = curve_fit(exponential_decay, np.arange(len(corr.mean(axis=1))), corr.mean(axis=1).values)
+params, cov = curve_fit(exp_decay, np.arange(len(corr.mean(axis=1))), corr.mean(axis=1).values)
 print(params[1])
 
 # ------------------------------------------------------------------------------------------------------------
