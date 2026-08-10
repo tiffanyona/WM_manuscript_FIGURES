@@ -20,28 +20,34 @@ import matplotlib.patches as mpatches
 import matplotlib as mpl
 import os
 from pathlib import Path
-_ANALYSIS_DATA = Path(__file__).resolve().parents[2] / 'ANALYSIS_figures'
+_ANALYSIS_DATA = Path(__file__).resolve().parents[2] / 'general_data'
 import pandas as pd
 import numpy as np
 import seaborn as sns
 from scipy import stats
 from scipy import special
-import json 
+import json
 from sklearn.linear_model import LogisticRegression
 from scipy.optimize import curve_fit
-#Import all needed libraries
-from matplotlib.lines import Line2D
-from statsmodels.genmod.bayes_mixed_glm import BinomialBayesMixedGLM
-from matplotlib.backends.backend_pdf import PdfPages
-from statannot import add_stat_annotation
-# from datahandler import Utils
 from neo.core import SpikeTrain
 from quantities import ms, s, Hz
-from elephant.statistics import mean_firing_rate
-from elephant.statistics import time_histogram, instantaneous_rate
+from elephant.statistics import mean_firing_rate, time_histogram, instantaneous_rate
 from elephant.kernels import GaussianKernel
-from elephant.statistics import mean_firing_rate
-from cycler import cycler
+
+from statannotations.Annotator import Annotator as _StAnn
+def add_stat_annotation(ax, data=None, x=None, y=None, hue=None,
+                        order=None, hue_order=None, box_pairs=None,
+                        test='Mann-Whitney', text_format='star', loc='inside',
+                        verbose=2, **kwargs):
+    if 'line_offset_to_box' in kwargs:
+        kwargs['line_offset_to_group'] = kwargs.pop('line_offset_to_box')
+    if 'linewidth' in kwargs:
+        kwargs['line_width'] = kwargs.pop('linewidth')
+    ann = _StAnn(ax, box_pairs, data=data, x=x, y=y, hue=hue,
+                 order=order, hue_order=hue_order)
+    ann.configure(test=test, text_format=text_format, loc=loc,
+                  verbose=verbose, **kwargs)
+    return ann.apply_and_annotate()
 
 
 def plot_results_shuffle(df_cum_sti, df_cum_res, colors, variables_combined, fig = False, ax1=False, ax2=False, upper_limit=0.4, baseline=0):
@@ -292,13 +298,13 @@ def single_trial_with_decoder(df, df_decoder, big_data, filename, T, panels = []
         panel[2].yaxis.set_tick_params(labelbottom=False)
 
 def convolveandplot(df, upper_plot, lower_plot, variable='reward_side', cluster_id = 153, delay = 10, labels=['Correct right stimulus','Correct left stimulus'],
-                   colors=[COLORRIGHT,COLORLEFT], align = 'Stimulus_ON', j=1, alpha=1, spikes=True, kernel=50):
+                   colors=[COLORRIGHT,COLORLEFT], align = 'Stimulus_ON', j=1, alpha=1, spikes=True, kernel=50, add_state=False):
     cue_on=0
     cue_off=0.4
     start=-2
     stop= 5 + delay
     
-    neuron = new_convolve(df.loc[df.cluster_id==cluster_id], df, kernel)
+    neuron = new_convolve(df.loc[df.cluster_id==cluster_id], df, kernel, add_state=add_state)
 
     # neuron = neuron.loc[neuron.delay != 0.1] # Remove trials with no delay if the studied segment is that one. 
 
@@ -476,65 +482,50 @@ def plot_decoder(left, df,baseline=0.5,individual_sessions=False, align='Stimulu
         if show_axis==False:
             left.spines['left'].set_visible(False)
 
-def new_convolve(nx,df, kernel=50):
+def new_convolve(nx, df, kernel=50, bin_size=20, add_state=False):
     '''
     nx = already selected cluster
     df = dataframe from the session with all trials
+    kernel   : Gaussian kernel s.d. in ms (default 50)
+    bin_size : histogram bin size in ms (default 20)
+    add_state: if True, add a 'state' column from dft.state (default False)
     '''
 
-    errors_=[] ##indexes and neurons without enough spikes to make a spiketrain
-    frames=[]
-   
-    # Iterate for each trial in that session
+    frames = []
+
     for T in df.trial.unique():
         if T > nx.iloc[0].trial_start+1 and T < nx.iloc[0].trial_end+1:
-            # Take the spike times for that trial
             nxt = nx.loc[nx['trial']==T]['fixed_times']
-
-            # !!!! IMPORTANT use the main df that has all the trials. If you use the filtered nx, some trials may not appear if they were no spikes there. 
             dft = df.loc[df['trial']==T]
 
-            # try: 
-            ############################################################ Get the times of the spikes
-            times_spikes = nxt
-            times_spikes = times_spikes*1000 #transform to ms
+            times_spikes = nxt * 1000  # ms
 
-            ############################################################ Set the strat and end time of the train
-            stop_time =  (dft.END.unique()[0])*1000*ms ## End of the trial in ms
+            stop_time = (dft.END.unique()[0]) * 1000 * ms
             try:
-                start_time = (dft.START_adjusted.unique()[0]-0.1)*1000*ms ## Start of the trial in ms    
-            except:
-                start_time = dft.START.unique()[0]*1000*ms ## Start of the trial in ms   
-                    
-            ############################################################ Spiketrain
-            spiketrain = SpikeTrain(times_spikes, units=ms, t_stop=stop_time, t_start=start_time) 
+                start_time = (dft.START_adjusted.unique()[0] - 0.1) * 1000 * ms
+            except Exception:
+                start_time = dft.START.unique()[0] * 1000 * ms
 
-            ############################################################ Convoluted firing rate
-            histogram_rate = time_histogram([spiketrain], 20*ms, output='rate')
-            gaus_rate = instantaneous_rate(spiketrain, sampling_period=20*ms, kernel=GaussianKernel(kernel*ms)) #s.d of Suzuki & Gottlieb 
+            spiketrain = SpikeTrain(times_spikes, units=ms, t_stop=stop_time, t_start=start_time)
+
+            histogram_rate = time_histogram([spiketrain], bin_size*ms, output='rate')
+            gaus_rate = instantaneous_rate(spiketrain, sampling_period=bin_size*ms,
+                                           kernel=GaussianKernel(kernel*ms))
             times_ = gaus_rate.times.rescale(ms)
             firing = gaus_rate.rescale(histogram_rate.dimensionality).magnitude.flatten()
 
-            ############################################################ Dataframe 
-            df_trial = pd.DataFrame({'times':times_, 'firing':firing}) #dataframe con times y firing
-            df_trial['trial']=T
-            df_trial['Delay_OFF']= dft.Delay_OFF.unique()[0]*1000
-            df_trial['Stimulus_ON']= dft.Stimulus_ON.unique()[0]*1000
-            df_trial['delay']=dft.delay.unique()[0]
-            df_trial['vector_answer']=dft.vector_answer.unique()[0]
-            df_trial['reward_side']=dft.reward_side.unique()[0]
-            # df_trial['miss']=dft.miss.unique()[0]
-            df_trial['hit']=dft.hit.unique()[0]
+            df_trial = pd.DataFrame({'times': times_, 'firing': firing})
+            df_trial['trial'] = T
+            df_trial['Delay_OFF'] = dft.Delay_OFF.unique()[0] * 1000
+            df_trial['Stimulus_ON'] = dft.Stimulus_ON.unique()[0] * 1000
+            df_trial['delay'] = dft.delay.unique()[0]
+            df_trial['vector_answer'] = dft.vector_answer.unique()[0]
+            df_trial['reward_side'] = dft.reward_side.unique()[0]
+            df_trial['hit'] = dft.hit.unique()[0]
+            if add_state:
+                df_trial['state'] = dft.state.unique()[0]
 
             frames.append(df_trial)
-            # except ValueError:
-            #     errors_.append([N,T])
-            #     print (N, T)
-            # except IndexError:
-            #     print('Index error, missing trial ' + str(T))
-            #     errors_.append([N,T])
-        else:
-            continue
     neuron = pd.concat(frames)
     return neuron
 
@@ -946,3 +937,322 @@ def plot_results_session_summary(fig, plot, df, colors, variables_combined = ['W
             ax.fill_betweenx(np.arange(-1,1.15,0.1), 0,0.2, color='grey', alpha=.4)
 
         sns.despine()
+
+
+# ── Utility / math ────────────────────────────────────────────────────────────
+
+def exp_decay(x, a, tau):
+    return a * np.exp(-x / tau)
+
+
+def repeat_reward_side(row):
+    if row['trials'] != 0:
+        if row['reward_side'] == row['previous_reward_side']:
+            if row['reward_side'] == 1:
+                return 2
+            else:
+                return 1
+        else:
+            return 0
+    else:
+        return np.nan
+
+
+def trials_synch(row):
+    """Normalized trial index for synch scripts (uses 'T' / 'total trials')."""
+    return row['T'] / row['total trials']
+
+
+def trials_normalized(row):
+    """Normalized trial index for behavior supp scripts (uses 'trials' / 'total_trials')."""
+    return np.around(row['trials'] / row['total_trials'], 2)
+
+
+def trials_label(row):
+    if row['T'] < 0.5:
+        return 'Early'
+    elif row['T'] >= 0.5:
+        return 'Late'
+    else:
+        return 'Mid'
+
+
+# ── Rolling-window helpers ─────────────────────────────────────────────────────
+
+def compute_window(data, runningwindow, option):
+    """Expanding window at session start, trailing window thereafter."""
+    performance = []
+    end = False
+    for i in range(len(data)):
+        if data['trials'].iloc[i] <= runningwindow:
+            if end == False:
+                start = i
+                end = True
+            performance.append(round(np.mean(data[option].iloc[start:i + 1]), 2))
+        else:
+            end = False
+            performance.append(round(np.mean(data[option].iloc[i - runningwindow:i]), 2))
+    return performance
+
+
+def compute_window_centered(data, runningwindow, option):
+    """Centered rolling average: expanding at start, full window in middle, shrinking at end."""
+    performance = []
+    start_on = False
+    for i in range(len(data)):
+        if data['trial'].iloc[i] <= int(runningwindow / 2):
+            if start_on == False:
+                start = i
+                start_on = True
+            performance.append(round(np.mean(data[option].iloc[start:i + int(runningwindow / 2)]), 2))
+        elif i < (len(data) - runningwindow):
+            if data['trial'].iloc[i] > data['trial'].iloc[i + runningwindow]:
+                if end == True:
+                    end_value = i + runningwindow - 1
+                    end = False
+                performance.append(round(np.mean(data[option].iloc[i:end_value]), 2))
+            else:
+                start_on = False
+                end = True
+                performance.append(round(np.mean(data[option].iloc[i - int(runningwindow / 2):i + int(runningwindow / 2)]), 2))
+        else:
+            performance.append(round(np.mean(data[option].iloc[i:len(data)]), 2))
+    return performance
+
+
+# ── Model figure helpers ───────────────────────────────────────────────────────
+
+def figureplot(new_df_real, new_df, panel):
+    Left = 'teal'
+    Right = '#FF8D3F'
+
+    df_results = pd.DataFrame()
+    df_results['accuracy'] = new_df_real.groupby(['delays', 'session', 'stim'])['hit'].mean()
+    df_results.reset_index(inplace=True)
+    sns.lineplot(x='delays', y='accuracy', data=df_results, errorbar=('ci', 67),
+                 markeredgewidth=0.2, ax=panel, marker='o', color='black',
+                 linestyle='', err_style='bars')
+    sns.lineplot(x='delays', y='accuracy', hue='stim', data=df_results,
+                 markeredgewidth=0.2, ax=panel, marker='o', palette=[Left, Right],
+                 linestyle='', err_style='bars', legend=False)
+
+    df_results = pd.DataFrame()
+    df_results['accuracy'] = new_df.groupby(['delays', 'session'])['hit'].mean()
+    df_results.reset_index(inplace=True)
+    sns.lineplot(x='delays', y='accuracy', data=df_results, color='black', ax=panel, markersize=3)
+
+    df_results = pd.DataFrame()
+    df_results['accuracy'] = new_df.groupby(['delays', 'stim', 'session'])['hit'].mean()
+    df_results.reset_index(inplace=True)
+    sns.lineplot(x='delays', y='accuracy', hue='stim', markeredgewidth=0.2, data=df_results,
+                 markersize=3, ax=panel, palette=[Left, Right], legend=False)
+
+    panel.set_ylim(0.4, 1)
+    panel.hlines(xmin=0, xmax=10, y=0.5, linestyles=':')
+    panel.set_xlabel('Delay (s)')
+    panel.set_ylabel('Accuracy')
+    panel.locator_params(nbins=3)
+
+
+# ── Synchrony helpers ──────────────────────────────────────────────────────────
+
+def synch_trial(df, T, lower_plot, upper_plot=None, trial=0, start=-2, stop=0,
+                color='indigo', surrogates=100, bins=20):
+    dft = df.loc[df.trial == T]
+    align = 'Stimulus_ON'
+    delay = dft.delay.unique()[0]
+    dft = dft.loc[(dft['a_' + align] > start) & (dft['a_' + align] < stop)]
+
+    n_neurons = len(df.cluster_id.unique())
+    times_spikes = dft['a_' + align].values * 1000 * ms
+
+    stop_time = stop * 1000 * ms
+    start_time = start * 1000 * ms
+
+    spiketrain = SpikeTrain(times_spikes, units=ms, t_stop=stop_time, t_start=start_time)
+    histogram_rate = time_histogram([spiketrain], bins * ms, output='rate')
+    times_ = histogram_rate.times.rescale(s)
+    firing_real = histogram_rate.rescale(histogram_rate.dimensionality).magnitude.flatten()
+
+    real_std = np.std(firing_real)
+
+    list_std = []
+    for i in range(surrogates):
+        random_float_list = np.random.uniform(start, stop, len(times_spikes))
+        surrogate_spikes = np.array(random_float_list) * 1000 * ms
+        st = SpikeTrain(surrogate_spikes, units=ms, t_stop=stop_time, t_start=start_time)
+        hr = time_histogram([st], bins * ms, output='rate')
+        times_ = hr.times.rescale(s)
+        firing = hr.rescale(hr.dimensionality).magnitude.flatten()
+        list_std.append(np.std(firing))
+
+    cluster_id = []
+    FR_mean = []
+    for N in df.cluster_id.unique():
+        spikes = dft.loc[dft.cluster_id == N]['a_' + align].values
+        FR_mean.append(len(spikes) / abs(stop - start))
+        cluster_id.append(N)
+
+    df_spikes = pd.DataFrame(list(zip(cluster_id, FR_mean)), columns=['cluster_id', 'FR'])
+    df_spikes = df_spikes.sort_values('FR')
+    df_spikes['new_order'] = np.arange(len(df_spikes))
+    dft = pd.merge(df_spikes, dft, on=['cluster_id'])
+
+    print('Synch:', real_std / np.mean(list_std), '; WM:', str(dft.WM_roll.unique()[0]))
+
+    if upper_plot is not None:
+        panel = upper_plot
+        panel.set_title(trial)
+        j = 0
+        for N in dft.new_order.unique():
+            spikes = dft.loc[dft.new_order == N]['a_' + align].values
+            j += 1
+            panel.plot(spikes, np.repeat(j, len(spikes)), '|', markersize=1, color='black', zorder=1)
+
+    panel = lower_plot
+    panel.plot(times_, firing_real / n_neurons * 1000, color=color, linewidth=0.5)
+    panel.set_ylim(0, 20)
+    panel.set_ylabel('Firing rate\n(spks/s)')
+
+
+def distribution(df_final, variable='WM_roll'):
+    r_value_upper = []
+    for animal in df_final.animal.unique():
+        test_df = df_final.loc[df_final.animal == animal].dropna()
+        corr_synch = test_df['synch'].values
+        r_value_list = []
+        for animal in df_final.animal.unique():
+            try:
+                corr_WM = df_final.loc[df_final.animal == animal][variable].values[-len(corr_synch):]
+                slope, intercept, r_value, p_value, std_err = stats.linregress(corr_synch, corr_WM)
+                r_value_list.append(r_value)
+            except Exception:
+                continue
+        r_value_upper.append(np.mean(r_value_list))
+    return r_value_upper
+
+
+# ── Decoder plot variants ──────────────────────────────────────────────────────
+
+def plot_decoder_shuffle(left, df_cum_sti, df_shuffle, baseline=0.5,
+                         individual_sessions=False, colors=['black'],
+                         upper_limit=0.2, variables_combined=['WM_roll_1']):
+    """plot_decoder variant that subtracts a shuffle baseline before plotting."""
+    for color, variable, left in zip(colors, variables_combined, [left]):
+        if individual_sessions:
+            real = df_cum_sti.groupby('session').median(numeric_only=True).reset_index()
+            try:
+                times = np.array(df_cum_sti.columns[:-4]).astype(float)
+            except Exception:
+                times = np.array(df_cum_sti.columns[1:]).astype(float)
+            for i in range(len(real)):
+                left.plot(times, real.iloc[i][1:-1], color=color, alpha=0.1)
+
+        real = np.array(df_cum_sti.loc[:, (df_cum_sti.columns != 'session_shuffle')
+                                       & (df_cum_sti.columns != 'fold')
+                                       & (df_cum_sti.columns != 'train')
+                                       & (df_cum_sti.columns != 'session')
+                                       & (df_cum_sti.columns != 'subject')].mean())
+
+        df_shuffle = df_shuffle.groupby('times').median(numeric_only=True).reset_index()
+        df_shuffle_mean = np.array(df_shuffle.loc[:, (df_shuffle.columns != 'times')
+                                                  & (df_shuffle.columns != 'fold')].mean(axis=1))
+
+        try:
+            times = np.array(df_cum_sti.columns[:-4]).astype(float)
+            time_points = df_cum_sti.columns[:-4]
+        except Exception:
+            times = np.array(df_cum_sti.columns[1:]).astype(float)
+            time_points = df_cum_sti.columns[1:]
+
+        df_lower = pd.DataFrame()
+        df_upper = pd.DataFrame()
+        df_for_boots = (df_cum_sti.loc[:, (df_cum_sti.columns != 'session_shuffle')
+                                       & (df_cum_sti.columns != 'fold')]
+                        .groupby('session').mean(numeric_only=True).reset_index())
+
+        for timepoint in time_points:
+            mean_surr = []
+            array = df_for_boots[timepoint].to_numpy()
+            for _ in range(1000):
+                x = np.random.choice(array, size=len(array), replace=True)
+                mean_surr.append(np.mean(x))
+            df_lower.at[0, timepoint] = np.percentile(mean_surr, 0.5)
+            df_upper.at[0, timepoint] = np.percentile(mean_surr, 99.5)
+
+        lower = df_lower.iloc[0].values
+        upper = df_upper.iloc[0].values
+        left.plot(times, lower - df_shuffle_mean, color=color, linestyle='', alpha=0.6, linewidth=0)
+        left.plot(times, upper - df_shuffle_mean, color=color, linestyle='', alpha=0.6, linewidth=0)
+        left.fill_between(times, lower - df_shuffle_mean, upper - df_shuffle_mean,
+                          alpha=0.2, color=color, linewidth=0)
+        left.plot(times, real - df_shuffle_mean, color=color)
+        left.fill_betweenx(np.arange(-baseline - 0.1, baseline + .5, 0.1), 0, 0.35,
+                           color='lightgrey', alpha=1, linewidth=0)
+        left.fill_betweenx(np.arange(-baseline - 0.1, baseline + .5, 0.1), 3.35, 3.55,
+                           color='lightgrey', alpha=1, linewidth=0)
+        left.set_ylim(baseline - 0.1, upper_limit + baseline)
+        left.axhline(y=baseline, linestyle=':', color='black')
+        left.set_xlabel('Time from Cue onset (s)')
+        left.set_ylabel('Decoding\n accuracy')
+
+
+def plot_decoder_single(left, df_cum_sti, baseline=0.5, individual_sessions=False,
+                        align='Stimulus_ON', colors=['black'], upper_limit=0.2,
+                        alpha=1, variables_combined=['WM_roll_1']):
+    """Mean-trace-only decoder plot with no bootstrap CI bands."""
+    for color, variable, left in zip(colors, variables_combined, left):
+        if individual_sessions:
+            real = (df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
+                    .groupby('session').mean().drop(columns=['fold', 'score']).reset_index())
+            times = df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
+            try:
+                times = np.array(times.drop(columns=['trial_type', 'session', 'fold', 'score'],
+                                            axis=1).columns.astype(float))
+            except Exception:
+                times = np.array(times.drop(columns=['trial_type', 'session', 'fold', 'score', 'subject'],
+                                            axis=1).columns.astype(float))
+            for i in range(len(real)):
+                left.plot(times, real.iloc[i][1:-1], color=color, alpha=0.1)
+
+        try:
+            times = df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
+            times = np.array(times.drop(columns=['trial_type', 'session', 'fold', 'score'],
+                                        axis=1).columns.astype(float))
+            real = np.array(np.mean(df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
+                                    .groupby('session').mean().drop(columns=['fold', 'score'])))
+        except Exception:
+            try:
+                times = df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
+                times = np.array(times.drop(columns=['trial_type', 'session', 'score_type'],
+                                            axis=1).columns.astype(float))
+                real = np.array(np.mean(df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
+                                        .groupby('session').mean()))
+            except Exception:
+                times = df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
+                times = np.array(times.drop(columns=['subject', 'trial_type', 'session', 'fold', 'score'],
+                                            axis=1).columns.astype(float))
+                real = np.array(np.mean(df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
+                                        .groupby('session').mean().drop(columns=['fold', 'score'])))
+
+        left.plot(times, real, color=color, alpha=alpha)
+        left.set_ylim(baseline - 0.1, upper_limit + baseline)
+        left.axhline(y=baseline, linestyle=':', color='black')
+        left.set_ylabel('Decoding\n accuracy')
+
+
+# ── Notebook helpers ───────────────────────────────────────────────────────────
+
+def plot_lines(data, ax, variable='total_rewards', group='patch_label',
+               one_line='mouse', order=None):
+    """Draw individual connecting lines between two conditions on a grouped boxplot."""
+    if order is None:
+        order = sorted(data[group].unique())
+    x_map = {label: i for i, label in enumerate(order)}
+    for value in data[one_line].unique():
+        df_subset = data[data[one_line] == value]
+        y = df_subset[variable].values
+        x_labels = df_subset[group].values
+        x = [x_map[label] for label in x_labels]
+        lst_new = [x[0] - 0.925, x[1] - 0.075]
+        ax.plot(lst_new, y, marker='', linestyle='-', color='black', alpha=0.4, linewidth=1)
