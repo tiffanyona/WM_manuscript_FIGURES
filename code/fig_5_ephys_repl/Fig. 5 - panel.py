@@ -1,11 +1,8 @@
 ﻿# -*- coding: utf-8 -*-
-"""
-Created on Wed Dec 28 12:06:44 2022
-
-@author: Tiffany
-"""
-COLORLEFT = 'teal'
+COLORLEFT  = 'teal'
 COLORRIGHT = '#FF8D3F'
+COLOR_STM  = 'darkgreen'
+COLOR_REPL = 'indigo'
 
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -13,550 +10,645 @@ import os
 import pandas as pd
 import numpy as np
 import seaborn as sns
-from scipy import stats
-#Import all needed libraries
-from neo.core import SpikeTrain
-from quantities import ms
-from elephant.statistics import time_histogram, instantaneous_rate
-from elephant.kernels import GaussianKernel
-
-from rpy2.robjects.packages import importr
-import rpy2.robjects as ro
-from rpy2.robjects import pandas2ri
 import sys
 
-base     = importr('base')
-car      = importr('car')
-stats    = importr('stats')
-lme4     = importr('lme4')
-scales   = importr('scales')
-lmerTest = importr('lmerTest')
+try:
+    from rpy2.robjects.packages import importr
+    import rpy2.robjects as ro
+    from rpy2.robjects import pandas2ri
+    from rpy2.robjects.conversion import localconverter
+    base     = importr('base')
+    car      = importr('car')
+    lme4     = importr('lme4')
+    pandas2ri.activate()
+    HAS_RPY2 = True
+except Exception as e:
+    print(f"rpy2 unavailable: {e}")
+    HAS_RPY2 = False
 
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from config import ROOT, FIGURES_OUT, DATA_DIR
 sys.path.insert(0, str(ROOT / 'src'))
-sys.path.append("G:/Mi unidad/WORKING_MEMORY/EXPERIMENTS/ELECTROPHYSIOLOGY/ANALYSIS/functions/")
 
-from functions import add_stat_annotation, convolveandplot, new_convolve
-# sys.path.append("G:/My Drive/WORKING_MEMORY/EXPERIMENTS/ELECTROPHYSIOLOGY/ANALYSIS/functions/")
-
-
+from functions import convolveandplot
 import functions as plots
 
+# ---------------------------------------------------------------------------
+# Local definition of plot_results_session_summary (from standalone script)
+# ---------------------------------------------------------------------------
+def plot_results_session_summary(plot, df, colors, variables_combined=['WM_roll_1','RL_roll_1'],
+                                 y_range=[], x_range=None, epoch='Stimulus_ON', baseline=0.5):
+    for color, variable, ax in zip(colors, variables_combined, np.repeat(plot, len(variables_combined))):
+        try:
+            df_loop = df.loc[(df['trial_type'] == variable)]
+        except:
+            df_loop = df
+        df_loop = df_loop.dropna(axis=1, how='all')
+        numeric_columns = df_loop.columns[df_loop.columns.to_series().apply(pd.to_numeric, errors='coerce').notna()]
+        real = np.mean(df_loop.groupby('session')[numeric_columns].mean(), axis=0).to_numpy()
+        times = df_loop[numeric_columns].columns.astype(float)
+        df_results = pd.DataFrame()
+        df_results['times'] = times
+        df_results['real']  = real
+        df_results = df_results.sort_values(by='times')
+        if x_range is None:
+            x_range = [min(times), max(times)]
+        df_lower = pd.DataFrame()
+        df_upper = pd.DataFrame()
+        df_for_boots = df_loop.groupby('session')
+        for timepoint in df_results['times'].values:
+            mean_surr = []
+            try:
+                array = df_for_boots[timepoint].mean().to_numpy()
+            except:
+                array = df_for_boots[str(timepoint)].mean().to_numpy()
+            for iteration in range(1000):
+                x = np.random.choice(array, size=len(array), replace=True)
+                mean_surr.append(np.mean(x))
+            df_lower.at[0, timepoint] = np.percentile(mean_surr, 2.5)
+            df_upper.at[0, timepoint] = np.percentile(mean_surr, 97.5)
+        lower = df_lower.iloc[0].values
+        upper = df_upper.iloc[0].values
+        ax.plot(df_results.times, df_results.real, color=color)
+        ax.fill_between(df_results.times, lower, upper, alpha=0.2, color=color)
+        ax.axhline(y=baseline, linestyle=':', color='black')
+        ax.set_ylim(y_range)
+        ax.set_xlim(x_range)
+        ax.set_ylabel('Excess decoding accuracy')
+        sns.despine()
+    if epoch == 'Stimulus_ON':
+        ax.set_xlabel('Time to stimulus onset (s)')
+        ax.fill_betweenx(np.arange(-1, 1.15, 0.1), 10.4, 10.6, color='grey', alpha=.4, edgecolor='none')
+    else:
+        ax.set_xlabel('Time to go cue (s)')
+        ax.fill_betweenx(np.arange(-1, 1.15, 0.1), 0, 0.2, color='grey', alpha=.4, edgecolor='none')
+
+# ---------------------------------------------------------------------------
 save_path = str(FIGURES_OUT / 'fig_5_ephys_repl') + '/'
-path = str(DATA_DIR/ 'fig_5_ephys_repl') + '/'
-
+path      = str(DATA_DIR   / 'fig_5_ephys_repl') + '/'
 os.chdir(path)
-cm = 1/2.54
-sns.set_context('paper', rc={'axes.labelsize': 7,
-                            'lines.linewidth': 1,
-                            'lines.markersize': 3,
-                            'legend.fontsize': 7,
-                            'xtick.major.size': 1,
-                            'xtick.labelsize': 6,
-                            'ytick.major.size': 1,
-                            'ytick.labelsize': 6,
-                            'xtick.major.pad': 0,
-                            'ytick.major.pad': 0,
-                            'xlabel.labelpad': -10})
 
-# Create a figure with 6 subplots using a GridSpec
-fig = plt.figure(figsize=(25*cm, 18  *cm))
-gs = gridspec.GridSpec(nrows=5, ncols=5, figure=fig)
+cm = 1 / 2.54
+sns.set_context('paper', rc={
+    'axes.labelsize':   7,
+    'lines.linewidth':  1,
+    'lines.markersize': 3,
+    'legend.fontsize':  7,
+    'xtick.major.size': 1,
+    'xtick.labelsize':  6,
+    'ytick.major.size': 1,
+    'ytick.labelsize':  6,
+    'xtick.major.pad':  0,
+    'ytick.major.pad':  0,
+})
 
-# Create the subplots
-a1 = fig.add_subplot(gs[0, 0])
-a2  = fig.add_subplot(gs[0, 1])
+# ============================================================
+# Figure & GridSpec
+# ============================================================
+fig = plt.figure(figsize=(25 * cm, 22 * cm))
 
-b1 = fig.add_subplot(gs[1, 0])
-b2  = fig.add_subplot(gs[1, 1])
+outer = gridspec.GridSpec(
+    2, 1, figure=fig,
+    height_ratios=[3, 2],
+    hspace=0.2,
+    left=0.07, right=0.98, top=0.93, bottom=0.05,
+)
 
-h1 = fig.add_subplot(gs[2, 0])
-h2  = fig.add_subplot(gs[2, 1])
+top = gridspec.GridSpecFromSubplotSpec(
+    3, 4, subplot_spec=outer[0],
+    hspace=0.5, wspace=0.5,
+    height_ratios=[1, 1, 1],
+)
 
-i1 = fig.add_subplot(gs[3, 1])
-j1 = fig.add_subplot(gs[4, 1])
+a  = fig.add_subplot(top[0, 0])
+b  = fig.add_subplot(top[0, 1])
+d_outer = gridspec.GridSpecFromSubplotSpec(1, 4, subplot_spec=top[0, 2:4], wspace=0)
+d  = fig.add_subplot(d_outer[0, 0:3])   # only 3/4 width
 
-c1 = fig.add_subplot(gs[0, 2])
-c2  = fig.add_subplot(gs[1, 2])
-c3 = fig.add_subplot(gs[2, 2])
+c_gs = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=top[1, 0:2], wspace=0.15)
+c1 = fig.add_subplot(c_gs[0, 0])
+c2 = fig.add_subplot(c_gs[0, 1])
 
-d1 = fig.add_subplot(gs[0, 3])
-d2  = fig.add_subplot(gs[1, 3])
-d3  = fig.add_subplot(gs[2, 3])
+e_gs = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=top[2, 0:2], wspace=0.15)
+e1 = fig.add_subplot(e_gs[0, 0])
+e2 = fig.add_subplot(e_gs[0, 1])
 
-f = fig.add_subplot(gs[3, 0])
+f_gs = gridspec.GridSpecFromSubplotSpec(3, 1, subplot_spec=top[1:3, 2], hspace=0.3)
+f1 = fig.add_subplot(f_gs[0])
+f2 = fig.add_subplot(f_gs[1])
+f3 = fig.add_subplot(f_gs[2])
 
-e1  = fig.add_subplot(gs[3:4, 2])
-e2  = fig.add_subplot(gs[3:4, 3])
-e3  = fig.add_subplot(gs[3:4, 4])
+g_gs = gridspec.GridSpecFromSubplotSpec(3, 1, subplot_spec=top[1:3, 3], hspace=0.3)
+g1 = fig.add_subplot(g_gs[0])
+g2 = fig.add_subplot(g_gs[1])
+g3 = fig.add_subplot(g_gs[2])
 
-# fig.text(0.01, 0.99, 'a', fontsize=10, fontweight='bold', va='top')
-# fig.text(0.34, 0.99, 'b', fontsize=10, fontweight='bold', va='top')
-# fig.text(0.01, 0.86, 'c', fontsize=10, fontweight='bold', va='top')
-# fig.text(0.68, 0.99, 'd', fontsize=10, fontweight='bold', va='top')
-# fig.text(0.01, 0.72, 'e', fontsize=10, fontweight='bold', va='top')
-# fig.text(0.01, 0.58, 'f', fontsize=10, fontweight='bold', va='top')
-# fig.text(0.68, 0.58, 'g', fontsize=10, fontweight='bold', va='top')
-# fig.text(0.01, 0.2, 'h', fontsize=10, fontweight='bold', va='top')
-# fig.text(0.01, 0.2, 'i', fontsize=10, fontweight='bold', va='top')
+bot = gridspec.GridSpecFromSubplotSpec(1, 4, subplot_spec=outer[1], wspace=0.5)
 
+h_gs = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=bot[0, 0], height_ratios=[1, 3], hspace=0)
+h1 = fig.add_subplot(h_gs[0])
+h = fig.add_subplot(h_gs[1])
 
-# ---------------------------------------------------------------------------
-# Panels a1/a2 — cross-decoder: stimulus-aligned (a1) and response-aligned (a2)
-# ---------------------------------------------------------------------------
+i_gs = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=bot[0, 1], hspace=0.3, height_ratios=[3, 2])
+i1 = fig.add_subplot(i_gs[0])
+i2 = fig.add_subplot(i_gs[1])
 
-#### ------------------------- Stimulus plot
-panel = a1
+j_outer = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=bot[0, 2:4], height_ratios=[1, 3], hspace=0)
+j0 = fig.add_subplot(j_outer[0])
+j_gs = gridspec.GridSpecFromSubplotSpec(1, 3, subplot_spec=j_outer[1], wspace=0.08)
+j1 = fig.add_subplot(j_gs[0])
+j2 = fig.add_subplot(j_gs[1])
+j3 = fig.add_subplot(j_gs[2])
+
+# ============================================================
+# Helpers
+# ============================================================
+def label_panel(ax, letter, x=-0.25, y=1.25):
+    ax.text(x, y, letter, transform=ax.transAxes,
+            fontsize=9, fontweight='bold', va='top', ha='left')
+
+def sig_bar(ax, x0, x1, lw=1.5):
+    ax.annotate(
+        '', xy=(x1, 1.02), xytext=(x0, 1.02),
+        xycoords=('data', 'axes fraction'),
+        textcoords=('data', 'axes fraction'),
+        arrowprops=dict(arrowstyle='-', color='black', lw=lw),
+        annotation_clip=False,
+    )
+
+def hide_inner(left_ax, right_ax):
+    left_ax.spines['right'].set_visible(False)
+    right_ax.spines['left'].set_visible(False)
+    right_ax.tick_params(left=False, labelleft=False)
+
+def hide_yaxis(ax):
+    ax.set_ylabel('')
+    ax.tick_params(left=False, labelleft=False)
+    ax.spines['left'].set_visible(False)
+
+def no_right_spine(ax):
+    ax.spines['right'].set_visible(False)
+
+def no_left_spine(ax):
+    ax.spines['left'].set_visible(False)
+    ax.tick_params(left=False, labelleft=False)
+    ax.set_ylabel('')
+
+# ============================================================
+# Panel a
+# ============================================================
 y_range = [-0.1, 0.45]
 
-os.chdir(path)
+variable  = 'WM_roll_1'
+df_sti    = pd.read_csv(path + 'trainedWM_testedRL_stimulus_V4_sti.csv', index_col=0)
+df_sti    = df_sti.loc[df_sti.trial_type == variable]
+df_shuf   = pd.read_csv(path + 'trainedWM_testedWM_shufflesession_stimulus_sti.csv', index_col=0)
+sess      = df_shuf.session.unique()
+df_sti    = df_sti[df_sti.session.isin(sess)]
+plots.plot_results_session_summary_substract(fig, a, df_sti, df_shuf,
+    color=COLOR_STM, variable=variable, y_range=y_range, x_range=[-2, 1.3], baseline=0)
+
+variable  = 'RL_roll_1'
+df_sti    = pd.read_csv(path + 'trainedWM_testedRL_stimulus_V4_sti.csv', index_col=0)
+df_sti    = df_sti.loc[df_sti.trial_type == variable]
+df_shuf2  = pd.read_csv(path + 'trainedWM_testedRL_shufflesession_stimulus_sti.csv', index_col=0)
+df_shuf2  = df_shuf2[df_shuf2.session.isin(sess)]
+plots.plot_results_session_summary_substract(fig, a, df_sti, df_shuf2,
+    color=COLOR_REPL, variable=variable, y_range=y_range, x_range=[-2, 1.3], baseline=0)
+
+a.set_title('Stimulus code', fontsize=7, fontweight='bold')
+a.set_ylabel('Excess decoding\naccuracy')
+label_panel(a, 'a')
+
+# ============================================================
+# Panel b
+# ============================================================
 variable = 'WM_roll_1'
-# file_name = 'trainedWM_testedRL_stimulus_remove_low_accuracy_sessions'
-file_name = 'trainedWM_testedRL_stimulus_V4'
-df_cum_sti = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
-
-df_cum_sti = df_cum_sti.loc[df_cum_sti.trial_type == variable]
-
-trained_trials = df_cum_sti.session.unique()
-
-file_name = 'trainedWM_testedWM_shufflesession_stimulus'
-df_cum_sti_shuffle = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
-
-trained_trials = df_cum_sti_shuffle.session.unique()
-df_cum_sti = df_cum_sti[df_cum_sti['session'].isin(trained_trials)]
-
-plots.plot_results_session_summary_substract(fig, panel, df_cum_sti, df_cum_sti_shuffle,
-                                  color = 'darkgreen', variable = variable, y_range = y_range, x_range = [-2,1.3], baseline=0)
+df_res   = pd.read_csv(path + 'trainedWM_testedRL_response_V4_res.csv', index_col=0)
+df_res   = df_res.loc[df_res.trial_type == variable]
+df_shuf  = pd.read_csv(path + 'trainedWM_testedRL_shufflesession_response_V2_res.csv', index_col=0)
+plots.plot_results_session_summary_substract(fig, b, df_res, df_shuf,
+    color=COLOR_STM, variable=variable, y_range=y_range, x_range=[-1, 3], baseline=0)
 
 variable = 'RL_roll_1'
-# file_name = 'trainedWM_testedRL_stimulus_remove_low_accuracy_sessions'
-file_name = 'trainedWM_testedRL_stimulus_V4'
-df_cum_sti = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
+df_res   = pd.read_csv(path + 'trainedWM_testedRL_response_V4_res.csv', index_col=0)
+df_res   = df_res.loc[df_res.trial_type == variable]
+df_shuf  = pd.read_csv(path + 'trainedWM_testedRL_shufflesession_response_res.csv', index_col=0)
+plots.plot_results_session_summary_substract(fig, b, df_res, df_shuf,
+    color=COLOR_REPL, variable=variable, y_range=y_range, x_range=[-1, 3], baseline=0)
 
-df_cum_sti = df_cum_sti.loc[df_cum_sti.trial_type == variable]
+b.set_title('Response code', fontsize=7, fontweight='bold')
+b.set_xlabel('Time from Go cue onset (s)')
+hide_yaxis(b)
+label_panel(b, 'b')
 
-# trained_trials = df_cum_sti.session.unique()
+# ============================================================
+# Panel c
+# ============================================================
+for variable, color in [('WM_roll_1', COLOR_STM), ('RL_roll_1', COLOR_REPL)]:
+    df_sti  = pd.read_csv(path + 'trainedWM_testedRL_delay_V6_sti.csv', index_col=0)
+    df_res  = pd.read_csv(path + 'trainedWM_testedRL_delay_V6_res.csv', index_col=0)
+    df_sti  = df_sti.loc[df_sti.trial_type == variable]
+    df_res  = df_res.loc[df_res.trial_type == variable]
+    sname   = ('trainedWM_testedWM_shufflesession_delay_V2'
+               if variable == 'WM_roll_1'
+               else 'trainedWM_testedRL_shufflesession_delay_V3')
+    df_ss   = pd.read_csv(path + sname + '_sti.csv', index_col=0)
+    df_rs   = pd.read_csv(path + sname + '_res.csv', index_col=0)
+    plots.plot_results_session_summary_substract(fig, c1, df_sti, df_ss,
+        color=color, variable=variable, y_range=y_range, x_range=[-2, 1.3], baseline=0)
+    plots.plot_results_session_summary_substract(fig, c2, df_res, df_rs,
+        color=color, variable=variable, y_range=y_range, x_range=[-1, 3], baseline=0)
 
-file_name = 'trainedWM_testedRL_shufflesession_stimulus'
-df_cum_sti_shuffle = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
+c1.set_title('Delay code', fontsize=7, fontweight='bold')
+c1.set_ylabel('Excess decoding\naccuracy')
+c1.set_xlabel('Time to stimulus onset (s)')
+c2.set_xlabel('Time from Go cue onset (s)')
+label_panel(c1, 'c')
+hide_yaxis(c2)
+hide_inner(c1, c2)
 
-df_cum_sti_shuffle = df_cum_sti_shuffle[df_cum_sti_shuffle['session'].isin(trained_trials)]
+# Legend: coloured text only, no line markers
+c2.text(0.95, 0.95, 'STM',  transform=c2.transAxes, ha='right', va='top',
+        fontsize=6, color=COLOR_STM,  fontweight='bold')
+c2.text(0.95, 0.82, 'RepL', transform=c2.transAxes, ha='right', va='top',
+        fontsize=6, color=COLOR_REPL, fontweight='bold')
 
-# trained_trials = df_cum_sti_shuffle.session.unique()
-# df_cum_sti = df_cum_sti[df_cum_sti['session'].isin(trained_trials)]
+# Grey shaded regions at bottom of a, b, c1, c2
+grey_y_bot = y_range[0]
+grey_y_top = grey_y_bot + 0.03
+a.fill_betweenx( [grey_y_bot, grey_y_top], 0, 0.35, color='lightgrey', alpha=1, linewidth=0, zorder=0)
+b.fill_betweenx( [grey_y_bot, grey_y_top], 0, 0.2,  color='lightgrey', alpha=1, linewidth=0, zorder=0)
+c1.fill_betweenx([grey_y_bot, grey_y_top], 0, 0.35, color='lightgrey', alpha=1, linewidth=0, zorder=0)
+c2.fill_betweenx([grey_y_bot, grey_y_top], 0, 0.2,  color='lightgrey', alpha=1, linewidth=0, zorder=0)
 
-plots.plot_results_session_summary_substract(fig, panel, df_cum_sti, df_cum_sti_shuffle,
-                                  color = 'indigo', variable = variable, y_range = y_range, x_range = [-2,1.3], baseline=0)
+# ============================================================
+# Panel d
+# ============================================================
+baseline_d = 0.5
+df_ramp = pd.read_csv(path + 'ramping_decoder_10.25_10.5.csv')
 
-#### ------------------------- Response plot
-panel = a2
-y_range = [-0.1, 0.45]
-variable = 'WM_roll_1'
-file_name = 'trainedWM_testedRL_response_V4'
-df_cum_res = pd.read_csv(path+file_name+'_res.csv', index_col=0)
-df_cum_sti = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
+plot_results_session_summary(d, df_ramp, [COLOR_STM, COLOR_REPL],
+                             ['WM_roll_1', 'RL_roll_1'],
+                             y_range=[0, 1.0],
+                             x_range=[-2, 10],
+                             epoch='Stimulus_ON',
+                             baseline=baseline_d)
 
-df_cum_sti = df_cum_sti.loc[df_cum_sti.trial_type == variable]
-df_cum_res = df_cum_res.loc[df_cum_res.trial_type == variable]
+d.set_title('Ramp code', fontsize=7, fontweight='bold')
+d.set_ylabel('Prob(Delay vs pre-stim)')
+d.set_xlabel('Time to stimulus onset (s)')
+d.set_xlim(-2, 10)
+d.set_ylim(0, 1.0)
+label_panel(d, 'd', x=-0.08)
 
-# trained_trials = df_cum_sti.session.unique()
-# df_cum_res = df_cum_res[df_cum_res['session'].isin(trained_trials)]
+# ============================================================
+# Panel e
+# ============================================================
+fn = 'E20_2022-02-26_16-49-05example_RLWM'
+df_sti_e  = pd.read_csv(fn + '_sti.csv',         index_col=0)
+df_res_e  = pd.read_csv(fn + '_res.csv',         index_col=0)
+df_ss_e   = pd.read_csv(fn + '_sti_shuffle.csv', index_col=0)
+df_rs_e   = pd.read_csv(fn + '_res_shuffle.csv', index_col=0)
 
-file_name = 'trainedWM_testedRL_shufflesession_response_V2'
-df_cum_res_shuffle = pd.read_csv(path+file_name+'_res.csv', index_col=0)
-df_cum_sti_shuffle = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
-
-# trained_trials = df_cum_sti_shuffle.session.unique()
-# df_cum_sti = df_cum_sti[df_cum_sti['session'].isin(trained_trials)]
-
-plots.plot_results_session_summary_substract(fig, panel, df_cum_res, df_cum_res_shuffle,
-                                  color = 'darkgreen', variable = variable, y_range = y_range, x_range = [-1,3], baseline=0)
-
-variable = 'RL_roll_1'
-file_name = 'trainedWM_testedRL_response_V4'
-df_cum_res = pd.read_csv(path+file_name+'_res.csv', index_col=0)
-df_cum_sti = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
-
-df_cum_sti = df_cum_sti.loc[df_cum_sti.trial_type == variable]
-df_cum_res = df_cum_res.loc[df_cum_res.trial_type == variable]
-
-# trained_trials = df_cum_sti.session.unique()
-# df_cum_res = df_cum_res[df_cum_res['session'].isin(trained_trials)]
-
-file_name = 'trainedWM_testedRL_shufflesession_response'
-df_cum_res_shuffle = pd.read_csv(path+file_name+'_res.csv', index_col=0)
-df_cum_sti_shuffle = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
-
-# trained_trials = df_cum_sti_shuffle.session.unique()
-# df_cum_sti = df_cum_sti[df_cum_sti['session'].isin(trained_trials)]
-
-plots.plot_results_session_summary_substract(fig, panel, df_cum_res, df_cum_res_shuffle,
-                                  color = 'indigo', variable = variable, y_range = y_range, x_range = [-1,3], baseline=0)
-
-# ---------------------------------------------------------------------------
-# Panels b1/b2 — cross-decoder during delay period (stimulus and response aligned)
-# ---------------------------------------------------------------------------
-
-y_range = [-0.1, 0.45]
-variable = 'WM_roll_1'
-file_name = 'trainedWM_testedRL_delay_V6'
-df_cum_res = pd.read_csv(path+file_name+'_res.csv', index_col=0)
-df_cum_sti = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
-
-df_cum_sti = df_cum_sti.loc[df_cum_sti.trial_type == variable]
-df_cum_res = df_cum_res.loc[df_cum_res.trial_type == variable]
-
-# trained_trials = df_cum_sti.session.unique()
-# df_cum_res = df_cum_res[df_cum_res['session'].isin(trained_trials)]
-
-file_name = 'trainedWM_testedWM_shufflesession_delay_V2'
-df_cum_res_shuffle = pd.read_csv(path+file_name+'_res.csv', index_col=0)
-df_cum_sti_shuffle = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
-
-# trained_trials = df_cum_sti_shuffle.session.unique()
-# df_cum_sti = df_cum_sti[df_cum_sti['session'].isin(trained_trials)]
-
-plots.plot_results_session_summary_substract(fig, b1, df_cum_sti, df_cum_sti_shuffle,
-                                  color = 'darkgreen', variable = variable, y_range = y_range, x_range = [-2,1.3], baseline=0)
-
-plots.plot_results_session_summary_substract(fig, b2, df_cum_res, df_cum_res_shuffle,
-                                  color = 'darkgreen', variable = variable, y_range = y_range, x_range = [-1,3], baseline=0)
-
-
-# -----------------------------------------------------
-variable = 'RL_roll_1'
-file_name = 'trainedWM_testedRL_delay_V6'
-df_cum_res = pd.read_csv(path+file_name+'_res.csv', index_col=0)
-df_cum_sti = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
-
-df_cum_sti = df_cum_sti.loc[df_cum_sti.trial_type == variable]
-df_cum_res = df_cum_res.loc[df_cum_res.trial_type == variable]
-
-# trained_trials = df_cum_sti.session.unique()
-# df_cum_res = df_cum_res[df_cum_res['session'].isin(trained_trials)]
-
-file_name = 'trainedWM_testedRL_shufflesession_delay_V3'
-df_cum_res_shuffle = pd.read_csv(path+file_name+'_res.csv', index_col=0)
-df_cum_sti_shuffle = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
-
-# df_cum_sti = df_cum_sti[df_cum_sti['session'].isin(trained_trials)]
-
-plots.plot_results_session_summary_substract(fig, b1, df_cum_sti, df_cum_sti_shuffle,
-                                  color = 'indigo', variable = variable, y_range = y_range, x_range = [-2,1.3], baseline=0)
-
-plots.plot_results_session_summary_substract(fig, b2, df_cum_res, df_cum_res_shuffle,
-                                  color = 'indigo', variable = variable, y_range = y_range, x_range = [-1,3], baseline=0)
-
-
-# ---------------------------------------------------------------------------
-# Panels h1/h2 — example session cross-decoder (E20 2022-02-26)
-# ---------------------------------------------------------------------------
-
-#Variables for testing
-colors=['darkgreen','indigo']
-variables = ['WM_roll','RL_roll']
-hits = [1,1]
-ratios = [0.6,0.4]
-variables_combined=[variables[0]+'_'+str(hits[0]),variables[1]+'_'+str(hits[1])]
-
-file_name = 'E20_2022-02-26_16-49-05example_RLWM'
-df_cum_sti = pd.read_csv(file_name+'_sti.csv', index_col=0)
-df_cum_res= pd.read_csv(file_name+'_res.csv', index_col=0)
-df_cum_shuffle_sti = pd.read_csv(file_name+'_sti_shuffle.csv', index_col=0)
-df_cum_shuffle_res= pd.read_csv(file_name+'_res_shuffle.csv', index_col=0)
-
-for color, variable,left,right in zip(colors,variables_combined,[h1, h1, h1, h1],[h2, h2, h2, h2]):
-
-    # Aligmnent for Stimulus cue
-
-    real = np.array(np.mean(df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)].groupby('session').median().drop(columns=['score','fold'])))
-    times = df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
-    times = np.array(times.drop(columns=['session','fold','score','subject','trial_type'],axis = 1).columns.astype(float))
-
-    df_lower = pd.DataFrame()
-    df_upper = pd.DataFrame()
-
-
+for color, variable in [(COLOR_STM,'WM_roll_1'), (COLOR_REPL,'RL_roll_1')]:
+    real   = np.array(np.mean(
+        df_sti_e.loc[df_sti_e.trial_type==variable]
+        .groupby('session').median(numeric_only=True)
+        .drop(columns=['score','fold'])))
+    times  = np.array(
+        df_sti_e.loc[df_sti_e.trial_type==variable]
+        .drop(columns=['session','fold','score','subject','trial_type'])
+        .columns.astype(float))
     df_new = pd.DataFrame()
-    for iteration in np.arange(1,100):
-        try:
-            df_new[iteration]= df_cum_shuffle_sti.loc[(df_cum_shuffle_sti.trial_type==variable)].groupby('times').mean()[float(iteration)]
-        except:
-            df_new[iteration]= df_cum_shuffle_sti.loc[(df_cum_shuffle_sti.trial_type==variable)].groupby('times').mean()[str(float(iteration))]
+    for it in np.arange(1,100):
+        try:    df_new[it] = df_ss_e.loc[df_ss_e.trial_type==variable].groupby('times').mean(numeric_only=True)[float(it)]
+        except: df_new[it] = df_ss_e.loc[df_ss_e.trial_type==variable].groupby('times').mean(numeric_only=True)[str(float(it))]
+    ym = df_new.mean(axis=1).values
+    up = df_new.quantile(0.975,interpolation='linear',axis=1)-ym
+    lo = df_new.quantile(0.025,interpolation='linear',axis=1)-ym
+    e1.plot(times, real, color=color)
+    e1.fill_between(times, lo+real, up+real, alpha=0.2, color=color, linewidth=0)
+    e1.axhline(0, linestyle=':', color='black')
+    e1.set_ylim(-0.2, 0.5)
 
-    y_mean= df_new.mean(axis=1).values
-    upper =  df_new.quantile(q=0.975, interpolation='linear',axis=1) - y_mean
-    lower =  df_new.quantile(q=0.025, interpolation='linear',axis=1) - y_mean
-    x=times
+    real2  = np.array(np.mean(
+        df_res_e.loc[df_res_e.trial_type==variable]
+        .groupby('session').median(numeric_only=True)
+        .drop(columns=['score','fold'])))
+    times2 = np.array(
+        df_res_e.loc[df_res_e.trial_type==variable]
+        .drop(columns=['session','fold','score','subject','trial_type'])
+        .columns.astype(float))
+    df_new2 = pd.DataFrame()
+    for it in np.arange(1,100):
+        try:    df_new2[it] = df_rs_e.loc[df_rs_e.trial_type==variable].groupby('times').mean(numeric_only=True)[it]
+        except: df_new2[it] = df_rs_e.loc[df_rs_e.trial_type==variable].groupby('times').mean(numeric_only=True)[str(float(it))]
+    ym2 = df_new2.mean(axis=1).values
+    up2 = df_new2.quantile(0.975,interpolation='linear',axis=1)-ym2
+    lo2 = df_new2.quantile(0.025,interpolation='linear',axis=1)-ym2
+    e2.plot(times2, real2, color=color)
+    e2.fill_between(times2, 0.5, -0.2, alpha=0.2, color=color, linewidth=0)
+    e2.axhline(0, linestyle=':', color='grey')
+    e2.set_ylim(-0.2, 0.5)
 
-    left.plot(times,real, color=color)
-    left.plot(x, lower+real, color=color, linestyle = '',alpha=0.6, linewidth=0)
-    left.plot(x, upper+real, color=color, linestyle = '',alpha=0.6, linewidth=0)
-    left.fill_between(x, lower+real, upper+real, alpha=0.2, color=color, linewidth=0)
-    left.axhline(y=0.0,linestyle=':',color='black')
-    left.set_ylim(-0.2,0.5)
-    left.fill_betweenx(np.arange(-1.1,3.1,0.1), 0,0.35, color='lightgrey', alpha=1, linewidth=0)
+e_grey_bot = -0.2
+e_grey_top = e_grey_bot + 0.04
+e1.fill_betweenx([e_grey_bot, e_grey_top], 0, 0.35, color='lightgrey', alpha=1, linewidth=0, zorder=0)
+e2.fill_betweenx([e_grey_bot, e_grey_top], 0, 0.2,  color='lightgrey', alpha=1, linewidth=0, zorder=0)
 
-    # -------------------- For Aligment to Go cue
-    real = np.array(np.mean(df_cum_res.loc[(df_cum_res['trial_type'] == variable)].groupby('session').median().drop(columns=['score','fold'])))
-    times = df_cum_res.loc[(df_cum_res['trial_type'] == variable)]
-    times = np.array(times.drop(columns=['session','fold','score','subject','trial_type'],axis = 1).columns.astype(float))
+e1.set_xlabel('Time from stimulus onset (s)')
+e1.set_ylabel('Excess decoding\naccuracy')
+e1.set_xlim(-2, 1)
+e2.set_xlabel('Time from Go cue onset (s)')
+e2.set_xlim(-1, 2)
+e1.text(0.04, 0.05, 'Session E20_2022_02_26', transform=e1.transAxes, fontsize=5, color='grey')
+hide_yaxis(e2)
+hide_inner(e1, e2)
+label_panel(e1, 'e')
 
-    df_lower = pd.DataFrame()
-    df_upper = pd.DataFrame()
-
-    df_new = pd.DataFrame()
-    for iteration in np.arange(1,100):
-        try:
-            df_new[iteration]= df_cum_shuffle_res.loc[(df_cum_shuffle_res.trial_type==variable)].groupby('times').mean()[iteration]
-        except:
-            df_new[iteration]= df_cum_shuffle_res.loc[(df_cum_shuffle_res.trial_type==variable)].groupby('times').mean()[str(float(iteration))]
-
-    y_mean= df_new.mean(axis=1).values
-    upper =  df_new.quantile(q=0.975, interpolation='linear',axis=1) - y_mean
-    lower =  df_new.quantile(q=0.025, interpolation='linear',axis=1) - y_mean
-
-    x=times
-
-    # ax2.plot(x, y_mean, color=color)
-    right.plot(times,real, color=color)
-    right.plot(x, real+lower, color=color, linestyle = '',alpha=0.6, linewidth=0)
-    right.plot(x, real+upper, color=color, linestyle = '',alpha=0.6, linewidth=0)
-    right.fill_between(x, real+lower, real+upper, alpha=0.2, color=color, linewidth=0)
-    right.set_ylim(-0.2,0.5)
-    right.axhline(y=0.0,linestyle=':',color='grey')
-    right.fill_betweenx(np.arange(-1.1,3.1,0.1), 0,0.2, color='grey', alpha=1, linewidth=0)
-    right.set_xlabel('Time from Go cue onset (s)')
-    left.set_xlabel('Time from stimulus onset (s)')
-    left.set_ylabel('Excess decoding\n accuracy')
-    left.set_xlim(-2,1)
-    right.set_xlim(-1,2)
-
-    # right.set_title('Mouse E20 2022-02-26')
-
-# ---------------------------------------------------------------------------
-# Panel f — log-odds by state and epoch (mixed-effects model)
-# ---------------------------------------------------------------------------
-
-file_name = 'logodds_WM1_RL1'
-
-df_final = pd.read_csv(path+file_name+'.csv', index_col=0)
-
-
-panel=f
-
-df_results = df_final.groupby(['session', 'trial_type','epoch']).log_odds.mean()
-df_results = df_results.reset_index()
-
-sns.boxplot(x='trial_type', y='log_odds',hue='epoch', order=['WM_roll_1','RL_roll_1'], palette=['darkgreen','lightgreen', 'darkred', 'lightred'],linewidth=0 ,ax = panel, data=df_results, showmeans=True)
-sns.boxplot(x='trial_type', y='log_odds',hue='epoch', order=['WM_roll_1','RL_roll_1'], palette=['darkgreen','lightgreen', 'darkred', 'lightred'],linewidth=1 ,ax = panel, data=df_results, showmeans=True)
-
-df_plots = df_results.loc[(df_results.trial_type == 'WM_roll_1')&(df_results.epoch == 'early')]
-xA = np.random.normal(-0.25, 0.08, len(df_plots))
-sns.scatterplot(x=xA,y='log_odds',data=df_plots,ax=panel,alpha=0.9,legend=False, color='darkgreen')
-
-df_plots = df_results.loc[(df_results.trial_type == 'WM_roll_1')&(df_results.epoch == 'late')]
-xA = np.random.normal(0.2, 0.08, len(df_plots))
-sns.scatterplot(x=xA,y='log_odds',data=df_plots,ax=panel,alpha=0.5,legend=False, color='darkgreen')
-
-df_plots = df_results.loc[(df_results.trial_type == 'RL_roll_1')&(df_results.epoch == 'early')]
-xA = np.random.normal(.75, 0.08, len(df_plots))
-sns.scatterplot(x=xA,y='log_odds',data=df_plots,ax=panel,alpha=0.9,legend=False, color='indigo')
-
-df_plots = df_results.loc[(df_results.trial_type == 'RL_roll_1')&(df_results.epoch == 'late')]
-xA = np.random.normal(1.2, 0.08, len(df_plots))
-sns.scatterplot(x=xA,y='log_odds',data=df_plots,ax=panel,alpha=0.5,legend=False, color='indigo')
-
-panel.set_ylim(-1,9)
-panel.hlines(xmin=-0.5, xmax=1.5, y=0, linestyle=':')
-panel.set_ylabel('Log odds')
-
-formula="log_odds ~ state*epoch + (1|session:fold)"
-r_df  = ro.conversion.py2ri(df_final)
-model = lme4.lmer(formula, data=r_df)
-
-for i, v in enumerate(list(base.summary(model).names)):
-    if v in ['coefficients']:
-        print (base.summary(model).rx2(v))
-print(base.summary(model))
-print(car.Anova(model))
-
-# ---------------------------------------------------------------------------
-# Panels c1/c2/c3 — single WM trial population activity (E17, trial 223)
-# ---------------------------------------------------------------------------
-
-T=223
+# ============================================================
+# Panels f & g
+# ============================================================
 filename = 'E17_2022-01-31_16-30-44.csv'
 
-file_name = 'decoder_'+str(T)+'_'+filename
-df_decoder = pd.read_csv(path+file_name, index_col=0)
+T = 223
+plots.single_trial_with_decoder(
+    pd.read_csv(path + f'df_{T}_{filename}', index_col=0),
+    pd.read_csv(path + f'decoder_{T}_{filename}', index_col=0),
+    pd.read_csv(path + f'convolve_{T}_{filename}', index_col=0),
+    filename, T, panels=[f1, f2, f3])
+f1.set_title('Correct Right stimulus STM trial\n(trial 185)', fontsize=5.5, pad=2)
+f3.set_ylim(-10, 10)
+label_panel(f1, 'f')
+f1.tick_params(labelbottom=False); f1.set_xlabel('')
+f2.tick_params(labelbottom=False); f2.set_xlabel('')
+f1.set_xticks([0, 5, 10]); f2.set_xticks([0, 5, 10]); f3.set_xticks([0, 5, 10])
+for fax in [f1, f2, f3]:
+    fax.axvspan(0, 0.35,  color='lightgrey', alpha=0.8, linewidth=0, zorder=0)
+    fax.axvspan(10.4,10.6,color='lightgrey', alpha=0.8, linewidth=0, zorder=0)
+# neuron labels only on f2 (left plot), in flat region
+f2.text(0.40, 0.90, 'Right prefering neurons', transform=f2.transAxes, fontsize=5, color=COLORRIGHT)
+f2.text(0.40, 0.55, 'Left prefering neurons',  transform=f2.transAxes, fontsize=5, color=COLORLEFT)
 
-file_name = 'df_'+str(T)+'_'+filename
-df = pd.read_csv(path+file_name, index_col=0)
+T = 21
+plots.single_trial_with_decoder(
+    pd.read_csv(path + f'df_{T}_{filename}', index_col=0),
+    pd.read_csv(path + f'decoder_{T}_{filename}', index_col=0),
+    pd.read_csv(path + f'convolve_{T}_{filename}', index_col=0),
+    filename, T, panels=[g1, g2, g3])
+g1.set_title('Correct Right stimulus RepL trial\n(trial 83)', fontsize=5.5, pad=2)
+g3.set_ylim(-10, 10)
+label_panel(g1, 'g')
+g1.tick_params(labelbottom=False); g1.set_xlabel('')
+g2.tick_params(labelbottom=False); g2.set_xlabel('')
+g1.set_xticks([0, 5, 10]); g2.set_xticks([0, 5, 10]); g3.set_xticks([0, 5, 10])
+for gax in [g1, g2, g3]:
+    gax.axvspan(0, 0.35,  color='lightgrey', alpha=0.8, linewidth=0, zorder=0)
+    gax.axvspan(10.4,10.6,color='lightgrey', alpha=0.8, linewidth=0, zorder=0)
+# no neuron labels on g
 
-file_name = 'convolve_'+str(T)+'_'+filename
-big_data = pd.read_csv(path+file_name, index_col=0)
+# ============================================================
+# Panel h — manual boxplots with correct per-group colours
+# ============================================================
+df_final   = pd.read_csv(path + 'logodds_WM1_RL1.csv', index_col=0)
+df_results = df_final.groupby(['session','trial_type','epoch']).log_odds.mean().reset_index()
 
-plots.single_trial_with_decoder(df, df_decoder, big_data, filename, T, panels = [c1,c2,c3])
-c1.set_title('Correct WM trial (Right stimulus)', fontsize=8)
+positions    = [-0.25, 0.2, 0.75, 1.2]
+group_colors = [COLOR_STM, '#90EE90', COLOR_REPL, '#B39DDB']
+groups = [('WM_roll_1','early'),('WM_roll_1','late'),('RL_roll_1','early'),('RL_roll_1','late')]
+for (tt, ep), pos, col in zip(groups, positions, group_colors):
+    sub = df_results.loc[(df_results.trial_type==tt)&(df_results.epoch==ep), 'log_odds']
+    h.boxplot(sub, positions=[pos], widths=0.35, patch_artist=True,
+              showmeans=False, showfliers=False,
+              medianprops=dict(color='white', linewidth=1.5),
+              boxprops=dict(facecolor=col, alpha=0.8, linewidth=0),
+              whiskerprops=dict(color='black', linewidth=0.7),
+              capprops=dict(color='black', linewidth=0.7))
+    dot_col = COLOR_STM if tt == 'WM_roll_1' else COLOR_REPL
+    h.scatter(np.random.normal(pos, 0.05, len(sub)), sub,
+              color=dot_col, alpha=0.8, s=8, zorder=5,
+              edgecolors='white', linewidths=0.3)
 
-# Panels d1/d2/d3 — single RepL trial (E17, trial 21)
-T=21
-filename = 'E17_2022-01-31_16-30-44.csv'
+h.set_xlim(-0.6, 1.5)
+h.set_ylim(-1, 6)
+h.axhline(0, linestyle=':', color='grey')
+h.set_ylabel('Decoding accuracy\n(log odds)')
+h.set_xlabel('')
+h.set_xticks(positions)
+h.set_xticklabels(['Early','Late','Early','Late'], fontsize=5)
+h.text(0.02, 0.97, 'RepL trials', transform=h.transAxes, va='top', fontsize=6, color=COLOR_REPL, fontweight='bold')
+h.text(0.02, 0.86, 'STM trials',  transform=h.transAxes, va='top', fontsize=6, color=COLOR_STM,  fontweight='bold')
+label_panel(h1, 'h')
+h1.axis('off')
 
-file_name = 'decoder_'+str(T)+'_'+filename
-df_decoder =pd.read_csv(path+file_name, index_col=0)
+if HAS_RPY2:
+    formula = "log_odds ~ state*epoch + (1|session:fold)"
+    with localconverter(ro.default_converter + pandas2ri.converter):
+        r_df = ro.conversion.py2rpy(df_final.reset_index(drop=True))
+    model = lme4.lmer(formula, data=r_df)
+    print(base.summary(model))
 
-file_name = 'df_'+str(T)+'_'+filename
-df = pd.read_csv(path+file_name, index_col=0)
+# ============================================================
+# Panel i
+# ============================================================
+df_neuron = pd.read_csv(path + 'WMvsHB_example_138.csv')
+temp_df   = df_neuron.loc[df_neuron.cluster_id==138].copy()
+temp_df['state'] = np.where(temp_df['WM_roll']>0.6, 1, 0)
 
-file_name = 'convolve_'+str(T)+'_'+filename
-big_data = pd.read_csv(path+file_name, index_col=0)
+j_val = convolveandplot(
+    temp_df.loc[(temp_df.vector_answer==0)&(temp_df.hit==1)],
+    i1, i2, variable='state', cluster_id=138, delay=10, j=1,
+    labels=['WM left','HB left'], colors=[COLOR_STM, COLOR_REPL],
+    kernel=200, add_state=True)
+i1.set_ylim(0, 19)
+i1.set_xlim(-2, 12); i1.set_xticks([0, 5, 10])
+i1.axvspan(0,    0.35, color='lightgrey', alpha=0.8, linewidth=0, zorder=0)
+i1.axvspan(10.4, 10.6, color='lightgrey', alpha=0.8, linewidth=0, zorder=0)
+i1.set_title('Cluster 138', fontsize=6, color='grey', pad=2)
+i1.tick_params(labelbottom=False)
+i2.set_xlim(-2, 12); i2.set_xticks([0, 5, 10])
+i2.axvspan(0,    0.35, color='lightgrey', alpha=0.8, linewidth=0, zorder=0)
+i2.axvspan(10.4, 10.6, color='lightgrey', alpha=0.8, linewidth=0, zorder=0)
+i2.set_title('Session_E22_2022-01-13', fontsize=5, color='grey', pad=2)
+try:    i2.get_legend().remove()
+except: pass
+try:    i1.get_legend().remove()
+except: pass
+label_panel(i1, letter='i',y=1.05)
 
-plots.single_trial_with_decoder(df, df_decoder, big_data, filename, T, panels = [d1,d2,d3])
-d3.set_ylim(-10,10)
-c3.set_ylim(-10,10)
+# ============================================================
+# Panel j
+# j1 = Time from Go (trial t-1)  x: 0->4   data: _sti files
+# j2 = Time from Stim.           x: -4->-1  data: _substracted sti files
+# j3 = Time from Go (trial t)    x: -1->3   data: _res files
+# ============================================================
+y_range_j = [-0.1, 0.45]
 
-d1.set_title('Correct RepL trial (Right stimulus)', fontsize=8)
-
-# ---------------------------------------------------------------------------
-# Panels i1/j1 — example neuron PSTH: WM vs HB trials
-# ---------------------------------------------------------------------------
-
-# session: E22_2022-01-13_16-34-24
-file_name = 'WMvsHB_example_138'
-df = pd.read_csv(path+file_name+'.csv')
-
-delay = 10
-colors = [COLORRIGHT,COLORLEFT]
-labels = ['Right stimulus','Left stimulus']
-align = 'Stimulus_ON'
-
-# temp_df = df.loc[(df.hit ==1)&(df.cluster_id == 138)]
-temp_df = df.loc[(df.cluster_id == 138)]
-temp_df['state'] = np.where(temp_df['WM_roll'] > 0.6, 1, 0)
-
-for cluster_id in temp_df.cluster_id.unique():
-    print(cluster_id)
-    j=1
-    j = convolveandplot(temp_df.loc[(temp_df.vector_answer == 0)&(temp_df.hit == 1)], i1, j1, variable='state', cluster_id = cluster_id, delay = delay, j=j,
-                       labels=['WM left','HB left'], colors=['darkgreen', 'indigo'], kernel=200)
-
-    # j = convolveandplot(temp_df.loc[(temp_df.vector_answer == 0)&(temp_df.hit == 0)], i1, j1, variable='state', cluster_id = cluster_id, delay = delay, j=j,
-    #                    labels=['WM left','HB left'], colors=['lightgrey', 'lightgrey'], kernel=200)
-
-    i1.set_ylim(0,19)
-
-
-# ---------------------------------------------------------------------------
-# Panels e1/e2/e3 — previous trial decoder (current cue aligned)
-# ---------------------------------------------------------------------------
-
-y_range = [-0.1, 0.45]
-
+# j1
 variable = 'WM_roll_1'
-file_name = 'trainedcorrect_testedWMcorrect_currentcue_V1'
-df_cum_res = pd.read_csv(path+file_name+'_res.csv', index_col=0)
-df_cum_sti = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
-
-trained_trials = df_cum_sti.session.unique()
-df_cum_res = df_cum_res[df_cum_res['session'].isin(trained_trials)]
-
-file_name = 'trainedcorrect_testedWMcorrect_gocueprevious_shufflesession'
-df_cum_res_shuffle = pd.read_csv(path+file_name+'_res.csv', index_col=0)
-df_cum_sti_shuffle = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
-
-df_cum_sti_shuffle['trial_type'] = 'WM_roll_1'
-df_cum_res_shuffle['trial_type'] = 'WM_roll_1'
-
-trained_trials = df_cum_sti_shuffle.session.unique()
-df_cum_sti = df_cum_sti[df_cum_sti['session'].isin(trained_trials)]
-
-plots.plot_results_session_summary_substract(fig, e2, df_cum_sti, df_cum_sti_shuffle,
-                                  color = 'darkgreen', variable = variable, y_range = y_range, x_range = [-4,1], baseline=0)
-
-plots.plot_results_session_summary_substract(fig, e3, df_cum_res, df_cum_res_shuffle,
-                                  color = 'darkgreen', variable = variable, y_range = y_range, x_range = [-1,3], baseline=0)
-
-
-# -----------------------------------------------------
+df_sj  = pd.read_csv(path + 'trainedcorrect_testedWMcorrect_currentcue_V1_sti.csv', index_col=0)
+df_sjs = pd.read_csv(path + 'trainedcorrect_testedWMcorrect_gocueprevious_shufflesession_sti.csv', index_col=0)
+df_sjs['trial_type'] = variable
+sess_js = df_sjs.session.unique()
+df_sj   = df_sj[df_sj.session.isin(sess_js)]
+plots.plot_results_session_summary_substract(fig, j2, df_sj, df_sjs,
+    color=COLOR_STM, variable=variable, y_range=y_range_j, x_range=[0, 4], baseline=0)
 
 variable = 'RL_roll_1'
-file_name = 'trainedcorrect_testedRLcorrect_currentcue_V1'
-df_cum_res = pd.read_csv(path+file_name+'_res.csv', index_col=0)
-df_cum_sti = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
+df_sj2  = pd.read_csv(path + 'trainedcorrect_testedRLcorrect_currentcue_V1_sti.csv', index_col=0)
+df_sjs2 = pd.read_csv(path + 'trainedcorrect_testedRLcorrect_gocueprevious_shufflesession_sti.csv', index_col=0)
+df_sjs2['trial_type'] = variable
+df_sj2  = df_sj2[df_sj2.session.isin(sess_js)]
+plots.plot_results_session_summary_substract(fig, j2, df_sj2, df_sjs2,
+    color=COLOR_REPL, variable=variable, y_range=y_range_j, x_range=[0, 4], baseline=0)
 
-df_cum_res = df_cum_res[df_cum_res['session'].isin(trained_trials)]
-file_name = 'trainedcorrect_testedRLcorrect_gocueprevious_shufflesession'
+# j2
+variable = 'WM_roll_1'
+df_ss1 = pd.read_csv(path + 'trainedcorrect_testedWMcorrect_gocueprevious_substracted_sti.csv', index_col=0)
+plots.plot_results_session_summary_substract(fig, j1, df_ss1, df_ss1,
+    color=COLOR_STM, variable=variable, y_range=y_range_j, x_range=[-4, -1], baseline=0)
 
-df_cum_res_shuffle = pd.read_csv(path+file_name+'_res.csv', index_col=0)
-df_cum_sti_shuffle = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
-df_cum_sti_shuffle['trial_type'] = variable
-df_cum_res_shuffle['trial_type'] = variable
-df_cum_sti = df_cum_sti[df_cum_sti['session'].isin(trained_trials)]
+variable = 'RL_roll_1'
+df_ss2 = pd.read_csv(path + 'trainedcorrect_testedRLcorrect_gocueprevious_substracted_sti.csv', index_col=0)
+plots.plot_results_session_summary_substract(fig, j1, df_ss2, df_ss2,
+    color=COLOR_REPL, variable=variable, y_range=y_range_j, x_range=[-4, -1], baseline=0)
 
-plots.plot_results_session_summary_substract(fig, e2, df_cum_sti, df_cum_sti_shuffle,
-                                  color = 'indigo', variable = variable, y_range = y_range, x_range = [-4,1], baseline=0)
+# j3
+variable = 'WM_roll_1'
+df_rj  = pd.read_csv(path + 'trainedcorrect_testedWMcorrect_currentcue_V1_res.csv', index_col=0)
+df_rjs = pd.read_csv(path + 'trainedcorrect_testedWMcorrect_gocueprevious_shufflesession_res.csv', index_col=0)
+df_rjs['trial_type'] = variable
+df_rj  = df_rj[df_rj.session.isin(sess_js)]
+plots.plot_results_session_summary_substract(fig, j3, df_rj, df_rjs,
+    color=COLOR_STM, variable=variable, y_range=y_range_j, x_range=[-1, 3], baseline=0)
 
-plots.plot_results_session_summary_substract(fig, e3, df_cum_res, df_cum_res_shuffle,
-                                  color = 'indigo', variable = variable, y_range = y_range, x_range = [-1,3], baseline=0)
+variable = 'RL_roll_1'
+df_rj2  = pd.read_csv(path + 'trainedcorrect_testedRLcorrect_currentcue_V1_res.csv', index_col=0)
+df_rjs2 = pd.read_csv(path + 'trainedcorrect_testedRLcorrect_gocueprevious_shufflesession_res.csv', index_col=0)
+df_rjs2['trial_type'] = variable
+df_rj2  = df_rj2[df_rj2.session.isin(sess_js)]
+plots.plot_results_session_summary_substract(fig, j3, df_rj2, df_rjs2,
+    color=COLOR_REPL, variable=variable, y_range=y_range_j, x_range=[-1, 3], baseline=0)
 
-x_range=[-1,4]
-file_name = 'trainedcorrect_testedWMcorrect_gocueprevious_substracted'
-df_cum_res = pd.read_csv(path+file_name+'_res.csv', index_col=0)
-df_cum_sti = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
+j1.set_xlabel('Time from Go (s)')
+j1.set_ylabel('Excess decoding\naccuracy')
+j1.set_xlim(0, 4)
+j2.set_xlabel('Time from Stim. (s)')
+j2.set_xlim(-4, -1)
+j3.set_xlabel('Time from Go (s)')
+j3.set_xlim(-1, 3)
+no_right_spine(j1); no_left_spine(j2); no_right_spine(j2); no_left_spine(j3)
+j1.xaxis.get_major_ticks()[-1].label1.set_visible(False)
+j2.xaxis.get_major_ticks()[0].label1.set_visible(False)
+j2.xaxis.get_major_ticks()[-1].label1.set_visible(False)
+j3.xaxis.get_major_ticks()[0].label1.set_visible(False)
+label_panel(j0, 'j')
+j0.axis('off')
 
-# df_cum_res = df_cum_res[df_cum_res['session'].isin(trained_trials)]
+# ============================================================
+# Significance bars
+# ============================================================
+sig_bar(a,  0, 0.4)
+sig_bar(b,  0, 0.2)
+sig_bar(c1, 0, 0.4)
+sig_bar(c2, 0, 0.2)
 
-# file_name = ''
-# df_cum_res_shuffle = pd.read_csv(path+file_name+'_res.csv', index_col=0)
-# df_cum_sti_shuffle = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
-
-# df_cum_sti = df_cum_sti[df_cum_sti['session'].isin(trained_trials)]
-
-# y_range = [0.45, 0.8]
-
-# plot_results_session_summary_substract(fig, ax2, df_cum_res, df_cum_res_shuffle,
-#                                   color = 'indigo', variable = variable, y_range = y_range, x_range = [-1,4], baseline=0)
-
-plots.plot_results_session_summary(fig, e1, df_cum_res, ['darkgreen'], df_cum_sti.trial_type.unique(), epoch = 'Delay_OFF', x_range=x_range, y_range=y_range, baseline=0.5)
-
-file_name = 'trainedcorrect_testedRLcorrect_gocueprevious_substracted'
-df_cum_res = pd.read_csv(path+file_name+'_res.csv', index_col=0)
-df_cum_sti = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
-
-# df_cum_res = df_cum_res[df_cum_res['session'].isin(trained_trials)]
-# print(len(df_cum_res.session.unique()))
-
-# file_name = ''
-# df_cum_res_shuffle = pd.read_csv(path+file_name+'_res.csv', index_col=0)
-# df_cum_sti_shuffle = pd.read_csv(path+file_name+'_sti.csv', index_col=0)
-
-# df_cum_sti = df_cum_sti[df_cum_sti['session'].isin(trained_trials)]
-
-# y_range = [0.45, 0.8]
-
-# plot_results_session_summary_substract(fig, ax2, df_cum_res, df_cum_res_shuffle,
-#                                   color = 'indigo', variable = variable, y_range = y_range, x_range = [-1,4], baseline=0)
-
-plots.plot_results_session_summary(fig, e1, df_cum_res, ['indigo'], df_cum_res.trial_type.unique(), epoch = 'Delay_OFF', x_range=x_range, y_range=y_range, baseline=0.0)
-
-
-# ----------------------------------------------------------------------------------------------------------------------------
-
-# Show the figure
+# ============================================================
+# Final polish
+# ============================================================
 sns.despine()
-# Show the figure
-plt.subplots_adjust(left=0.03,
-                    bottom=0.03,
-                    right=0.97,
-                    top=0.97,
-                    wspace=.5,
-                    hspace=0.5)
 
-# plt.savefig(save_path+'/Fig. 6. Ephys HB_V5.svg', bbox_inches='tight',dpi=300)
-# plt.savefig(save_path+'/Fig. 6. Ephys HB_V4.png', bbox_inches='tight',dpi=300)
+# After despine: align b, c2, e2 to same height/y0 as a, c1, e1
+fig.canvas.draw()
+for left_ax, right_ax in [(a, b), (c1, c2), (e1, e2)]:
+    lpos = left_ax.get_position()
+    rpos = right_ax.get_position()
+    right_ax.set_position([rpos.x0, lpos.y0, rpos.width, lpos.height])
 
+# Post-despine spine cleanup
+for ax in [b, c2, e2, j2, j3]:
+    ax.spines['left'].set_visible(False)
+    ax.yaxis.set_visible(False)
+for ax in [c1, e1, j1]:
+    ax.spines['right'].set_visible(False)
+j2.spines['right'].set_visible(False)
+
+# j ylims: push data down, leave room for labels at top
+for jax in [j1, j2, j3]:
+    jax.set_ylim(-0.12, 0.65)
+    jax.set_yticks([0, 0.2, 0.4])
+
+# f/g: no bottom/top spine on raster and PSTH panels
+for ax in [f1, f2, g1, g2]:
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    ax.tick_params(bottom=False)
+
+# i1: no bottom spine (despine style, keep ticks)
+i1.spines['bottom'].set_visible(False)
+
+# b: no left spine
+b.spines['left'].set_visible(False)
+b.tick_params(left=False, labelleft=False)
+
+# ============================================================
+# j panel annotations
+# ============================================================
+fig.canvas.draw()
+
+# Arrows
+j1.annotate('', xy=(1.0, 1.44), xytext=(0.0, 1.44),
+    xycoords='axes fraction', textcoords='axes fraction',
+    arrowprops=dict(arrowstyle='<->', color='black', lw=0.8),
+    annotation_clip=False)
+j1.text(0.5, 1.19, 'trial  t −1', transform=j1.transAxes,
+    ha='center', va='bottom', fontsize=6, style='italic')
+
+# Arrows
+j1.annotate('', xy=(1.0, 1.14), xytext=(0.0, 1.14),
+    xycoords='axes fraction', textcoords='axes fraction',
+    arrowprops=dict(arrowstyle='<->', color='grey', lw=0.8),
+    annotation_clip=False)
+j1.text(0.5, 1.19, 'trial  t −1', transform=j1.transAxes,
+    ha='center', va='bottom', fontsize=6, style='italic')
+
+l = fig.transFigure.inverted().transform(j2.transAxes.transform([0.0, 1.14]))
+r = fig.transFigure.inverted().transform(j3.transAxes.transform([1.0, 1.14]))
+j2.annotate('', xy=(r[0], r[1]), xytext=(l[0], l[1]),
+    xycoords='figure fraction', textcoords='figure fraction',
+    arrowprops=dict(arrowstyle='<->', color='black', lw=0.8),
+    annotation_clip=False)
+fig.text((l[0]+r[0])/2, l[1]+0.004, 'trial  t',
+    ha='center', va='bottom', fontsize=6, style='italic',
+    transform=fig.transFigure)
+
+# Title
+lj = fig.transFigure.inverted().transform(j1.transAxes.transform([0.0, 1.02]))
+rj = fig.transFigure.inverted().transform(j3.transAxes.transform([1.0, 1.02]))
+fig.text((lj[0]+rj[0])/2, lj[1]+0.5, 'Previous response decoding',
+    ha='center', va='bottom', fontsize=7, fontweight='bold',
+    transform=fig.transFigure)
+
+# Trial boundary: tall black dashed line between j1 and j2
+j1.axvline(x=j1.get_xlim()[1], ymin=-0.15, ymax=1.20,
+    color='black', linestyle='--', linewidth=0.7, clip_on=False)
+
+# Internal grey dashed lines
+j1.axvline(x=0, color='lightgrey', linestyle='--', linewidth=0.5, zorder=1)
+j2.axvline(x=0, color='lightgrey', linestyle='--', linewidth=0.5, zorder=1)
+j3.axvline(x=0, color='lightgrey', linestyle='--', linewidth=0.5, zorder=1)
+
+# Grey context labels inside panels
+j1.text(0.02, 0.98, 'Go cue',             transform=j1.transAxes, fontsize=4.5, color='grey', va='top', clip_on=True)
+j1.text(0.22, 0.98, 'Resp. window + ITI', transform=j1.transAxes, fontsize=4.5, color='grey', va='top', clip_on=True)
+j2.text(0.04, 0.98, 'Pre-stim.',          transform=j2.transAxes, fontsize=4.5, color='grey', va='top', clip_on=True)
+j2.text(0.68, 0.98, 'Stim.',              transform=j2.transAxes, fontsize=4.5, color='grey', va='top', clip_on=True)
+j3.text(0.02, 0.98, 'Delay',              transform=j3.transAxes, fontsize=4.5, color='grey', va='top', clip_on=True)
+j3.text(0.38, 0.98, 'Go cue',             transform=j3.transAxes, fontsize=4.5, color='grey', va='top', clip_on=True)
+j3.text(0.58, 0.98, 'Resp. window + ITI', transform=j3.transAxes, fontsize=4.5, color='grey', va='top', clip_on=True)
+
+# plt.savefig(save_path + 'fig_5_ephys_repl_v5.svg', bbox_inches='tight', dpi=300)
+# plt.savefig(save_path + 'fig_5_ephys_repl_v5.png', bbox_inches='tight', dpi=300)
 plt.show()
