@@ -4,29 +4,20 @@ Created on Wed Dec 28 12:06:44 2022
 
 @author: Tiffany
 """
-COLORLEFT = 'teal'
-COLORRIGHT = '#FF8D3F'
-
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import pandas as pd
 import numpy as np
 import seaborn as sns
-#Import all needed libraries
-from neo.core import SpikeTrain
-from quantities import ms
-from elephant.statistics import time_histogram, instantaneous_rate
-from elephant.kernels import GaussianKernel
 
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from config import ROOT, FIGURES_OUT, DATA_DIR
 sys.path.insert(0, str(ROOT / 'src'))
-from functions import add_stat_annotation, convolveandplot, new_convolve
 
 save_path = str(FIGURES_OUT / 'supp_figures' / 'supp_fig_5_crossdecoder_10')
-path = str(DATA_DIR) + '/'
+path = str(DATA_DIR / 'supp_figures' / 'supp_fig_5_crossdecoder_10')
 
 cm = 1/2.54
 sns.set_context('paper', rc={'axes.labelsize': 7,
@@ -140,64 +131,11 @@ def plot_decoder(left, df,baseline=0.5,individual_sessions=False, align='Stimulu
             left.spines['left'].set_visible(False)
 
 
-def plotsingledelay(df_cum_sti, panel, colors, variables_combined, delay, start=-2, stop=8):
-    baseline = 0.5
-    y_upper=baseline
-    y_lower=baseline
-
-    for color, variable in zip(colors,variables_combined):
-
-        # Aligmnent for Stimulus cue
-        real = np.array(df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)&(df_cum_sti['delay'] == delay)].drop(columns=['trial_type', 'delay','session','fold','score']).mean(axis=0))
-        times = df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)&(df_cum_sti['delay'] == delay)]
-        times = np.array(times.drop(columns=['trial_type', 'delay','session','fold','score'],axis = 1).columns.astype(float))
-
-        df_lower = pd.DataFrame()
-        df_upper = pd.DataFrame()
-
-        for timepoint in times:
-            mean_surr = []
-
-            # recover the values for that specific timepoint
-            try:
-                array = df_cum_sti.loc[(df_cum_sti.trial_type ==variable)&(df_cum_sti['delay'] == delay)].drop(columns='delay').groupby('session').mean()[str(timepoint)].to_numpy()
-            except:
-                array = df_cum_sti.loc[(df_cum_sti.trial_type ==variable)&(df_cum_sti['delay'] == delay)].drop(columns='delay').groupby('session').mean()[timepoint].to_numpy()
-
-            # iterate several times with resampling: chose X time among the same list of values
-            for iteration in range(1000):
-                x = np.random.choice(array, size=len(array), replace=True)
-                # recover the mean of that new distribution
-                mean_surr.append(np.mean(x))
-
-            df_lower.at[0,timepoint] = np.percentile(mean_surr, 2.5)
-            df_upper.at[0,timepoint] = np.percentile(mean_surr, 97.5)
-
-        lower =  df_lower.iloc[0].values
-        upper =  df_upper.iloc[0].values
-        x=times
-
-        panel.plot(times,real, color=color)
-        panel.plot(x, lower, color=color, linestyle = '',alpha=0.6, linewidth=0)
-        panel.plot(x, upper, color=color, linestyle = '',alpha=0.6, linewidth=0)
-        panel.fill_between(x, lower, upper, alpha=0.2, color=color, linewidth=0)
-        if max(upper)>y_upper:
-            y_upper = max(upper)
-        if  min(lower)<y_lower:
-            y_lower = min(lower)
-        panel.set_ylabel('Accuracy')
-        panel.axhline(y=baseline,linestyle=':',color='black')
-        panel.fill_betweenx(np.arange(-baseline-0.1,baseline+.45,0.1), 0,0.35, color='lightgrey', alpha=1, linewidth=0)
-        panel.fill_betweenx(np.arange(-baseline-0.1,baseline+.45,0.1), delay+.35,delay+.55, color='grey', alpha=1, linewidth=0)
-        panel.set_ylim(y_lower,y_upper+0.05)
-        panel.set_xlim(start,stop)
-        if panel=='crimson':
-            panel.set_xlabel('Time to Cue onset (s)')
 # ---------------------------------------------------------------------------
 # Panel a — cross-decoder heatmap (10s delay)
 # ---------------------------------------------------------------------------
 
-file_name = 'crossdecoder_WMroll1_10s_r0.25_substracted'
+file_name = '/crossdecoder_WMroll1_10s_r0.25_substracted'
 df_animal_sti = pd.read_csv(path+file_name+'.csv', index_col = 0)
 
 color= sns.diverging_palette(220, 20, as_cmap=True)
@@ -220,15 +158,33 @@ df_new = df_new.groupby('train').mean()
 df_new = df_new.reindex(index=df_animal_sti.train.unique())
 
 sns.heatmap(df_new, fmt='', linewidth=0.0, rasterized=True, square=True, vmin=-0.1, vmax=0.3, center=0.0, ax=panel, xticklabels=df_new.columns).invert_yaxis()
-# panel.imshow(df_new.T, cmap='hot')
-# panel.set_ylim(panel.set_ylim()[::-1])
-# panel.set_xticks(range(10)) # <--- set the ticks first
-# panel.set_xticklabels(df_new.columns)
-panel.set_xticklabels(["-2","","","","","","","","0","","","","",'',"","","2","","","","","","","","4","","","","","","","","6","","","","","","","","8","","","","","","","","10","","","","","","","","12","","","","","","","","14"])
-panel.set_yticklabels(["-2",'',"","","0",'',"","","2",'',"","","4",'',"","","6",'',"","","8",'',"","","10",'',"","","12",'',"","","14"])
-# panel.set_yticks([["-2",'',"","","","","0",'',"","","","2",'',"","","4",'',"","","6"]])
 
-panel.legend(loc='bottom left')
+def _tick_labels(values):
+    """Label only integer-second positions (-2 to 14), blank otherwise."""
+    labels = []
+    for v in values:
+        try:
+            t = float(v)
+        except (ValueError, TypeError):
+            parts = str(v).split('_')
+            t = (float(parts[0]) + float(parts[1])) / 2
+        t_r = round(t)
+        labels.append(str(t_r) if abs(t - t_r) < 0.01 and -2 <= t_r <= 14 else '')
+    return labels
+
+panel.set_xticklabels(_tick_labels(df_new.columns))
+
+# Set yticks only at integer-second positions to avoid count mismatch
+y_tick_pos, y_tick_lab = [], []
+for i, v in enumerate(df_new.index):
+    parts = str(v).split('_')
+    t = (float(parts[0]) + float(parts[1])) / 2
+    t_r = round(t)
+    if abs(t - t_r) < 0.01 and -2 <= t_r <= 14:
+        y_tick_pos.append(i + 0.5)
+        y_tick_lab.append(str(t_r))
+panel.set_yticks(y_tick_pos)
+panel.set_yticklabels(y_tick_lab)
 
 # Recover the diagonal for all the animals
 first=True
@@ -267,6 +223,6 @@ plt.subplots_adjust(left=0.07,
                     wspace=1.5,
                     hspace=0.5)
 
-# plt.savefig(save_path+'/Supp 4.1. Crossdecoder 10s_V2.svg', bbox_inches='tight',dpi=300)
+# plt.savefig(save_path+'/supp_fig5_crossdecoder_10.svg', bbox_inches='tight',dpi=300)
 
 plt.show()

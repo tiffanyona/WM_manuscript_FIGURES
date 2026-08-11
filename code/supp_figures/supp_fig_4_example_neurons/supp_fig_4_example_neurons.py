@@ -1,32 +1,19 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Dec 28 12:06:44 2022
-
-@author: Tiffany
-"""
-COLORLEFT = 'teal'
-COLORRIGHT = '#FF8D3F'
 
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import pandas as pd
 import numpy as np
 import seaborn as sns
-#Import all needed libraries
-from neo.core import SpikeTrain
-from quantities import ms
-from elephant.statistics import time_histogram, instantaneous_rate
-from elephant.kernels import GaussianKernel
 
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from config import ROOT, FIGURES_OUT, DATA_DIR
 sys.path.insert(0, str(ROOT / 'src'))
-from functions import add_stat_annotation
+from functions import COLORLEFT, COLORRIGHT, new_convolve
 
 save_path = str(FIGURES_OUT / 'supp_figures' / 'supp_fig_4_example_neurons')
-path = str(DATA_DIR) + '/'
+path = str(DATA_DIR/ 'supp_figures' / 'supp_fig_4_example_neurons')
 
 cm = 1/2.54
 sns.set_context('paper', rc={'axes.labelsize': 7,
@@ -42,8 +29,8 @@ sns.set_context('paper', rc={'axes.labelsize': 7,
                             'xlabel.labelpad': -10})
 
 # Create a figure with 6 subplots using a GridSpec
-fig = plt.figure(figsize=(18*cm, 15*cm))
-gs = gridspec.GridSpec(nrows=8, ncols=8, figure=fig)
+fig = plt.figure(figsize=(18*cm, 20*cm))
+gs = gridspec.GridSpec(nrows=8, ncols=8, figure=fig, height_ratios=[2,1,2,1,2,1,2,1])
 
 # Create the subplots
 a1 = fig.add_subplot(gs[0, 0:2])
@@ -221,191 +208,6 @@ def convolveandplot(df, upper_plot, lower_plot, variable='reward_side', cluster_
 
     return j
 
-def plot_decoder(left, df_cum_sti,baseline=0.5,individual_sessions=False, colors=['black'], upper_limit=0.2, variables_combined=['WM_roll_1']):
-    for color, variable,left in zip(colors,variables_combined,[left]):
-        if individual_sessions == True:
-            # Aligmnent for Stimulus cue - sessions separately
-            real = df_cum_sti.groupby('session').median().reset_index()
-            try:
-                times = np.array(df_cum_sti.columns[:-4]).astype(float)
-            except:
-                times = np.array(df_cum_sti.columns[1:]).astype(float)
-
-
-            x=times
-            for i in range(len(real)):
-                left.plot(times,real.iloc[i][1:-1], color=color,alpha=0.1)
-
-        # Aligmnent for Stimulus cue
-        real = np.array(df_cum_sti.loc[:, (df_cum_sti.columns != 'session_shuffle')
-                                       &(df_cum_sti.columns != 'fold')].mean())
-        try:
-            times = np.array(df_cum_sti.columns[:-4]).astype(float)
-            time_points = df_cum_sti.columns[:-4]
-
-        except:
-            times = np.array(df_cum_sti.columns[1:]).astype(float)
-            time_points = df_cum_sti.columns[1:]
-
-        mean_surr = []
-        df_lower = pd.DataFrame()
-        df_upper = pd.DataFrame()
-
-        # df_for_boots = df_cum_sti.loc[:, df_cum_sti.columns != 'session_shuffle']
-        df_for_boots = df_cum_sti.loc[:, (df_cum_sti.columns != 'session_shuffle')
-                                       &(df_cum_sti.columns != 'fold')].groupby('session').mean().reset_index()
-        for timepoint in time_points:
-            mean_surr = []
-
-            # recover the values for that specific timepoint
-            array = df_for_boots[timepoint].to_numpy()
-
-            # iterate several times with resampling: chose X time among the same list of values
-            for iteration in range(1000):
-                x = np.random.choice(array, size=len(array), replace=True)
-                # recover the mean of that new distribution
-                mean_surr.append(np.mean(x))
-
-            df_lower.at[0,timepoint] = np.percentile(mean_surr, 0.5)
-            df_upper.at[0,timepoint] = np.percentile(mean_surr, 99.5)
-
-        x=times
-        lower =  df_lower.iloc[0].values
-        upper =  df_upper.iloc[0].values
-        left.plot(x, lower, color=color, linestyle = '',alpha=0.6, linewidth=0)
-        left.plot(x, upper, color=color, linestyle = '',alpha=0.6, linewidth=0)
-        left.fill_between(x, lower, upper, alpha=0.2, color=color, linewidth=0)
-
-        # lower =  real - 2*df_for_boots.std()
-        # upper =  real + 2*df_for_boots.std()
-        lower =  df_cum_sti.quantile(0.025)
-        upper =  df_cum_sti.quantile(0.975)
-
-        left.plot(times,real, color=color)
-
-        left.fill_betweenx(np.arange(-baseline-0.1,baseline+.5,0.1), 0,0.35, color='lightgrey', alpha=1, linewidth=0)
-        left.fill_betweenx(np.arange(-baseline-0.1,baseline+.5,0.1), 3.35,3.55, color='lightgrey', alpha=1, linewidth=0)
-        left.set_ylim(baseline-0.1,upper_limit+baseline)
-        left.axhline(y=baseline,linestyle=':',color='black')
-        left.set_xlabel('Time from Cue onset (s)')
-        left.set_ylabel('Decoder\n accuracy')
-
-
-def new_convolve(nx,df, kernel=200):
-    '''
-    nx = already selected cluster
-    df = dataframe from the session with all trials
-    '''
-
-    errors_=[] ##indexes and neurons without enough spikes to make a spiketrain
-    frames=[]
-
-    # Iterate for each trial in that session
-    for T in df.trial.unique():
-        if T > nx.iloc[0].trial_start+1 and T < nx.iloc[0].trial_end+1:
-            # Take the spike times for that trial
-            nxt = nx.loc[nx['trial']==T]['fixed_times']
-
-            # !!!! IMPORTANT use the main df that has all the trials. If you use the filtered nx, some trials may not appear if they were no spikes there.
-            dft = df.loc[df['trial']==T]
-
-            # try:
-            ############################################################ Get the times of the spikes
-            times_spikes = nxt
-            times_spikes = times_spikes*1000 #transform to ms
-
-            ############################################################ Set the strat and end time of the train
-            stop_time =  (dft.END.unique()[0])*1000*ms ## End of the trial in ms
-            try:
-                start_time = (dft.START_adjusted.unique()[0]-0.1)*1000*ms ## Start of the trial in ms
-            except:
-                start_time = dft.START.unique()[0]*1000*ms ## Start of the trial in ms
-
-            ############################################################ Spiketrain
-            spiketrain = SpikeTrain(times_spikes, units=ms, t_stop=stop_time, t_start=start_time)
-
-            ############################################################ Convoluted firing rate
-            histogram_rate = time_histogram([spiketrain], 20*ms, output='rate')
-            gaus_rate = instantaneous_rate(spiketrain, sampling_period=20*ms, kernel=GaussianKernel(kernel*ms)) #s.d of Suzuki & Gottlieb
-            times_ = gaus_rate.times.rescale(ms)
-            firing = gaus_rate.rescale(histogram_rate.dimensionality).magnitude.flatten()
-
-            ############################################################ Dataframe
-            df_trial = pd.DataFrame({'times':times_, 'firing':firing}) #dataframe con times y firing
-            df_trial['trial']=T
-            df_trial['Delay_OFF']= dft.Delay_OFF.unique()[0]*1000
-            df_trial['Stimulus_ON']= dft.Stimulus_ON.unique()[0]*1000
-            df_trial['delay']=dft.delay.unique()[0]
-            df_trial['vector_answer']=dft.vector_answer.unique()[0]
-            df_trial['reward_side']=dft.reward_side.unique()[0]
-            # df_trial['miss']=dft.miss.unique()[0]
-            df_trial['hit']=dft.hit.unique()[0]
-
-            frames.append(df_trial)
-            # except ValueError:
-            #     errors_.append([N,T])
-            #     print (N, T)
-            # except IndexError:
-            #     print('Index error, missing trial ' + str(T))
-            #     errors_.append([N,T])
-        else:
-            continue
-    neuron = pd.concat(frames)
-    return neuron
-
-def plotsingledelay(df_cum_sti, panel, colors, variables_combined, delay):
-    baseline = 0.5
-    y_upper=baseline
-    y_lower=baseline
-
-    for color, variable in zip(colors,variables_combined):
-
-        # Aligmnent for Stimulus cue
-        real = np.array(df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)&(df_cum_sti['delay'] == delay)].drop(columns=['trial_type', 'delay','session','fold','score']).mean(axis=0))
-        times = df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)&(df_cum_sti['delay'] == delay)]
-        times = np.array(times.drop(columns=['trial_type', 'delay','session','fold','score'],axis = 1).columns.astype(float))
-
-        df_lower = pd.DataFrame()
-        df_upper = pd.DataFrame()
-
-        for timepoint in times:
-            mean_surr = []
-
-            # recover the values for that specific timepoint
-            try:
-                array = df_cum_sti.loc[(df_cum_sti.trial_type ==variable)&(df_cum_sti['delay'] == delay)].drop(columns='delay').groupby('session').mean()[str(timepoint)].to_numpy()
-            except:
-                array = df_cum_sti.loc[(df_cum_sti.trial_type ==variable)&(df_cum_sti['delay'] == delay)].drop(columns='delay').groupby('session').mean()[timepoint].to_numpy()
-
-            # iterate several times with resampling: chose X time among the same list of values
-            for iteration in range(1000):
-                x = np.random.choice(array, size=len(array), replace=True)
-                # recover the mean of that new distribution
-                mean_surr.append(np.mean(x))
-
-            df_lower.at[0,timepoint] = np.percentile(mean_surr, 2.5)
-            df_upper.at[0,timepoint] = np.percentile(mean_surr, 97.5)
-
-        lower =  df_lower.iloc[0].values
-        upper =  df_upper.iloc[0].values
-        x=times
-
-        panel.plot(times,real, color=color)
-        panel.plot(x, lower, color=color, linestyle = '',alpha=0.6, linewidth=0)
-        panel.plot(x, upper, color=color, linestyle = '',alpha=0.6, linewidth=0)
-        panel.fill_between(x, lower, upper, alpha=0.2, color=color, linewidth=0)
-        if max(upper)>y_upper:
-            y_upper = max(upper)
-        if  min(lower)<y_lower:
-            y_lower = min(lower)
-        panel.set_ylabel('Accuracy')
-        panel.axhline(y=baseline,linestyle=':',color='black')
-        panel.fill_betweenx(np.arange(-baseline-0.1,baseline+.45,0.1), 0,0.35, color='lightgrey', alpha=1, linewidth=0)
-        panel.fill_betweenx(np.arange(-baseline-0.1,baseline+.45,0.1), delay+.35,delay+.55, color='lightgrey', alpha=1, linewidth=0)
-        panel.set_ylim(y_lower,y_upper+0.05)
-        if panel=='crimson':
-            panel.set_xlabel('Time to stimulus onset (s)')
-
 # ----------------------------------------------------------------------------------------------------------------
 
 # -----------------############################## A Panel - Crossdecoder for 3s  #######################-----------------------
@@ -417,7 +219,7 @@ def plotsingledelay(df_cum_sti, panel, colors, variables_combined, delay):
 # -----------------############################## C Panel - Single neuron example ############-----------------------
 
 file_name = 'E20_2022-02-13_15-10-51_neuron_81'
-df = pd.read_csv(path+file_name+'.csv', index_col=0)
+df = pd.read_csv(path+f'\{file_name}.csv', index_col=0)
 
 delay = 10
 cluster_id = df.cluster_id.unique()[0]
@@ -431,14 +233,14 @@ align = 'Stimulus_ON'
 j=1
 temp_df = df.loc[(df.WM_roll >0.6)&(df.hit ==1)]
 j = convolveandplot(temp_df, a1, a2, variable='reward_side', cluster_id = cluster_id, delay = delay, j=j)
-a1.set_title(file_name)
+a1.set_title(file_name.split('_neuron_')[0], fontsize=7)
 
 # ----------------------------------------------------------------------------------------------------------------
 
 # -----------------############################## C Panel - Single neuron example ############-----------------------
 
 file_name = 'E14_2021-04-02_12-53-42_neuron_361'
-df = pd.read_csv(path+file_name+'.csv', index_col=0)
+df = pd.read_csv(path+f'\{file_name}.csv', index_col=0)
 
 delay = 10
 cluster_id = df.cluster_id.unique()[0]
@@ -446,12 +248,12 @@ cluster_id = df.cluster_id.unique()[0]
 j=1
 temp_df = df.loc[(df.WM_roll >0.6)&(df.hit ==1)]
 j = convolveandplot(temp_df, b1, b2, variable='reward_side', cluster_id = cluster_id, delay = delay, j=j)
-b1.set_title(file_name)
+b1.set_title(file_name.split('_neuron_')[0], fontsize=6)
 
 # -----------------############################## C Panel - Single neuron example ############-----------------------
 
 file_name = 'E17_2022-02-01_17-02-16_neuron_304'
-df = pd.read_csv(path+file_name+'.csv', index_col=0)
+df = pd.read_csv(path+f'\{file_name}.csv', index_col=0)
 
 delay = 10
 cluster_id = df.cluster_id.unique()[0]
@@ -459,12 +261,12 @@ cluster_id = df.cluster_id.unique()[0]
 j=1
 temp_df = df.loc[(df.WM_roll >0.6)&(df.hit ==1)]
 j = convolveandplot(temp_df, c1, c2, variable='reward_side', cluster_id = cluster_id, delay = delay, j=j)
-c1.set_title(file_name)
+c1.set_title(file_name.split('_neuron_')[0], fontsize=6)
 
 # -----------------############################## C Panel - Single neuron example ############-----------------------
 
 file_name = 'E17_2022-02-02_17-13-06_neuron_33'
-df = pd.read_csv(path+file_name+'.csv', index_col=0)
+df = pd.read_csv(path+f'\{file_name}.csv', index_col=0)
 
 delay = 10
 cluster_id = df.cluster_id.unique()[0]
@@ -472,12 +274,12 @@ cluster_id = df.cluster_id.unique()[0]
 j=1
 temp_df = df.loc[(df.WM_roll >0.6)&(df.hit ==1)]
 j = convolveandplot(temp_df, d1, d2, variable='reward_side', cluster_id = cluster_id, delay = delay, j=j)
-d1.set_title(file_name)
+d1.set_title(file_name.split('_neuron_')[0], fontsize=6)
 
 # -----------------############################## C Panel - Single neuron example ############-----------------------
 
 file_name = 'E17_2022-02-02_17-13-06_neuron_265'
-df = pd.read_csv(path+file_name+'.csv', index_col=0)
+df = pd.read_csv(path+f'\{file_name}.csv', index_col=0)
 
 delay = 1
 cluster_id = df.cluster_id.unique()[0]
@@ -485,13 +287,13 @@ cluster_id = df.cluster_id.unique()[0]
 j=1
 temp_df = df.loc[(df.WM_roll >0.6)&(df.hit ==1)]
 j = convolveandplot(temp_df, e1, e2, variable='reward_side', cluster_id = cluster_id, delay = delay, j=j)
-e1.set_title(file_name)
+e1.set_title(file_name.split('_neuron_')[0], fontsize=7)
 
 
 # -----------------############################## C Panel - Single neuron example ############-----------------------
 
 file_name = 'E17_2022-02-02_17-13-06_neuron_233'
-df = pd.read_csv(path+file_name+'.csv', index_col=0)
+df = pd.read_csv(path+f'\{file_name}.csv', index_col=0)
 
 delay = 3
 cluster_id = df.cluster_id.unique()[0]
@@ -499,13 +301,13 @@ cluster_id = df.cluster_id.unique()[0]
 j=1
 temp_df = df.loc[(df.WM_roll >0.6)&(df.hit ==1)]
 j = convolveandplot(temp_df, f1, f2, variable='reward_side', cluster_id = cluster_id, delay = delay, j=j)
-f1.set_title(file_name)
+f1.set_title(file_name.split('_neuron_')[0], fontsize=7)
 
 
 # -----------------############################## C Panel - Single neuron example ############-----------------------
 
 file_name = 'E17_2022-02-02_17-13-06_neuron_288'
-df = pd.read_csv(path+file_name+'.csv', index_col=0)
+df = pd.read_csv(path+f'\{file_name}.csv', index_col=0)
 
 delay = 3
 cluster_id = df.cluster_id.unique()[0]
@@ -513,13 +315,13 @@ cluster_id = df.cluster_id.unique()[0]
 j=1
 temp_df = df.loc[(df.WM_roll >0.6)&(df.hit ==1)]
 j = convolveandplot(temp_df, g1, g2, variable='reward_side', cluster_id = cluster_id, delay = delay, j=j)
-g1.set_title(file_name)
+g1.set_title(file_name.split('_neuron_')[0], fontsize=7)
 
 
 # -----------------############################## C Panel - Single neuron example ############-----------------------
 
 file_name = 'E04_2021-03-30_11-20-16_neuron_169'
-df = pd.read_csv(path+file_name+'.csv', index_col=0)
+df = pd.read_csv(path+f'\{file_name}.csv', index_col=0)
 
 delay = 10
 cluster_id = df.cluster_id.unique()[0]
@@ -529,12 +331,12 @@ temp_df = df.loc[(df.WM_roll >0.6)&(df.hit ==1)]
 j = convolveandplot(temp_df, h1, h2, variable='reward_side', cluster_id = cluster_id, delay = delay, j=j)
 
 h1.get_xaxis().set_visible(False)
-h1.set_title(file_name)
+h1.set_title(file_name.split('_neuron_')[0], fontsize=6)
 
 # -----------------############################## C Panel - Single neuron example ############-----------------------
 
 file_name = 'E14_2021-04-02_12-53-42_neuron_511'
-df = pd.read_csv(path+file_name+'.csv', index_col=0)
+df = pd.read_csv(path+f'\{file_name}.csv', index_col=0)
 
 delay = 10
 cluster_id = df.cluster_id.unique()[0]
@@ -542,12 +344,12 @@ cluster_id = df.cluster_id.unique()[0]
 j=1
 temp_df = df.loc[(df.WM_roll >0.6)&(df.hit ==1)]
 j = convolveandplot(temp_df, i1, i2, variable='reward_side', cluster_id = cluster_id, delay = delay, j=j)
-i1.set_title(file_name)
+i1.set_title(file_name.split('_neuron_')[0], fontsize=6)
 
 # -----------------############################## C Panel - Single neuron example ############-----------------------
 
 file_name = 'E22_2022-01-22_17-09-15_neuron_246'
-df = pd.read_csv(path+file_name+'.csv', index_col=0)
+df = pd.read_csv(path+f'\{file_name}.csv', index_col=0)
 
 delay = 10
 cluster_id = df.cluster_id.unique()[0]
@@ -555,12 +357,12 @@ cluster_id = df.cluster_id.unique()[0]
 j=1
 temp_df = df.loc[(df.WM_roll >0.6)&(df.hit ==1)]
 j = convolveandplot(temp_df, j1, j2, variable='reward_side', cluster_id = cluster_id, delay = delay, j=j)
-j1.set_title(file_name)
+j1.set_title(file_name.split('_neuron_')[0], fontsize=6)
 
 # -----------------############################## C Panel - Single neuron example ############-----------------------
 
 file_name = 'E22_2022-01-13_16-34-24_neuron_381'
-df = pd.read_csv(path+file_name+'.csv', index_col=0)
+df = pd.read_csv(path+f'\{file_name}.csv', index_col=0)
 
 delay = 10
 cluster_id = df.cluster_id.unique()[0]
@@ -568,12 +370,12 @@ cluster_id = df.cluster_id.unique()[0]
 j=1
 temp_df = df.loc[(df.WM_roll >0.6)&(df.hit ==1)]
 j = convolveandplot(temp_df, k1, k2, variable='reward_side', cluster_id = cluster_id, delay = delay, j=j)
-k1.set_title(file_name)
+k1.set_title(file_name.split('_neuron_')[0], fontsize=6)
 
 # -----------------############################## C Panel - Single neuron example ############-----------------------
 
 file_name = 'E22_2022-01-14_16-50-37_neuron_16'
-df = pd.read_csv(path+file_name+'.csv', index_col=0)
+df = pd.read_csv(path+f'\{file_name}.csv', index_col=0)
 
 delay = 10
 cluster_id = df.cluster_id.unique()[0]
@@ -581,13 +383,13 @@ cluster_id = df.cluster_id.unique()[0]
 j=1
 temp_df = df.loc[(df.WM_roll >0.6)&(df.hit ==1)]
 j = convolveandplot(temp_df, l1, l2, variable='reward_side', cluster_id = cluster_id, delay = delay, j=j, label=True)
-l1.set_title(file_name)
+l1.set_title(file_name.split('_neuron_')[0], fontsize=6)
 
 
 # -----------------############################## C Panel - Single neuron example ############-----------------------
 
 file_name = 'E20_2022-02-14_16-01-30_neuron_204'
-df = pd.read_csv(path+file_name+'.csv', index_col=0)
+df = pd.read_csv(path+f'\{file_name}.csv', index_col=0)
 
 delay = 10
 cluster_id = df.cluster_id.unique()[0]
@@ -595,12 +397,12 @@ cluster_id = df.cluster_id.unique()[0]
 j=1
 temp_df = df.loc[(df.WM_roll >0.6)&(df.hit ==1)]
 j = convolveandplot(temp_df, m1, m2, variable='reward_side', cluster_id = cluster_id, delay = delay, j=j, label=True)
-m1.set_title(file_name)
+m1.set_title(file_name.split('_neuron_')[0], fontsize=6)
 
 # -----------------############################## C Panel - Single neuron example ############-----------------------
 
 file_name = 'E20_2022-03-01_16-11-01_neuron_88'
-df = pd.read_csv(path+file_name+'.csv', index_col=0)
+df = pd.read_csv(path+f'\{file_name}.csv', index_col=0)
 
 delay = 10
 cluster_id = df.cluster_id.unique()[0]
@@ -608,12 +410,12 @@ cluster_id = df.cluster_id.unique()[0]
 j=1
 temp_df = df.loc[(df.WM_roll >0.6)&(df.hit ==1)]
 j = convolveandplot(temp_df, n1, n2, variable='reward_side', cluster_id = cluster_id, delay = delay, j=j, label=True)
-o1.set_title(file_name)
+n1.set_title(file_name.split('_neuron_')[0], fontsize=6)
 
 # -----------------############################## C Panel - Single neuron example ############-----------------------
 
 file_name = 'E20_2022-03-01_16-11-01_neuron_95'
-df = pd.read_csv(path+file_name+'.csv', index_col=0)
+df = pd.read_csv(path+f'\{file_name}.csv', index_col=0)
 
 delay = 10
 cluster_id = df.cluster_id.unique()[0]
@@ -621,11 +423,11 @@ cluster_id = df.cluster_id.unique()[0]
 j=1
 temp_df = df.loc[(df.WM_roll >0.6)&(df.hit ==1)]
 j = convolveandplot(temp_df, o1, o2, variable='reward_side', cluster_id = cluster_id, delay = delay, j=j, label=True)
-
+o1.set_title(file_name.split('_neuron_')[0], fontsize=6)
 # -----------------############################## C Panel - Single neuron example ############-----------------------
 
 file_name = 'E22_2022-01-14_16-50-37_neuron_56'
-df = pd.read_csv(path+file_name+'.csv', index_col=0)
+df = pd.read_csv(path+f'\{file_name}.csv', index_col=0)
 
 delay = 10
 cluster_id = df.cluster_id.unique()[0]
@@ -633,7 +435,7 @@ cluster_id = df.cluster_id.unique()[0]
 j=1
 temp_df = df.loc[(df.WM_roll >0.6)&(df.hit ==1)]
 j = convolveandplot(temp_df, p1, p2, variable='reward_side', cluster_id = cluster_id, delay = delay, j=j, label=True)
-p1.set_title(file_name)
+p1.set_title(file_name.split('_neuron_')[0], fontsize=6)
 
 # 'E22_2022-01-14_16-50-37_neuron_56' Delay
 # 'E22_2022-01-14_16-50-37_neuron_47' Choice
@@ -645,10 +447,10 @@ plt.subplots_adjust(left=0.07,
                     right=0.97,
                     top=0.97,
                     wspace=1.0,
-                    hspace=0.25)
+                    hspace=0.95)
 
 sns.despine()
-plt.savefig(save_path+'/Supp 4.2. Example neurons.svg', bbox_inches='tight',dpi=300)
-plt.savefig(save_path+'/Supp 4.2. Example neurons.png', bbox_inches='tight',dpi=300)
+# plt.savefig(save_path+'/supp_fig_4_example_neurons.svg', bbox_inches='tight',dpi=300)
+# plt.savefig(save_path+'/supp_fig_4_example_neurons.png', bbox_inches='tight',dpi=300)
 
 plt.show()
