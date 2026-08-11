@@ -158,7 +158,7 @@ plt.subplots_adjust(left=0.07,
                     wspace=1.5,
                     hspace=0.45)
 sns.despine()
-# plt.savefig(save_path+'/Supp 5.1. 1 and 3s errors.svg', bbox_inches='tight',dpi=300)
-# plt.savefig(save_path+'/Supp 5.1. 1 and 3s errors.png', bbox_inches='tight',dpi=300)
+# plt.savefig(save_path+'/supp_fig_10_errors.svg', bbox_inches='tight',dpi=300)
+# plt.savefig(save_path+'/supp_fig_10_errors.png', bbox_inches='tight',dpi=300)
 
 plt.show()

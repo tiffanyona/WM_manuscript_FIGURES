@@ -145,6 +145,8 @@ y = np.arange(-5, 25, 0.1)
 panel.fill_betweenx(y, cue_on, cue_off, color='lightgrey', alpha=1, linewidth=0)
 panel.fill_betweenx(y, cue_off+delay, cue_off+delay+.2, color='lightgrey', alpha=1, linewidth=0)
 sns.despine(ax=panel)
+a2.spines['bottom'].set_visible(False)
+a1.spines['bottom'].set_visible(False)
 
 # ── Panel b ───────────────────────────────────────────────────────────────
 file_name = 'synch_data_trials_2beforeSti'
@@ -166,14 +168,17 @@ for ax_r, ax_fr, T in [(g1,g2,153),(f1,f2,212),(h1,h2,340)]:
     ax_r.set_xlabel('')
     ax_fr.tick_params(bottom=False, labelbottom=False)
     ax_fr.set_xlabel('')
-    # no spines on raster — applied immediately after synch_trial
+    # no spines on raster
     for sp in ax_r.spines.values(): sp.set_visible(False)
     ax_r.tick_params(left=False, labelleft=False)
-    # no spines on FR except left of first (g2)
+    # no spines on FR except left of first
     for sp in ['top','right','bottom']: ax_fr.spines[sp].set_visible(False)
-    if ax_fr != g2:
-        ax_fr.spines['left'].set_visible(False)
+    if ax_fr == g2:
+        ax_fr.set_ylabel('Firing rate\nspks/s', fontsize=5)
+    else:
+        ax_fr.set_ylabel('')
         ax_fr.tick_params(left=False, labelleft=False)
+        ax_fr.spines['left'].set_visible(False)
 
 # Session synch trace
 panel = d
@@ -229,6 +234,7 @@ panel.set_xticklabels(['STM','RepL'])
 panel.set_ylabel('Synch')
 panel.set_ylim(1, 3)
 panel.set_yticks([1, 2, 3])
+panel.set_xlim(-0.6, 1.6)
 panel.legend_.remove() if panel.legend_ else None
 add_stat_annotation(panel, data=df_results, x='state', y='synch',
                     box_pairs=[('STM','RepL')], test='t-test_paired',
@@ -259,8 +265,9 @@ for xi, col in enumerate(['r_WM_shuff','r_acc_shuff','r_repeat_shuff']):
     print(stats.ttest_1samp(df_corr[col], 0))
 
 panel.hlines(y=0, xmin=-0.5, xmax=2.5, linestyle=':')
-panel.set_ylabel('Corr. coef.\n(Synch, X)')
+panel.set_ylabel('Corr. coef.\n(Synch, X)', labelpad=2)
 panel.set_xlabel('')
+panel.set_ylim(-0.35, 0.15)
 panel.set_xticklabels(['p(STM)','Accuracy','RB'])
 sns.despine(ax=panel)
 panel.spines['bottom'].set_visible(False)
@@ -275,6 +282,7 @@ panel.plot(df.index, df[2], color='darkgreen')
 panel.hlines(xmin=-1, xmax=1, y=0, linestyle=':')
 panel.set_xlim(-1, 1)
 panel.set_xticks([-1, 0, 1])
+panel.set_yticks([-50, 0, 50, 100])
 panel.set_xlabel('Time lag (s)')
 panel.set_ylabel('Population rate\nAutocorrelogram')
 panel.text(0.05, 0.95, 'Session E11_2021-05-12', transform=panel.transAxes,
@@ -313,9 +321,9 @@ panel.set_xlim(2, 99)
 panel.set_ylim(0.01, 0.8)
 panel.set_xticks([2, 10, 100])
 panel.set_xticklabels(['2','10','100'])
-panel.hlines(xmin=3.1, xmax=15.6, y=0.015, linewidth=2, color='indigo')
+panel.plot([3.1, 15.6], [0.015, 0.015], color='indigo', linewidth=2)
 panel.text(7, 0.018, '[3.1, 15.6]', ha='center', va='bottom', fontsize=5)
-panel.set_ylabel('Population rate\nPower Spectral Density')
+panel.set_ylabel('Pop. rate\nPSD')
 panel.set_xlabel('Frequency (Hz)')
 panel.tick_params(axis='both', which='both', direction='out')
 sns.despine(ax=panel)
@@ -336,58 +344,13 @@ panel.vlines(ymin=0.8, ymax=1.8, x=4.4, color='crimson')
 panel.text(4.6, 1.75, 'freq = 4.4Hz', color='crimson', fontsize=6)
 panel.fill_between(x, y_min, y_max, color='gray', alpha=0.3)
 panel.set_ylabel('PSD ratio RepL/STM')
+panel.set_xlim(1.99, 100)
 panel.set_xlabel('Frequency (Hz)')
 panel.tick_params(axis='both', which='both', direction='out')
 sns.despine(ax=panel)
 
 # ── Finalise ──────────────────────────────────────────────────────────────
 sns.despine()
-
-# ── Post-despine fixes (applied AFTER global despine so they are not overridden) ──
-
-# a: same lightgrey shading, no bottom spine on raster and PSTH
-a2.spines['bottom'].set_visible(False)
-a1.spines['bottom'].set_visible(False)
-
-# b: no spines on raster panels (g1, f1, h1)
-for ax in [g1, f1, h1]:
-    for sp in ax.spines.values(): sp.set_visible(False)
-    ax.tick_params(left=False, labelleft=False)
-
-# b: no spines on FR panels except left spine of g2 only
-for ax in [f2, h2]:
-    for sp in ['top', 'right', 'bottom', 'left']: ax.spines[sp].set_visible(False)
-    ax.tick_params(left=False, labelleft=False)
-g2.spines['top'].set_visible(False)
-g2.spines['right'].set_visible(False)
-g2.spines['bottom'].set_visible(False)
-
-# c: no bottom spine, tick marks visible
-c1.spines['bottom'].set_visible(False)
-c1.tick_params(bottom=True)
-c1.set_ylim(1, 3)
-c1.set_yticks([1, 2, 3])
-
-# d: no bottom spine, tick marks visible, correct ylabel
-i1.spines['bottom'].set_visible(False)
-i1.tick_params(bottom=True)
-i1.set_ylabel('Corr. coef.\n(Synch, X)')
-i1.set_xlabel('')
-
-# e: tick marks visible on bottom
-j1.tick_params(bottom=True)
-j1.set_xticks([-1, 0, 1])
-j1.set_ylabel('Population rate\nAutocorrelogram')
-j2.tick_params(bottom=True, which='both')
-j2.set_ylabel('PSD Ratio RepL/STM')
-j2.set_yticks([1, 2, 3])
-
-# f: ylabels (not titles)
-k1.set_ylabel('Population rate\nPower Spectral Density')
-k2.set_ylabel('PSD ratio RepL/STM')
-
-# Force redraw to ensure all changes are applied
-fig.canvas.draw()
 
 # plt.savefig(save_path+'/fig_6_synch.svg', bbox_inches='tight', dpi=1000)
 # plt.savefig(save_path+'/fig_6_synch.pdf', bbox_inches='tight', dpi=1000)
