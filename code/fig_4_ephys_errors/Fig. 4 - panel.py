@@ -63,7 +63,7 @@ sns.set_context('paper', rc={'axes.labelsize': 7,
                               'ytick.major.pad': 0,
                               'xlabel.labelpad': -10})
 
-fig = plt.figure(figsize=(17*cm, 28*cm))
+fig = plt.figure(figsize=(12*cm, 25*cm))
 gs = gridspec.GridSpec(nrows=8, ncols=2, figure=fig,
                        height_ratios=[1, 1, 1, 1, 1, 1, 2.5, 0.8])
 
@@ -86,13 +86,11 @@ j3 = fig.add_subplot(gs[1, 1:2])
 k  = fig.add_subplot(gs[2, 1:2])
 
 # New panels i and j
-gs_i = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs[6:7, 0:1], hspace=0.05,height_ratios=[3, 1])
-i_heat = fig.add_subplot(gs_i[0])
-i_line = fig.add_subplot(gs_i[1])
+i_heat = fig.add_subplot(gs[6, 0:1])
+i_line = fig.add_subplot(gs[7, 0:1])
 
-gs_j = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs[6:7, 1:2], hspace=0.05,height_ratios=[3, 1])
-j_heat = fig.add_subplot(gs_j[0])
-j_line = fig.add_subplot(gs_j[1])
+j_heat = fig.add_subplot(gs[6, 1:2])
+j_line = fig.add_subplot(gs[7, 1:2])
 
 # Panel labels — y positions match row tops in the 8-row GridSpec
 # height_ratios=[1,1,1,1,1,1,2.5,0.8] total=9.3, span=0.92 (top=0.97,bot=0.05)
@@ -180,13 +178,14 @@ for delay in delays:
             j3.plot(times, lower + real - 0.5, color=color, linestyle='', alpha=0.6, linewidth=0)
             j3.plot(times, upper + real - 0.5, color=color, linestyle='', alpha=0.6, linewidth=0)
             j3.fill_between(times, lower + real - 0.5, upper + real - 0.5, alpha=0.2, color=color, linewidth=0)
-            j3.set_ylim(-0.3, 0.5)
+            j3.set_ylim(-0.4, 0.5)
             j3.axhline(y=0, linestyle=':', color='black')
             j3.fill_betweenx(np.arange(-0.1, 0.6, 0.1), 0, 0.4,
                              color='lightgrey', alpha=1, linewidth=0)
             j3.fill_betweenx(np.arange(-0.1, 0.6, 0.1), delay + 0.3, delay + 0.5,
                              color='grey', alpha=.5, linewidth=0)
             j3.set_xlim(-2, 14)
+            j3.text(5, -0.3, 'Session E20_2022_02_27', ha='center', fontsize=5, color = 'grey')
             j3.set_ylabel('Excess decoding \n accuracy')
         except Exception:
             print('not this condition for this delay')
@@ -212,9 +211,12 @@ plots.convolveandplot(temp_df, k, k, variable='reward_side',
                       colors=[COLORRIGHT, COLORLEFT],
                       spikes=False, kernel=100)
 k.set_xlim(-2, 14)
+k.legend([False])
+k.text(5, 40, 'Right Stimulus', ha='center', fontsize=5, color = COLORRIGHT)
+k.text(5, 45, 'Right Left', ha='center', fontsize=5, color = COLORLEFT)
+
 k.set_xlabel('Testing time from Stimulus onset (s)')
-k.set_ylabel('Firing rate (spks/s)')
-k.legend(frameon=False, fontsize=6)
+k.set_ylabel('Firing rate \n (spks/s)')
 
 # ===========================================================================
 # Panel d — log odds boxplot + stats
@@ -228,8 +230,8 @@ df_results = df_final.groupby(['session','trial_type','epoch']).log_odds.mean().
 sns.boxplot(x='trial_type', y='log_odds', hue='epoch',
             order=['WM_roll_1','WM_roll_0'], showcaps=False, showfliers=False,
             palette=['darkgreen','lightgreen','crimson','lightcoral'],
-            medianprops=dict(color="white", linewidth=1), gap =0.5,
-            linewidth=0, ax=panel, data=df_results, width=0.5,
+            medianprops=dict(color="white", linewidth=1), gap =0.25,
+            linewidth=0, ax=panel, data=df_results, width=1,
             legend=False)
 
 # Scatter dots — filled circles; Incorrect Early = open circles to match target
@@ -242,7 +244,7 @@ for xpos, tt, ep, col, fc in [
     df_plots = df_results.loc[(df_results.trial_type==tt) & (df_results.epoch==ep)]
     xA = np.random.normal(xpos, 0.05, len(df_plots))
     panel.scatter(xA, df_plots['log_odds'].values,
-                  color=fc, edgecolors=col, s=8, linewidths=0.5, zorder=3)
+                  color=fc, edgecolors='white', s=8, linewidths=0.5, zorder=3)
 
 panel.set_ylim(-2.5, 5)
 panel.axhline(y=0, linestyle=':', color='black')
@@ -314,7 +316,9 @@ plt.setp(a1.get_xticklabels(), visible=False)
 plt.setp(a2.get_xticklabels(), visible=False)
 a1.set_xlabel('')
 a2.set_xlabel('')
-a1.set_title("E17_2022-02-02_17-13-06 (T83)", fontsize=6, fontweight='bold')
+a1.set_title("Incorrect Right Stimulus trial (T83)", fontsize=6)
+a2.xaxis.set_visible(False)
+a1.xaxis.set_visible(False)
 
 T = 185
 df_decoder = pd.read_csv(path_repl + 'decoder_' + str(T) + '_' + filename, index_col=0)
@@ -326,7 +330,11 @@ plt.setp(b1.get_xticklabels(), visible=False)
 plt.setp(b2.get_xticklabels(), visible=False)
 b1.set_xlabel('')
 b2.set_xlabel('')
-b1.set_title("E17_2022-02-02_17-13-06 (T183)", fontsize=6, fontweight='bold')
+b3.text(5, -10, 'Session E17_2022_02_02', ha='center', fontsize=5, color = 'grey')
+b1.set_title("Correct Right Stimulus trial (T183)", fontsize=6)
+b2.xaxis.set_visible(False)
+b1.xaxis.set_visible(False)
+
 # ===========================================================================
 # Panel i — stimulus-aligned heatmap + lineplot  (notebook cells 1, 2, 3)
 # ===========================================================================
@@ -415,7 +423,7 @@ x_positions = [np.argmin(np.abs(heatmap_data.columns - t)) for t in nice_times]
 cbar = ax.collections[0].colorbar
 cbar.set_ticks([-2, -1, 0, 1, 2])
 cbar.set_ticklabels(['-2', '-1', '0', '1', '2'])
-cbar.set_title.set_text('Log Odds')
+cbar.set_label('Log Odds')
 ax.set_xticks(x_positions)
 ax.set_xticklabels([f"{t:}" for t in nice_times], rotation=360)
 ax.set_xlabel("Time from stimulus onset (s)")
@@ -500,8 +508,8 @@ j_line.set_ylim(-1.25, 1.25)
 # ===========================================================================
 # Finalise
 # ===========================================================================
-plt.subplots_adjust(left=0.07, bottom=0.05, right=0.97, top=0.97,
-                    wspace=0.75, hspace=0.75)
+plt.subplots_adjust(left=0.1, bottom=0.05, right=0.9, top=0.97,
+                    wspace=0.35, hspace=0.75)
 sns.despine()
 # plt.savefig(save_path+'/Fig_4_panel_revised.svg', bbox_inches='tight', dpi=300)
 plt.show()

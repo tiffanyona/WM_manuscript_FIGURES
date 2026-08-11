@@ -101,12 +101,12 @@ threshold = 0.5
 groupings = ['subject', 'delays', 'state']
 
 file = 'all_data_HMM'
-df = pd.read_csv(save_path + file + '.csv', low_memory=False)
+df = pd.read_csv(path + file + '.csv', low_memory=False)
 df['WM_roll'] = compute_window_centered(df, 3, 'WM')
 df['state']   = np.where(df.WM_roll > threshold, 1, 0)
 
 file = 'all_data_HMM_model'
-df_model = pd.read_csv(save_path + file + '.csv')
+df_model = pd.read_csv(path + file + '.csv')
 df_model = df_model.loc[df_model.animal_delay == 10]
 df       = df.loc[df.animal_delay == 10]
 
@@ -216,15 +216,12 @@ order_list    = ["all", '12', '9', '10', '11']
 color_palette = {"all": 'black', "12": 'lightgrey',
                  "9": '#b8b8d1', "10": "#888889", "11": '#2d2d7a'}
 
-# Layer 1: violin (no outline, low alpha)
 sns.violinplot(x='model', y='substracted', data=full_fit, order=order_list,
                hue='model', palette=color_palette, legend=False,
                linewidth=0, alpha=0.4, width=0.5, ax=panel, zorder=1)
-# Layer 2: strip dots
 sns.stripplot(x='model', y='substracted', data=full_fit, jitter=0.3, size=3,
               order=order_list, hue='model', palette=color_palette,
               legend=False, edgecolor='none', linewidth=0, ax=panel, zorder=2)
-# Layer 3: narrow black boxplot on top
 sns.boxplot(x='model', y='substracted', data=full_fit, order=order_list,
             hue='model', palette=color_palette, legend=False,
             width=0.12, showcaps=False, showfliers=False, ax=panel,
@@ -269,7 +266,7 @@ sns.lineplot(x='delays', y='repeat_choice', data=df_results, marker='o',
              legend=False, linestyle='', ax=c2, err_style='bars')
 
 for model, color, label in zip(DW_MODELS, DW_COLORS, DW_LABELS):
-    df_results = pd.read_csv(save_path + 'results alternative DW models_' + model + '_cross_V4.csv')
+    df_results = pd.read_csv(path + 'results alternative DW models_' + model + '_cross_V4.csv')
     sns.lineplot(x='delays', y='hit', data=df_results, marker='', ax=c,
                  color=color, errorbar=('ci',95), legend=False, err_style=None)
     sns.lineplot(x='delays', y='repeat_choice', data=df_results, color=color,
@@ -300,7 +297,7 @@ c2.locator_params(nbins=3)
 # Panels k-p (d panels) — HMM fitted parameter distributions
 # ---------------------------------------------------------------------------
 file_name = 'fit_HMM_selected_final'
-full_fit  = pd.read_csv(save_path + file_name + '.csv', index_col=0)
+full_fit  = pd.read_csv(path + file_name + '.csv', index_col=0)
 full_fit  = full_fit.loc[full_fit.delay == 10]
 full_fit['alfa']  = full_fit['c2'] / 2
 full_fit['const'] = 1
@@ -387,7 +384,7 @@ for regressor, panel, color in zip(
 # ---------------------------------------------------------------------------
 # Panel h (x2) — posterior p(WM) histogram
 # ---------------------------------------------------------------------------
-df_summary = pd.read_csv(save_path + 'histogram_all.csv', index_col=0)
+df_summary = pd.read_csv(path + 'histogram_all.csv', index_col=0)
 panel  = x2
 patches = panel.bar(np.arange(0, 10),
                     df_summary.astype(float).mean(axis=0),
@@ -413,7 +410,7 @@ panel.text(7.5, _y_top * 0.95, 'STM\n state',  fontsize=5, ha='center', color='d
 # Panels f/g (a/a2) — example session p(STM) and running RB
 # ---------------------------------------------------------------------------
 file = 'final data from HMM (delays 10)'
-df = pd.read_csv(save_path + file + '.csv', low_memory=False)
+df = pd.read_csv(path + file + '.csv', low_memory=False)
 df['WM_roll'] = compute_window_centered(df, 3, 'WM')
 df['state']   = np.where(df.WM_roll > threshold, 1, 0)
 
@@ -462,15 +459,15 @@ panel.text(0.02, 0.04, 'Session C38-2021-07-03', transform=panel.transAxes,
 # Panels q/r (g2/g3) — individual animal model fits
 # ---------------------------------------------------------------------------
 animal = 'N11_10'
-new_df_real = pd.read_csv(save_path + animal + '_data.csv', index_col=0)
-new_df      = pd.read_csv(save_path + animal + '_model.csv', index_col=0)
+new_df_real = pd.read_csv(path + animal + '_data.csv', index_col=0)
+new_df      = pd.read_csv(path + animal + '_model.csv', index_col=0)
 figureplot(new_df_real, new_df, g2)
 g2.text(0.5, 0.97, 'Mouse C10', transform=g2.transAxes,
         fontsize=7, ha='center', va='top')
 
 animal = 'C37_10'
-new_df_real = pd.read_csv(save_path + animal + '_data.csv', index_col=0)
-new_df      = pd.read_csv(save_path + animal + '_model.csv', index_col=0)
+new_df_real = pd.read_csv(path + animal + '_data.csv', index_col=0)
+new_df      = pd.read_csv(path + animal + '_model.csv', index_col=0)
 figureplot(new_df_real, new_df, g3)
 g3.text(0.5, 0.97, 'Mouse C37', transform=g3.transAxes,
         fontsize=7, ha='center', va='top')
