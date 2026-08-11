@@ -57,7 +57,7 @@ def plot_results_shuffle(df_cum_sti, df_cum_res, colors, variables_combined, fig
     for color, variable,left,right in zip(colors,variables_combined,[ax1],[ax2]):
 
         # Aligmnent for Stimulus cue
-        real = np.array(np.mean(df_cum_sti.groupby('session').mean().drop(columns=['session_shuffle'])))
+        real = np.array(df_cum_sti.groupby('session').mean(numeric_only=True).drop(columns=['session_shuffle']).mean())
         # real = np.array(np.mean(df_cum_sti.groupby('session').median()))
         times = df_cum_sti
         times = np.array(times.drop(columns=['session','session_shuffle','subject'],axis = 1).columns.astype(float))
@@ -66,7 +66,7 @@ def plot_results_shuffle(df_cum_sti, df_cum_res, colors, variables_combined, fig
         df_lower = pd.DataFrame()
         df_upper = pd.DataFrame()
 
-        df_for_boots = df_cum_sti.groupby('session').mean()
+        df_for_boots = df_cum_sti.groupby('session').mean(numeric_only=True)
         for timepoint in times:
             mean_surr = []
 
@@ -104,7 +104,7 @@ def plot_results_shuffle(df_cum_sti, df_cum_res, colors, variables_combined, fig
         sns.despine()
 
         # -------------------- For Aligment to Go cue
-        real = np.array(np.mean(df_cum_res.groupby('session').mean().drop(columns=['session_shuffle'])))
+        real = np.array(df_cum_res.groupby('session').mean(numeric_only=True).drop(columns=['session_shuffle']).mean())
         times = df_cum_res
         times = np.array(times.drop(columns=['session','session_shuffle','subject'],axis = 1).columns.astype(float))
 
@@ -113,7 +113,7 @@ def plot_results_shuffle(df_cum_sti, df_cum_res, colors, variables_combined, fig
         df_upper = pd.DataFrame()
 
         # df_for_boots = df_cum_res.loc[:, df_cum_res.columns != 'session']
-        df_for_boots = df_cum_res.groupby('session').mean()
+        df_for_boots = df_cum_res.groupby('session').mean(numeric_only=True)
         for timepoint in times:
             mean_surr = []
 
@@ -352,8 +352,8 @@ def convolveandplot(df, upper_plot, lower_plot, variable='reward_side', cluster_
         return j
 
     panel = upper_plot
-    SpikesRight = (df.loc[(df[variable] == 1)&(df.cluster_id == cluster_id)&(df.delay == delay)])
-    SpikesLeft = (df.loc[(df[variable] == 0)&(df.cluster_id == cluster_id)&(df.delay == delay)])
+    SpikesRight = df.loc[(df[variable] == 1)&(df.cluster_id == cluster_id)&(df.delay == delay)].copy()
+    SpikesLeft = df.loc[(df[variable] == 0)&(df.cluster_id == cluster_id)&(df.delay == delay)].copy()
 
     SpikesRight['a_'+align] = SpikesRight['fixed_times'] - SpikesRight['Stimulus_ON']
     SpikesLeft['a_'+align] = SpikesLeft['fixed_times'] - SpikesLeft['Stimulus_ON']
@@ -409,7 +409,7 @@ def plot_decoder(left, df,baseline=0.5,individual_sessions=False, align='Stimulu
     for color, variable,left in zip(colors,variables_combined,left):
         if individual_sessions == True:
             # Aligmnent for Stimulus cue - sessions separately
-            real = df.groupby('session').median().reset_index()
+            real = df.groupby('session').median(numeric_only=True).reset_index()
             try:
                 times = np.array(df.columns[:-4]).astype(float)
             except:
@@ -429,7 +429,7 @@ def plot_decoder(left, df,baseline=0.5,individual_sessions=False, align='Stimulu
         # Select only columns where the column name is a number or can be transformed to a number
         numeric_columns = df_loop.columns[df_loop.columns.to_series().apply(pd.to_numeric, errors='coerce').notna()]
 
-        real = np.array(np.mean(df_loop.groupby('session').mean()[numeric_columns]))
+        real = np.array(df_loop.groupby('session').mean(numeric_only=True)[numeric_columns].mean())
         times = df_loop[numeric_columns].columns.astype(float)
 
 
@@ -442,7 +442,7 @@ def plot_decoder(left, df,baseline=0.5,individual_sessions=False, align='Stimulu
         df_lower = pd.DataFrame()
         df_upper = pd.DataFrame()
 
-        df_for_boots = df_loop.groupby('session').mean()[numeric_columns]
+        df_for_boots = df_loop.groupby('session').mean(numeric_only=True)[numeric_columns]
 
         for timepoint in df_results['times']:
             mean_surr = []
@@ -553,7 +553,7 @@ def plotsingledelay(df_cum_sti, panel, colors, variables_combined, delay, baseli
         # Select only columns where the column name is a number or can be transformed to a number
         numeric_columns = df_loop.columns[df_loop.columns.to_series().apply(pd.to_numeric, errors='coerce').notna()]
 
-        real = np.array(np.mean(df_loop.groupby('session').mean()[numeric_columns]))
+        real = np.array(df_loop.groupby('session').mean(numeric_only=True)[numeric_columns].mean())
         times = df_loop[numeric_columns].columns.astype(float)
 
         df_lower = pd.DataFrame()
@@ -564,9 +564,9 @@ def plotsingledelay(df_cum_sti, panel, colors, variables_combined, delay, baseli
 
             # recover the values for that specific timepoint
             try:
-                array = df_cum_sti.loc[(df_cum_sti.trial_type ==variable)&(df_cum_sti['delay'] == delay)].drop(columns='delay').groupby('session').mean()[str(timepoint)].to_numpy()
+                array = df_cum_sti.loc[(df_cum_sti.trial_type ==variable)&(df_cum_sti['delay'] == delay)].drop(columns='delay').groupby('session').mean(numeric_only=True)[str(timepoint)].to_numpy()
             except:
-                array = df_cum_sti.loc[(df_cum_sti.trial_type ==variable)&(df_cum_sti['delay'] == delay)].drop(columns='delay').groupby('session').mean()[timepoint].to_numpy()
+                array = df_cum_sti.loc[(df_cum_sti.trial_type ==variable)&(df_cum_sti['delay'] == delay)].drop(columns='delay').groupby('session').mean(numeric_only=True)[timepoint].to_numpy()
 
             # iterate several times with resampling: chose X time among the same list of values
             for iteration in range(1000):
@@ -608,7 +608,7 @@ def plot_results(df_cum_sti, df_cum_res, colors, variables_combined, fig = False
     for color, variable,left,right in zip(colors,variables_combined,[ax1],[ax2]):
 
         # Aligmnent for Stimulus cue
-        real = np.array(np.mean(df_cum_sti.groupby('session').mean()))
+        real = np.array(df_cum_sti.groupby('session').mean(numeric_only=True).mean())
         # real = np.array(np.mean(df_cum_sti.groupby('session').median()))
         times = df_cum_sti
         times = np.array(times.drop(columns=['session','subject'],axis = 1).columns.astype(float))
@@ -617,7 +617,7 @@ def plot_results(df_cum_sti, df_cum_res, colors, variables_combined, fig = False
         df_lower = pd.DataFrame()
         df_upper = pd.DataFrame()
 
-        df_for_boots = df_cum_sti.groupby('session').mean()
+        df_for_boots = df_cum_sti.groupby('session').mean(numeric_only=True)
         for timepoint in times:
             mean_surr = []
 
@@ -656,7 +656,7 @@ def plot_results(df_cum_sti, df_cum_res, colors, variables_combined, fig = False
         sns.despine()
 
         # -------------------- For Aligment to Go cue
-        real = np.array(np.mean(df_cum_res.groupby('session').mean()))
+        real = np.array(df_cum_res.groupby('session').mean(numeric_only=True).mean())
         times = df_cum_res
         times = np.array(times.drop(columns=['session','subject'],axis = 1).columns.astype(float))
 
@@ -665,7 +665,7 @@ def plot_results(df_cum_sti, df_cum_res, colors, variables_combined, fig = False
         df_upper = pd.DataFrame()
 
         # df_for_boots = df_cum_res.loc[:, df_cum_res.columns != 'session']
-        df_for_boots = df_cum_res.groupby('session').mean()
+        df_for_boots = df_cum_res.groupby('session').mean(numeric_only=True)
         for timepoint in times:
             mean_surr = []
 
@@ -716,9 +716,9 @@ def plot_results_shuffle_substraction(df_cum_sti, df_cum_res, df_cum_sti_shuffle
 
     for color, variable,left,right in zip(colors,variables_combined,[ax1],[ax2]):
 
-        df_grouped = df_cum_sti.groupby('session').mean()-df_cum_sti_shuffle.drop(columns=['session_shuffle']).groupby('session').mean()
-        real = np.array(np.mean(df_grouped))
-        times = np.array(np.mean(df_grouped).index).astype(float)
+        df_grouped = df_cum_sti.groupby('session').mean(numeric_only=True)-df_cum_sti_shuffle.drop(columns=['session_shuffle']).groupby('session').mean(numeric_only=True)
+        real = np.array(df_grouped.mean())
+        times = np.array(df_grouped.mean().index).astype(float)
 
         mean_surr = []
         df_lower = pd.DataFrame()
@@ -759,9 +759,9 @@ def plot_results_shuffle_substraction(df_cum_sti, df_cum_res, df_cum_sti_shuffle
 
 
         # -------------------- For Aligment to Go cue
-        df_grouped = df_cum_res.groupby('session').mean()-df_cum_res_shuffle.drop(columns=['session_shuffle']).groupby('session').mean()
-        real = np.array(np.mean(df_grouped))
-        times = np.array(np.mean(df_grouped).index).astype(float)
+        df_grouped = df_cum_res.groupby('session').mean(numeric_only=True)-df_cum_res_shuffle.drop(columns=['session_shuffle']).groupby('session').mean(numeric_only=True)
+        real = np.array(df_grouped.mean())
+        times = np.array(df_grouped.mean().index).astype(float)
 
         mean_surr = []
         df_lower = pd.DataFrame()
@@ -811,16 +811,16 @@ def plot_results_shuffle_substraction(df_cum_sti, df_cum_res, df_cum_sti_shuffle
 def plot_results_session_summary_substract(fig, plot, df, df_shuffle, color, variable= 'WM_roll_1',
                                  y_range = [-0.05, 0.3], x_range = None, epoch = 'Stimulus_ON', baseline=0.5):
 
-        df_loop = (df.loc[(df['trial_type'] == variable)].groupby('session').mean()
-                    - df_shuffle.loc[(df_shuffle['trial_type'] == variable)].groupby('session').mean())
+        df_loop = (df.loc[(df['trial_type'] == variable)].groupby('session').mean(numeric_only=True)
+                    - df_shuffle.loc[(df_shuffle['trial_type'] == variable)].groupby('session').mean(numeric_only=True))
         df_loop.fillna(0)
-        # df_loop = df.loc[(df['trial_type'] == variable)].groupby('session').mean()
+        # df_loop = df.loc[(df['trial_type'] == variable)].groupby('session').mean(numeric_only=True)
 
         # Select only columns where the column name is a number or can be transformed to a number
         numeric_columns = df_loop.columns[df_loop.columns.to_series().apply(pd.to_numeric, errors='coerce').notna()]
 
-        real = np.array(np.mean(df_loop.groupby('session').mean()[numeric_columns]))
-        times = np.array(np.mean(df_loop[numeric_columns]).index).astype(float)
+        real = np.array(df_loop.groupby('session').mean(numeric_only=True)[numeric_columns].mean())
+        times = np.array(df_loop[numeric_columns].mean().index).astype(float)
 
         df_results = pd.DataFrame()
         df_results['times'] = times
@@ -834,7 +834,7 @@ def plot_results_session_summary_substract(fig, plot, df, df_shuffle, color, var
         df_lower = pd.DataFrame()
         df_upper = pd.DataFrame()
 
-        df_for_boots = df_loop.groupby('session').mean()
+        df_for_boots = df_loop.groupby('session').mean(numeric_only=True)
         df_for_boots = df_for_boots.dropna(how='all')
 
         for timepoint in df_results['times']:
@@ -875,7 +875,8 @@ def plot_results_session_summary_substract(fig, plot, df, df_shuffle, color, var
         sns.despine()
 
 def plot_results_session_summary(fig, plot, df, colors, variables_combined = ['WM_roll_1', 'RL_roll_1'],
-                                 y_range = [], x_range = None, epoch = 'Stimulus_ON', baseline=0.5):
+                                 y_range = [], x_range = None, epoch = 'Stimulus_ON', baseline=0.5,
+                                 epoch_markers=None):
 
     for color, variable, ax in zip(colors, variables_combined, np.repeat(plot, len(variables_combined))):
         try:
@@ -883,10 +884,12 @@ def plot_results_session_summary(fig, plot, df, colors, variables_combined = ['W
         except:
             df_loop = df
 
+        df_loop = df_loop.dropna(axis=1, how='all')
+
         # Select only columns where the column name is a number or can be transformed to a number
         numeric_columns = df_loop.columns[df_loop.columns.to_series().apply(pd.to_numeric, errors='coerce').notna()]
 
-        real = np.array(np.mean(df_loop.groupby('session').mean()[numeric_columns]))
+        real = np.array(df_loop.groupby('session').mean(numeric_only=True)[numeric_columns].mean())
         times = df_loop[numeric_columns].columns.astype(float)
 
 
@@ -903,7 +906,7 @@ def plot_results_session_summary(fig, plot, df, colors, variables_combined = ['W
         df_lower = pd.DataFrame()
         df_upper = pd.DataFrame()
 
-        df_for_boots = df_loop.groupby('session').mean()
+        df_for_boots = df_loop.groupby('session').mean(numeric_only=True)
         for timepoint in df_results['times'].values:
             mean_surr = []
 
@@ -933,10 +936,16 @@ def plot_results_session_summary(fig, plot, df, colors, variables_combined = ['W
 
         if epoch == 'Stimulus_ON':
             ax.set_xlabel('Time to stimulus onset (s)')
-            ax.fill_betweenx(np.arange(-1,1.15,0.1), 0,0.4, color='grey', alpha=.4)
         else:
             ax.set_xlabel('Time to go cue (s)')
-            ax.fill_betweenx(np.arange(-1,1.15,0.1), 0,0.2, color='grey', alpha=.4)
+
+        if epoch_markers is not None:
+            for x0, x1, clr, alpha in epoch_markers:
+                ax.fill_betweenx(np.arange(-1, 1.15, 0.1), x0, x1, color=clr, alpha=alpha, edgecolor='none')
+        elif epoch == 'Stimulus_ON':
+            ax.fill_betweenx(np.arange(-1, 1.15, 0.1), 0, 0.4, color='grey', alpha=.4)
+        else:
+            ax.fill_betweenx(np.arange(-1, 1.15, 0.1), 0, 0.2, color='grey', alpha=.4)
 
         sns.despine()
 
@@ -1206,7 +1215,7 @@ def plot_decoder_single(left, df_cum_sti, baseline=0.5, individual_sessions=Fals
     for color, variable, left in zip(colors, variables_combined, left):
         if individual_sessions:
             real = (df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
-                    .groupby('session').mean().drop(columns=['fold', 'score']).reset_index())
+                    .groupby('session').mean(numeric_only=True).drop(columns=['fold', 'score']).reset_index())
             times = df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
             try:
                 times = np.array(times.drop(columns=['trial_type', 'session', 'fold', 'score'],
@@ -1221,21 +1230,21 @@ def plot_decoder_single(left, df_cum_sti, baseline=0.5, individual_sessions=Fals
             times = df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
             times = np.array(times.drop(columns=['trial_type', 'session', 'fold', 'score'],
                                         axis=1).columns.astype(float))
-            real = np.array(np.mean(df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
-                                    .groupby('session').mean().drop(columns=['fold', 'score'])))
+            real = np.array(df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
+                                    .groupby('session').mean(numeric_only=True).drop(columns=['fold', 'score']).mean())
         except Exception:
             try:
                 times = df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
                 times = np.array(times.drop(columns=['trial_type', 'session', 'score_type'],
                                             axis=1).columns.astype(float))
-                real = np.array(np.mean(df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
-                                        .groupby('session').mean()))
+                real = np.array(df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
+                                        .groupby('session').mean(numeric_only=True).mean())
             except Exception:
                 times = df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
                 times = np.array(times.drop(columns=['subject', 'trial_type', 'session', 'fold', 'score'],
                                             axis=1).columns.astype(float))
-                real = np.array(np.mean(df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
-                                        .groupby('session').mean().drop(columns=['fold', 'score'])))
+                real = np.array(df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
+                                        .groupby('session').mean(numeric_only=True).drop(columns=['fold', 'score']).mean())
 
         left.plot(times, real, color=color, alpha=alpha)
         left.set_ylim(baseline - 0.1, upper_limit + baseline)
