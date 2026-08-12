@@ -30,7 +30,7 @@ sys.path.insert(0, str(ROOT / 'src'))
 import functions as plots
 from functions import add_stat_annotation, convolveandplot, plot_decoder_single, plot_decoder_shuffle, new_convolve, plotsingledelay
 
-path = str(DATA_DIR)
+path = str(DATA_DIR / 'supp_figures' / 'Supp. 6.1')
 save_path = str(FIGURES_OUT / 'supp_figures' / 'supp_fig_8')
 
 cm = 1/2.54

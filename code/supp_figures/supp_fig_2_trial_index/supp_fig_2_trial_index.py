@@ -18,7 +18,8 @@ from config import ROOT, FIGURES_OUT, DATA_DIR
 sys.path.insert(0, str(ROOT / 'src'))
 from functions import compute_window, trials_normalized, trials_label, compute_window, trials_normalized, trials_label
 
-path = str(DATA_DIR) + '/'
+data_path = str(DATA_DIR / 'supp_figures' / 'supp_fig_2_trial_index') + '/'
+path = data_path
 os.chdir(path)
 save_path = str(FIGURES_OUT / 'supp_figures' / 'supp_fig_2_trial_index') + '/'
 
@@ -66,7 +67,7 @@ fig.text(0.75, 0.25, 'i', fontsize=10, fontweight='bold', va='top')
 
 #-----------------############################## A Panel #################################-----------------------
 file_name = 'global_behavior_10_paper'
-df = pd.read_csv(save_path+file_name+'.csv', index_col=0)
+df = pd.read_csv(data_path+file_name+'.csv', index_col=0)
 
 df['T'] = df.apply(trials_normalized, axis=1)
 df['trial_label'] = df.apply(trials_label, axis=1)

@@ -355,6 +355,13 @@ def convolveandplot(df, upper_plot, lower_plot, variable='reward_side', cluster_
     SpikesRight = df.loc[(df[variable] == 1)&(df.cluster_id == cluster_id)&(df.delay == delay)].copy()
     SpikesLeft = df.loc[(df[variable] == 0)&(df.cluster_id == cluster_id)&(df.delay == delay)].copy()
 
+    n_total = max(1, len(SpikesRight.trial.unique()) + len(SpikesLeft.trial.unique()))
+    try:
+        ax_height_pts = panel.get_position().height * panel.get_figure().get_figheight() * 72
+        ms = min(3, max(2, ax_height_pts / n_total))
+    except Exception:
+        ms = 3
+
     SpikesRight['a_'+align] = SpikesRight['fixed_times'] - SpikesRight['Stimulus_ON']
     SpikesLeft['a_'+align] = SpikesLeft['fixed_times'] - SpikesLeft['Stimulus_ON']
 
@@ -364,7 +371,7 @@ def convolveandplot(df, upper_plot, lower_plot, variable='reward_side', cluster_
     for i in range(len(SpikesRight)):
         # Plot for licks for left trials
         if SpikesRight.trial.iloc[i] != trial:
-            panel.plot(spikes,trial_repeat, '|', markersize=0.5, color=colors[0], zorder=1)
+            panel.plot(spikes,trial_repeat, '|', markersize=ms, linewidth=0.3, color=colors[0], zorder=1)
             spikes = []
             trial_repeat = []
             trial = SpikesRight.trial.iloc[i]
@@ -381,7 +388,7 @@ def convolveandplot(df, upper_plot, lower_plot, variable='reward_side', cluster_
     for i in range(len(SpikesLeft)):
         # Plot for licks for left trials
         if SpikesLeft.trial.iloc[i] != trial:
-            panel.plot(spikes,trial_repeat, '|', markersize=0.5, color=colors[1], zorder=1)
+            panel.plot(spikes,trial_repeat, '|', markersize=ms, color=colors[1], zorder=1)
             spikes = []
             trial_repeat = []
             trial = SpikesLeft.trial.iloc[i]
@@ -1068,7 +1075,7 @@ def figureplot(new_df_real, new_df, panel):
 # ── Synchrony helpers ──────────────────────────────────────────────────────────
 
 def synch_trial(df, T, lower_plot, upper_plot=None, trial=0, start=-2, stop=0,
-                color='indigo', surrogates=100, bins=20):
+                color='black', surrogates=100, bins=20):
     dft = df.loc[df.trial == T]
     align = 'Stimulus_ON'
     delay = dft.delay.unique()[0]
@@ -1115,10 +1122,13 @@ def synch_trial(df, T, lower_plot, upper_plot=None, trial=0, start=-2, stop=0,
         panel = upper_plot
         panel.set_title(trial)
         j = 0
+        n_rows = len(dft.new_order.unique())
+        ax_height_pts = panel.get_position().height * panel.get_figure().get_figheight() * 72
+        markersize = ax_height_pts / n_rows if n_rows > 0 else 1
         for N in dft.new_order.unique():
             spikes = dft.loc[dft.new_order == N]['a_' + align].values
             j += 1
-            panel.plot(spikes, np.repeat(j, len(spikes)), '|', markersize=1, color='black', zorder=1)
+            panel.plot(spikes, np.repeat(j, len(spikes)), '|', markersize=markersize, color='black', zorder=1)
 
     panel = lower_plot
     panel.plot(times_, firing_real / n_neurons * 1000, color=color, linewidth=0.5)

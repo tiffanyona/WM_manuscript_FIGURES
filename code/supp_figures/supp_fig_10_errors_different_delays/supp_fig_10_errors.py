@@ -63,7 +63,7 @@ fig.text(0.5, 0.3, 'f', fontsize=10, fontweight='bold', va='top')
 
 # ------############################## J Panel -- WM error trials individual example for stimulus #################################-----------------------
 
-path = str(DATA_DIR) + '/'
+path = str(DATA_DIR / 'supp_figures' / 'supp_fig_10_errors_different_delays') + '/'
 os.chdir(path)
 
 colors=['crimson','darkgreen']
@@ -96,7 +96,7 @@ panel.set_ylim(-0.1,0.3)
 # ------############################## K Panel -- WM error trials  for response #################################-----------------------
 
 
-save_path = str(DATA_DIR) + '/'
+save_path = str(DATA_DIR / 'supp_figures' / 'supp_fig_10_errors_different_delays') + '/'
 os.chdir(save_path)
 # file_name = 'single_delay_WM_roll0.65_0.5_V4'
 file_name = 'single_delay_WM_roll0.6_delay_0.25_all_V8'
@@ -120,7 +120,7 @@ panel.set_ylim(-0.1,0.3)
 
 # ------############################## K Panel -- WM error trials for delay #################################-----------------------
 
-save_path = str(DATA_DIR) + '/'
+save_path = str(DATA_DIR / 'supp_figures' / 'supp_fig_10_errors_different_delays') + '/'
 os.chdir(save_path)
 file_name = 'single_delay_WM_roll0.6_lick_0.25_V1'
 df_cum_sti = pd.read_csv(file_name+'.csv', index_col=0)

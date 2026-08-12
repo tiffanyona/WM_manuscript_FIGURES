@@ -29,7 +29,7 @@ sns.set_context('paper', rc={
     'xtick.major.pad': 0, 'ytick.major.pad': 0, 'xlabel.labelpad': -10})
 
 # ── Figure & GridSpec ─────────────────────────────────────────────────────
-fig = plt.figure(figsize=(21*cm, 15*cm))
+fig = plt.figure(figsize=(21*cm, 12*cm))
 gs = gridspec.GridSpec(nrows=2, ncols=9, figure=fig,
                        left=0.07, bottom=0.07, right=0.97, top=0.97,
                        wspace=1.0, hspace=0.5)
@@ -115,13 +115,14 @@ panel.set_xlim(start, stop)
 panel.set_title('Session E20_2022-02-14')
 panel.tick_params(bottom=False, labelbottom=False)
 y = np.arange(0, j+1, 0.1)
-panel.fill_betweenx(y, cue_on, cue_off, color='lightgrey', alpha=1, linewidth=0)
-panel.fill_betweenx(y, cue_off+delay, cue_off+delay+.2, color='lightgrey', alpha=1, linewidth=0)
+panel.fill_betweenx(y, cue_on, cue_off, color='lightgrey', alpha=1, linewidth=0, zorder=0)
+panel.fill_betweenx(y, cue_off+delay, cue_off+delay+.2, color='lightgrey', alpha=1, linewidth=0, zorder=0)
 sns.despine(ax=panel)
 panel.spines['bottom'].set_visible(False)
 
-# a1 — PSTH (viridis colormap applied via cycler set above)
+# a1 — PSTH with viridis colormap
 panel = a1
+panel.set_prop_cycle(color=plt.cm.viridis(np.linspace(0,1,20)))
 for N in df_results.neuron.unique():
     panel.plot(df_results.loc[df_results.neuron==N].time_centered,
                df_results.loc[df_results.neuron==N].firing, label=N, alpha=0.5)
@@ -130,6 +131,7 @@ panel.tick_params(bottom=False, labelbottom=False)
 y = np.arange(0, 120, 0.1)
 panel.fill_betweenx(y, cue_on, cue_off, color='lightgrey', alpha=1, linewidth=0)
 panel.fill_betweenx(y, cue_off+delay, cue_off+delay+.2, color='lightgrey', alpha=1, linewidth=0)
+panel.axhline(0, color='black', linewidth=0.4)
 panel.set_ylabel('Firing rate\n(spks/s)')
 sns.despine(ax=panel)
 panel.spines['bottom'].set_visible(False)
@@ -144,7 +146,7 @@ panel.set_xlabel('Time from Stimulus onset (s)')
 y = np.arange(-5, 25, 0.1)
 panel.fill_betweenx(y, cue_on, cue_off, color='lightgrey', alpha=1, linewidth=0)
 panel.fill_betweenx(y, cue_off+delay, cue_off+delay+.2, color='lightgrey', alpha=1, linewidth=0)
-sns.despine(ax=panel)
+sns.despine(ax=a2); sns.despine(ax=a1); sns.despine(ax=a3)
 a2.spines['bottom'].set_visible(False)
 a1.spines['bottom'].set_visible(False)
 
@@ -157,28 +159,34 @@ animal = "E22_2022-01-13_16-34-24.csv"
 threshold = 0.5
 df_session = df_final.loc[df_final.animal == animal]
 
-fig.text(0.07, 0.505, 'Mouse E22 13-01', fontsize=7, fontweight='bold', ha='left', va='bottom')
+fig.text(0.08, 0.5, 'Mouse E22 13-01', fontsize=7, ha='left', va='bottom')
 
-for ax_r, ax_fr, T in [(g1,g2,153),(f1,f2,212),(h1,h2,340)]:
+for ax_r, ax_fr, T in [(g2,g1,153),(f2,f1,212),(h2,h1,340)]:
     filename = 'single_trial_synch_'+str(T)
     df = pd.read_csv(path+filename+'.csv', sep=',', index_col=0)
     synch_trial(df, T, ax_r, ax_fr, trial=T)
-    ax_r.set_title(str(T), fontsize=6)
-    ax_r.tick_params(bottom=False, labelbottom=False)
+    ax_fr.set_title(str(T), fontsize=6)
     ax_r.set_xlabel('')
-    ax_fr.tick_params(bottom=False, labelbottom=False)
     ax_fr.set_xlabel('')
-    # no spines on raster
-    for sp in ax_r.spines.values(): sp.set_visible(False)
-    ax_r.tick_params(left=False, labelleft=False)
-    # no spines on FR except left of first
+    # raster on top: no spines, no ticks at all
+    for sp in ax_fr.spines.values(): sp.set_visible(False)
+    ax_fr.tick_params(left=False, labelleft=False, bottom=False, labelbottom=False)
+    ax_fr.set_ylabel('')
+
+    for line in ax_fr.lines:
+        line.set_color('black')
+
     for sp in ['top','right','bottom']: ax_fr.spines[sp].set_visible(False)
-    if ax_fr == g2:
-        ax_fr.set_ylabel('Firing rate\nspks/s', fontsize=5)
+    ax_r.tick_params(bottom=False, labelbottom=False)
+    ax_r.set_xlim(-2, 0)
+    ax_r.set_yticks([0, 10, 20])
+    if ax_r == g2:
+        ax_r.set_ylabel('Firing rate\nspks/s', fontsize=5)
+        ax_r.spines['left'].set_visible(True)
     else:
-        ax_fr.set_ylabel('')
-        ax_fr.tick_params(left=False, labelleft=False)
-        ax_fr.spines['left'].set_visible(False)
+        ax_r.set_ylabel('')
+        ax_r.tick_params(left=False, labelleft=False)
+        ax_r.spines['left'].set_visible(False)
 
 # Session synch trace
 panel = d
@@ -200,15 +208,24 @@ for T_mark in [153, 212, 340]:
     panel.plot(T_mark, y_val, 'o', color='crimson', markersize=5,
                markerfacecolor='none', markeredgewidth=1.2, zorder=5)
 
-# Arrows from synch trace up to each mini FR panel
+# Arrows: from circle on synch trace up to the bottom of the correct mini FR panel
+# Use the x position of the trial on d, mapped to figure coords
 fig.canvas.draw()
 for T_mark, target_ax in [(153, g2), (212, f2), (340, h2)]:
     y_val = synch_vals.get(T_mark, 1.5)
-    start_pt = fig.transFigure.inverted().transform(
-        d.transData.transform([T_mark, y_val + 0.05]))
-    end_pt = fig.transFigure.inverted().transform(
-        target_ax.transAxes.transform([0.5, 0.0]))
-    d.annotate('', xy=(end_pt[0], end_pt[1]), xytext=(start_pt[0], start_pt[1]),
+    # Get the x position of this trial in figure coordinates
+    x_fig = fig.transFigure.inverted().transform(
+        d.transData.transform([T_mark, y_val]))[0]
+    # Start: just above the circle on the synch trace
+    y_start = fig.transFigure.inverted().transform(
+        d.transData.transform([T_mark, y_val + 0.05]))[1]
+    # End: bottom of the target panel, at the same x
+    y_end = fig.transFigure.inverted().transform(
+        target_ax.transAxes.transform([0.5, -0.05]))[1]
+    # x at the panel's horizontal centre but use the trial's x coord
+    x_end = fig.transFigure.inverted().transform(
+        target_ax.transAxes.transform([0.5, 0.0]))[0]
+    d.annotate('', xy=(x_end, y_end), xytext=(x_fig, y_start),
         xycoords='figure fraction', textcoords='figure fraction',
         arrowprops=dict(arrowstyle='->', color='crimson', lw=0.8),
         annotation_clip=False)
@@ -227,10 +244,22 @@ palette = sns.color_palette(['black'], len(df_results.animal.unique()))
 sns.lineplot(x="state", y="synch", data=df_results, hue='animal', alpha=0.8,
              palette=palette, ax=panel, linewidth=0.2, markeredgewidth=0.2,
              marker='', legend=False, markersize=3)
-sns.boxplot(x='state', y="synch", data=df_results, width=0.5, showfliers=False,
-            palette=['darkgreen','indigo'], ax=panel, linewidth=1)
+# Manual boxplots: white median, no outline, coloured fill
+panel.boxplot(df_results.loc[df_results.state=='STM', 'synch'].values,
+    positions=[0], widths=0.4, patch_artist=True, showfliers=False,
+    medianprops=dict(color='white', linewidth=1.5),
+    boxprops=dict(facecolor='darkgreen', linewidth=0),
+    whiskerprops=dict(color='black', lw=0.7),
+    capprops=dict(color='black', lw=0.7))
+panel.boxplot(df_results.loc[df_results.state=='RepL', 'synch'].values,
+    positions=[1], widths=0.4, patch_artist=True, showfliers=False,
+    medianprops=dict(color='white', linewidth=1.5),
+    boxprops=dict(facecolor='indigo', linewidth=0),
+    whiskerprops=dict(color='black', lw=0.7),
+    capprops=dict(color='black', lw=0.7))
 panel.set_xticks([0,1])
 panel.set_xticklabels(['STM','RepL'])
+panel.set_xlabel('')
 panel.set_ylabel('Synch')
 panel.set_ylim(1, 3)
 panel.set_yticks([1, 2, 3])
@@ -250,25 +279,32 @@ file_name = 'synch_corrdata_final'
 df_corr = pd.read_csv(path+file_name+'.csv', index_col=0)
 
 panel = i1
-sns.boxplot(data=df_corr, palette=['grey','grey','grey'], ax=panel,
-            order=['r_WM_shuff','r_acc_shuff','r_repeat_shuff'],
-            saturation=0.6, linewidth=1, width=0.5)
+# Boxplots: lightgrey fill, no outline
+for xi, col in enumerate(['r_WM_shuff','r_acc_shuff','r_repeat_shuff']):
+    panel.boxplot(df_corr[col].dropna().values, positions=[xi], widths=0.4,
+        patch_artist=True, showfliers=False,
+        medianprops=dict(color='white', lw=1.5),
+        boxprops=dict(facecolor='lightgrey', alpha=0.7, linewidth=0),
+        whiskerprops=dict(color='black', lw=0.5),
+        capprops=dict(color='black', lw=0.5))
 
 for xi, col in enumerate(['r_WM_shuff','r_acc_shuff','r_repeat_shuff']):
-    xA = np.random.normal(xi, 0.2, len(df_corr))
-    sns.scatterplot(x=xA, y=col, data=df_corr, alpha=0.9, ax=panel,
-                    color='black', legend=False)
+    xA = np.random.normal(xi, 0.07, len(df_corr[col].dropna()))
+    panel.scatter(xA, df_corr[col].dropna().values,
+                  color='black', s=6, alpha=0.6, zorder=3,
+                  edgecolors='white', linewidths=0.3)
     p = stats.ttest_1samp(df_corr[col], 0)[1]
     stars = '***' if p<=0.001 else ('**' if p<=0.01 else ('*' if p<=0.05 else 'ns'))
     panel.text(xi, 1.01, stars, ha='center', va='bottom', fontsize=7,
                transform=panel.get_xaxis_transform())
     print(stats.ttest_1samp(df_corr[col], 0))
 
-panel.hlines(y=0, xmin=-0.5, xmax=2.5, linestyle=':')
+panel.axhline(0, linestyle=':', color='black', linewidth=0.7)
+panel.set_xticks([0, 1, 2])
+panel.set_xticklabels(['p(STM)','Accuracy','RB'], fontsize=6)
 panel.set_ylabel('Corr. coef.\n(Synch, X)', labelpad=2)
 panel.set_xlabel('')
 panel.set_ylim(-0.35, 0.15)
-panel.set_xticklabels(['p(STM)','Accuracy','RB'])
 sns.despine(ax=panel)
 panel.spines['bottom'].set_visible(False)
 panel.tick_params(bottom=True)
@@ -279,14 +315,13 @@ file_name = 'auto_corrs_indiv_session'
 df = pd.read_csv(path+file_name+'.csv', header=None, index_col=0)
 panel.plot(df.index, df[1], color='indigo')
 panel.plot(df.index, df[2], color='darkgreen')
-panel.hlines(xmin=-1, xmax=1, y=0, linestyle=':')
+panel.axhline(0, linestyle=':', color='black', linewidth=0.5)
 panel.set_xlim(-1, 1)
 panel.set_xticks([-1, 0, 1])
 panel.set_yticks([-50, 0, 50, 100])
 panel.set_xlabel('Time lag (s)')
-panel.set_ylabel('Population rate\nAutocorrelogram')
-panel.text(0.05, 0.95, 'Session E11_2021-05-12', transform=panel.transAxes,
-           fontsize=6, va='top')
+panel.set_ylabel('Population rate Autocorrelogram')
+panel.text(0.05, 0.95, 'Session E11_2021-05-12', transform=panel.transAxes, fontsize=6, va='top')
 sns.despine(ax=panel)
 panel.tick_params(bottom=True)
 
@@ -301,7 +336,7 @@ panel.set_ylim(0.8, 3)
 panel.set_yticks([1, 2, 3])
 panel.set_xticks([2, 10, 100])
 panel.set_xticklabels(['2','10','100'])
-panel.hlines(xmin=2, xmax=100, y=1, linestyle=':')
+panel.axhline(1, linestyle=':', color='black', linewidth=0.7)
 panel.set_xlabel('Frequency (Hz)')
 panel.set_ylabel('PSD Ratio RepL/STM')
 panel.text(0.05, 0.95, 'Session E11_2021-05-12', transform=panel.transAxes,
@@ -315,15 +350,13 @@ file_name = 'avg_PSDs_V2'
 df = pd.read_csv(path+file_name+'.csv', header=None, index_col=0)
 panel.plot(df.index, df[1], color='indigo')
 panel.plot(df.index, df[2], color='darkgreen')
-panel.set_yscale('log')
-panel.set_xscale('log')
-panel.set_xlim(2, 99)
-panel.set_ylim(0.01, 0.8)
+panel.set_xscale('log'); panel.set_yscale('log')
+panel.set_xlim(2, 99); panel.set_ylim(0.01, 0.8)
 panel.set_xticks([2, 10, 100])
 panel.set_xticklabels(['2','10','100'])
-panel.plot([3.1, 15.6], [0.015, 0.015], color='indigo', linewidth=2)
+panel.plot([3.1, 15.6], [0.015, 0.015], color='black', linewidth=2)
 panel.text(7, 0.018, '[3.1, 15.6]', ha='center', va='bottom', fontsize=5)
-panel.set_ylabel('Pop. rate\nPSD')
+panel.set_ylabel('Popup\lation rate\nPower Spectral Density')
 panel.set_xlabel('Frequency (Hz)')
 panel.tick_params(axis='both', which='both', direction='out')
 sns.despine(ax=panel)
@@ -333,15 +366,13 @@ file_name = 'AVG_psd_ratio_w_band'
 df = pd.read_csv(path+file_name+'.csv', header=None, index_col=0)
 x, y, y_min, y_max = df.index, df[1], df[3], df[2]
 panel.plot(x, y, color='black')
-panel.set_xscale('log')
-panel.set_xlim(1.99, 100)
-panel.set_ylim(0.8, 2)
+panel.set_xscale('log'); panel.set_xlim(1.99, 100); panel.set_ylim(0.8, 2.0)
 panel.set_xticks([2, 10, 100])
 panel.set_xticklabels(['2','10','100'])
 panel.set_yticks([0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0])
-panel.hlines(xmin=2, xmax=100, y=1, linestyle=':')
-panel.vlines(ymin=0.8, ymax=1.8, x=4.4, color='crimson')
-panel.text(4.6, 1.75, 'freq = 4.4Hz', color='crimson', fontsize=6)
+panel.axhline(1, linestyle=':', color='black', linewidth=0.7)
+panel.axvline(x=4.4, color='crimson', linewidth=1.0)
+panel.text(4.6, 1.78, 'freq = 4.4Hz', color='crimson', fontsize=5.5)
 panel.fill_between(x, y_min, y_max, color='gray', alpha=0.3)
 panel.set_ylabel('PSD ratio RepL/STM')
 panel.set_xlim(1.99, 100)
@@ -351,6 +382,39 @@ sns.despine(ax=panel)
 
 # ── Finalise ──────────────────────────────────────────────────────────────
 sns.despine()
+
+# ── Re-apply all spine/tick fixes AFTER global despine ──────────────────
+# a: no bottom axis line on raster and PSTH
+a2.spines['bottom'].set_visible(False)
+a1.spines['bottom'].set_visible(False)
+a2.tick_params(bottom=False)
+a1.tick_params(bottom=False)
+
+# b: raster panels on top row (g1,f1,h1) — no spines, no ticks
+for ax in [g1, f1, h1]:
+    for sp in ax.spines.values(): sp.set_visible(False)
+    ax.tick_params(left=False, labelleft=False, bottom=False)
+
+# b: FR panels on bottom row (g2,f2,h2) — no top/right/bottom; only left on g2
+for ax in [f2, h2]:
+    for sp in ['top','right','bottom','left']: ax.spines[sp].set_visible(False)
+    ax.tick_params(left=False, labelleft=False, bottom=False)
+g2.spines['top'].set_visible(False)
+g2.spines['right'].set_visible(False)
+g2.spines['bottom'].set_visible(False)
+g2.tick_params(bottom=False)
+
+# c: no bottom axis line, tick marks only
+c1.spines['bottom'].set_visible(False)
+c1.tick_params(bottom=True)
+
+# d: no bottom axis line, tick marks only
+i1.spines['bottom'].set_visible(False)
+i1.tick_params(bottom=True)
+
+# e: tick marks visible
+j1.tick_params(bottom=True)
+j2.tick_params(bottom=True, which='both')
 
 # plt.savefig(save_path+'/fig_6_synch.svg', bbox_inches='tight', dpi=1000)
 # plt.savefig(save_path+'/fig_6_synch.pdf', bbox_inches='tight', dpi=1000)

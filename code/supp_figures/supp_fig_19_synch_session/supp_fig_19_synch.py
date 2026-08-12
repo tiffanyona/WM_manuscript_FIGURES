@@ -58,7 +58,7 @@ sns.set_context('paper', rc={'axes.labelsize': 7,
                             'xlabel.labelpad': -10})
 
 # Create a figure with 6 subplots using a GridSpec
-fig = plt.figure(figsize=(17*cm, 4*cm))
+fig = plt.figure(figsize=(12*cm, 5*cm))
 gs = gridspec.GridSpec(nrows=1, ncols=3, figure=fig)
 
 a = fig.add_subplot(gs[0, 0:2])
@@ -76,7 +76,7 @@ file_name = 'synch_data_trials_2beforeSti'
 df_final = pd.read_csv(save_path+file_name+'.csv', index_col=0)
 
 # df_final = df_final.loc[df_final.T_norm < 0.6 ]
-df_final['state'] = np.where(df_final['WM_roll']>0.6, 1, 0)
+df_final['state'] = np.where(df_final['WM_roll']>0.5, 1, 0)
 
 df_final['T_norm'] = np.around(df_final['T_norm'],2)
 
@@ -101,11 +101,15 @@ df_final.columns = ['RL', 'WM']
 panel = b
 
 melted_data = pd.melt(df_final)
-sns.boxplot(data=melted_data, x='variable', y='value', hue='variable', legend=False, ax=b, order=['WM', 'RL'], palette=['darkgreen', 'indigo'])
-
+sns.boxplot(data=melted_data, x='variable', y='value', hue='variable', 
+            legend=False, ax=b, order=['WM', 'RL'], palette=['darkgreen', 'indigo'], 
+                medianprops=dict(color='white', linewidth=1.5),
+                boxprops=dict(linewidth=0),
+                whiskerprops=dict(color='black', lw=1),
+                capprops=dict(color='black', lw=0))
 panel.plot([1, 0], df_final.T.values, color='black', alpha=0.3, marker='')
 panel.set_ylabel('Mean rate (spks/s)')
-panel.set_title('Mean pre-stim rate')
+panel.set_title('Mean pre-stim rate', fontsize=7)
 panel.set_xticks([0,1],['WM','RepL'])
 
 add_stat_annotation(panel, data=melted_data, x='variable', y='value',
@@ -125,6 +129,7 @@ plt.subplots_adjust(left=0.07,
                     top=0.97,
                     wspace=0.5,
                     hspace=0.5)
+plt.tight_layout()
 
 # plt.savefig(fig_out_path+'/Fig 7_Brain state_V3.svg', bbox_inches='tight',dpi=1000)
 # plt.savefig(fig_out_path+'/Fig 7_Brain state_V2.png', bbox_inches='tight',dpi=1000)

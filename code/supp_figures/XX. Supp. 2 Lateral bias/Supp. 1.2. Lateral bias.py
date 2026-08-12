@@ -23,7 +23,7 @@ from config import ROOT, FIGURES_OUT, DATA_DIR
 sys.path.insert(0, str(ROOT / 'src'))
 from functions import add_stat_annotation, repeat_reward_side
 
-path = str(DATA_DIR) + '/'
+path = str(DATA_DIR / 'supp_figures' / 'XX. Supp. 2 Lateral bias') + '/'
 os.chdir(path)
 
 sns.set_context('paper', rc={'axes.labelsize': 7,
@@ -109,7 +109,7 @@ for animal,panel in zip(list_subjects,list_panels):
 # ----------------------------------------------------------------------------------------------------------------
 
 #-----------------############################## A Panel #################################-----------------------
-path = str(DATA_DIR) + '/'
+path = str(DATA_DIR / 'supp_figures' / 'XX. Supp. 2 Lateral bias') + '/'
 file_name = 'GLMM_final_data'
 coef_matrix = pd.read_csv(path+file_name+'.csv',  index_col=0)
 
