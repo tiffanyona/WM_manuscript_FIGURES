@@ -53,7 +53,6 @@ b1 = fig.add_subplot(gs[0, 4:7])
 b2 = fig.add_subplot(gs[1, 4:7])
 b3 = fig.add_subplot(gs[2, 4:7])
 
-
 fig.text(0.01, 0.99, 'a', fontsize=10, fontweight='bold', va='top')
 fig.text(0.5, 0.99, 'b', fontsize=10, fontweight='bold', va='top')
 fig.text(0.01, 0.64, 'c', fontsize=10, fontweight='bold', va='top')
@@ -64,7 +63,6 @@ fig.text(0.5, 0.3, 'f', fontsize=10, fontweight='bold', va='top')
 # ------############################## J Panel -- WM error trials individual example for stimulus #################################-----------------------
 
 path = str(DATA_DIR / 'supp_figures' / 'supp_fig_10_errors_different_delays') + '/'
-os.chdir(path)
 
 colors=['crimson','darkgreen']
 variables = ['WM_roll','WM_roll']

@@ -440,7 +440,7 @@ df_sjs['trial_type'] = variable
 sess_js = df_sjs.session.unique()
 df_sj   = df_sj[df_sj.session.isin(sess_js)]
 plots.plot_results_session_summary_substract(fig, j2, df_sj, df_sjs,
-    color=COLOR_STM, variable=variable, y_range=y_range_j, x_range=[-4, 1], baseline=0)
+    color=COLOR_STM, variable=variable, y_range=y_range_j, x_range=[-4, -1], baseline=0)
 
 variable = 'RL_roll_1'
 df_sj2  = pd.read_csv(path + 'panel_j2_RL.csv', index_col=0)
@@ -448,7 +448,7 @@ df_sjs2 = pd.read_csv(path + 'panel_j2_RL_shuffle.csv', index_col=0)
 df_sjs2['trial_type'] = variable
 df_sj2  = df_sj2[df_sj2.session.isin(sess_js)]
 plots.plot_results_session_summary_substract(fig, j2, df_sj2, df_sjs2,
-    color=COLOR_REPL, variable=variable, y_range=y_range_j, x_range=[-4, 1], baseline=0)
+    color=COLOR_REPL, variable=variable, y_range=y_range_j, x_range=[-4, -1], baseline=0)
 
 # j2
 variable = 'WM_roll_1'
@@ -458,7 +458,7 @@ df_ss1_sh['trial_type'] = variable
 _t_cols = df_ss1_sh.columns[df_ss1_sh.columns.to_series().apply(pd.to_numeric, errors='coerce').notna()]
 df_ss1_sh[_t_cols] -= 0.5
 plots.plot_results_session_summary_substract(fig, j1, df_ss1, df_ss1_sh,
-    color=COLOR_STM, variable=variable, y_range=y_range_j, x_range=[-1, 4], baseline=0)
+    color=COLOR_STM, variable=variable, y_range=y_range_j, x_range=[0, 3.25], baseline=0)
 
 variable = 'RL_roll_1'
 df_ss2 = pd.read_csv(path + 'panel_j1_RL.csv', index_col=0)
@@ -467,7 +467,7 @@ df_ss2_sh['trial_type'] = variable
 _t_cols = df_ss2_sh.columns[df_ss2_sh.columns.to_series().apply(pd.to_numeric, errors='coerce').notna()]
 df_ss2_sh[_t_cols] -= 0.5
 plots.plot_results_session_summary_substract(fig, j1, df_ss2, df_ss2_sh,
-    color=COLOR_REPL, variable=variable, y_range=y_range_j, x_range=[-1, 4], baseline=0)
+    color=COLOR_REPL, variable=variable, y_range=y_range_j, x_range=[0, 3.25], baseline=0)
 
 # j3
 variable = 'WM_roll_1'
@@ -488,7 +488,7 @@ plots.plot_results_session_summary_substract(fig, j3, df_rj2, df_rjs2,
 
 j1.set_xlabel('Time from Go (s)')
 j1.set_ylabel('Excess decoding\naccuracy')
-j1.set_xlim(0, 4)
+j1.set_xlim(0, 3.25)
 j2.set_xlabel('Time from Stim. (s)')
 j2.set_xlim(-4, -1)
 j3.set_xlabel('Time from Go (s)')
@@ -498,7 +498,7 @@ j1.xaxis.get_major_ticks()[-1].label1.set_visible(False)
 j2.xaxis.get_major_ticks()[0].label1.set_visible(False)
 j2.xaxis.get_major_ticks()[-1].label1.set_visible(False)
 j3.xaxis.get_major_ticks()[0].label1.set_visible(False)
-label_panel(j0, 'j')
+label_panel(j0, 'j', x=-0.12)
 j0.axis('off')
 
 # ============================================================
@@ -572,7 +572,7 @@ fig.text((l[0]+r[0])/2, l[1]+0.004, 'trial  t',
     transform=fig.transFigure)
 
 # Arrows
-j1.annotate('', xy=(1.0, 1.1), xytext=(0.0, 1.1),
+j1.annotate('', xy=(1.0, 1.05), xytext=(0.0, 1.05),
     xycoords='axes fraction', textcoords='axes fraction',
     arrowprops=dict(arrowstyle='<->', color='black', lw=0.8),
     annotation_clip=False)
