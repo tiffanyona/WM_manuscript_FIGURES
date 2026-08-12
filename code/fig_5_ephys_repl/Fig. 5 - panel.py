@@ -450,24 +450,14 @@ df_sj2  = df_sj2[df_sj2.session.isin(sess_js)]
 plots.plot_results_session_summary_substract(fig, j2, df_sj2, df_sjs2,
     color=COLOR_REPL, variable=variable, y_range=y_range_j, x_range=[-4, -1], baseline=0)
 
-# j2
-variable = 'WM_roll_1'
-df_ss1 = pd.read_csv(path + 'panel_j1_WM.csv', index_col=0)
-df_ss1_sh = pd.read_csv(path + 'panel_j3_WM_shuffle.csv', index_col=0)
-df_ss1_sh['trial_type'] = variable
-_t_cols = df_ss1_sh.columns[df_ss1_sh.columns.to_series().apply(pd.to_numeric, errors='coerce').notna()]
-df_ss1_sh[_t_cols] -= 0.5
-plots.plot_results_session_summary_substract(fig, j1, df_ss1, df_ss1_sh,
-    color=COLOR_STM, variable=variable, y_range=y_range_j, x_range=[0, 3.25], baseline=0)
+# j2 — data already pre-subtracted, plot directly without shuffle
+df_ss1 = pd.read_csv(path + 'trainedcorrect_testedWMcorrect_gocueprevious_substracted_res.csv', index_col=0)
+plots.plot_results_session_summary(fig, j1, df_ss1, colors=[COLOR_STM],
+    variables_combined=['WM_roll_1'], y_range=y_range_j, x_range=[-1, 4], baseline=0)
 
-variable = 'RL_roll_1'
-df_ss2 = pd.read_csv(path + 'panel_j1_RL.csv', index_col=0)
-df_ss2_sh = pd.read_csv(path + 'panel_j3_RL_shuffle.csv', index_col=0)
-df_ss2_sh['trial_type'] = variable
-_t_cols = df_ss2_sh.columns[df_ss2_sh.columns.to_series().apply(pd.to_numeric, errors='coerce').notna()]
-df_ss2_sh[_t_cols] -= 0.5
-plots.plot_results_session_summary_substract(fig, j1, df_ss2, df_ss2_sh,
-    color=COLOR_REPL, variable=variable, y_range=y_range_j, x_range=[0, 3.25], baseline=0)
+df_ss2 = pd.read_csv(path + 'trainedcorrect_testedRLcorrect_gocueprevious_substracted_res.csv', index_col=0)
+plots.plot_results_session_summary(fig, j1, df_ss2, colors=[COLOR_REPL],
+    variables_combined=['RL_roll_1'], y_range=y_range_j, x_range=[-1, 4], baseline=0)
 
 # j3
 variable = 'WM_roll_1'
@@ -488,7 +478,7 @@ plots.plot_results_session_summary_substract(fig, j3, df_rj2, df_rjs2,
 
 j1.set_xlabel('Time from Go (s)')
 j1.set_ylabel('Excess decoding\naccuracy')
-j1.set_xlim(0, 3.25)
+j1.set_xlim(-1, 4)
 j2.set_xlabel('Time from Stim. (s)')
 j2.set_xlim(-4, -1)
 j3.set_xlabel('Time from Go (s)')
