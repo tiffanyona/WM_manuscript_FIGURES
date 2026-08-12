@@ -71,8 +71,8 @@ fig.text(0.5, 0.5, 'd', fontsize=10, fontweight='bold', va='top')
 
 # -----------------###########################################################################################################-----------------------
 
-file_name = r'\single_delay_WM_roll0.6_delay_0.25_all_V3'
-df_cum_sti = pd.read_csv(path+file_name+'.csv', index_col=0)
+file_name = 'single_delay_WM_roll0.6_delay_0.25_all_V3'
+df_cum_sti = pd.read_csv(path + '/' + file_name + '.csv', index_col=0)
 
 # list_sessions = df_cum_sti.session.unique()
 # list_sessions = ['E04_2021-04-03_16-12-15.csv', 'E13_2021-05-25_16-26-57.csv',
@@ -156,9 +156,8 @@ panel.locator_params(axis='y', nbins=4)
 # '''
 # ----------------------------------------------------------------------------------------------------------------------------
 
-os.chdir(path)
-file_name = r'\slope_comparison_paired_sessions'
-df = pd.read_csv(path+file_name+'.csv', index_col=0)
+file_name = 'slope_comparison_paired_sessions'
+df = pd.read_csv(path + '/' + file_name + '.csv', index_col=0)
 
 list_sessions = df.session.unique()
 # df = df.loc[df['session'].isin(list_sessions)]
