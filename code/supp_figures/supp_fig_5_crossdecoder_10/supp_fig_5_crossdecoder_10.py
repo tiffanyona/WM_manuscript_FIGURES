@@ -15,6 +15,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from config import ROOT, FIGURES_OUT, DATA_DIR
 sys.path.insert(0, str(ROOT / 'src'))
+import functions as plots
 
 save_path = str(FIGURES_OUT / 'supp_figures' / 'supp_fig_5_crossdecoder_10')
 path = str(DATA_DIR / 'supp_figures' / 'supp_fig_5_crossdecoder_10')
@@ -37,7 +38,7 @@ fig = plt.figure(figsize=(17*cm, 15*cm))
 gs = gridspec.GridSpec(nrows=4, ncols=8, figure=fig)
 
 # Create the subplots
-a = fig.add_subplot(gs[0:3, 0:5])
+a = fig.add_subplot(gs[0:3, 0:4])
 b = fig.add_subplot(gs[0, 4:8])
 c = fig.add_subplot(gs[1, 4:8])
 d = fig.add_subplot(gs[2, 4:8])
@@ -51,91 +52,11 @@ fig.text(0.5, 1, 'b', fontsize=10, fontweight='bold', va='top')
 # fig.text(0.01, 0.51, 'h', fontsize=10, fontweight='bold', va='top')
 
 
-def plot_decoder(left, df,baseline=0.5,individual_sessions=False, align='Stimulus_ON', show_axis=True,colors=['black'], upper_limit=0.2, variables_combined=['WM_roll_1']):
-    for color, variable,left in zip(colors,variables_combined,left):
-        if individual_sessions == True:
-            # Aligmnent for Stimulus cue - sessions separately
-            real = df.groupby('session').median().reset_index()
-            try:
-                times = np.array(df.columns[:-4]).astype(float)
-            except:
-                times = np.array(df.columns[1:]).astype(float)
+# #########################################################################################
+# Panel a: cross-decoder heatmap (10s delay)
+# #########################################################################################
 
-            left.set_xlabel('Time (s) to Cue')
-
-            x=times
-            for i in range(len(real)):
-                left.plot(times,real.iloc[i][1:-1], color=color,alpha=0.1)
-
-        try:
-            df_loop = df.loc[(df['trial_type'] == variable)]
-        except:
-            df_loop = df
-
-        # Select only columns where the column name is a number or can be transformed to a number
-        numeric_columns = df_loop.columns[df_loop.columns.to_series().apply(pd.to_numeric, errors='coerce').notna()]
-
-        real = np.array(np.mean(df_loop.groupby('session').mean()[numeric_columns]))
-        times = df_loop[numeric_columns].columns.astype(float)
-
-
-        df_results = pd.DataFrame()
-        df_results['times'] = times
-        df_results['real'] = real
-        df_results = df_results.sort_values(by='times')
-
-        mean_surr = []
-        df_lower = pd.DataFrame()
-        df_upper = pd.DataFrame()
-
-        df_for_boots = df_loop.groupby('session').mean()[numeric_columns]
-
-        for timepoint in df_results['times']:
-            mean_surr = []
-
-            # recover the values for that specific timepoint
-            array = df_for_boots[str(timepoint)].to_numpy()
-
-            # iterate several times with resampling: chose X time among the same list of values
-            for iteration in range(1000):
-                x = np.random.choice(array, size=len(array), replace=True)
-                # recover the mean of that new distribution
-                mean_surr.append(np.mean(x))
-
-            df_lower.at[0,timepoint] = np.percentile(mean_surr, 0.5)
-            df_upper.at[0,timepoint] = np.percentile(mean_surr, 99.5)
-
-        x=times
-        lower =  df_lower.iloc[0].values
-        upper =  df_upper.iloc[0].values
-        left.plot(x, lower, color=color, linestyle = '',alpha=0.6, linewidth=0)
-        left.plot(x, upper, color=color, linestyle = '',alpha=0.6, linewidth=0)
-        left.fill_between(x, lower, upper, alpha=0.2, color=color, linewidth=0)
-
-        left.plot(times,real, color=color)
-
-        left.fill_betweenx(np.arange(-baseline-0.1,baseline+.5,0.1), 0,0.45, color='lightgrey', alpha=1, linewidth=0)
-        left.fill_betweenx(np.arange(-baseline-0.1,baseline+.5,0.1), 10.45,10.65, color='lightgrey', alpha=1, linewidth=0)
-        left.set_ylim(baseline-0.1,upper_limit+baseline)
-        left.axhline(y=baseline,linestyle=':',color='black')
-        left.set_xlabel('Testing time from stimulus onset (s)')
-        left.set_ylabel('Excess decoding\n accuracy')
-
-        y = np.arange(-1,1.15,0.1)
-        if align == 'Stimulus_ON':
-            left.fill_betweenx(y, 0,.35, color='lightgrey', alpha=1, linewidth=0)
-        elif align == 'Delay_OFF':
-            left.fill_betweenx(y, 0,0.2, color='lightgrey', alpha=1, linewidth=0)
-
-        if show_axis==False:
-            left.spines['left'].set_visible(False)
-
-
-# ---------------------------------------------------------------------------
-# Panel a — cross-decoder heatmap (10s delay)
-# ---------------------------------------------------------------------------
-
-file_name = '/crossdecoder_WMroll1_10s_r0.25_substracted'
+file_name = '/panel_a_cross_temporal_choice_decoding_10s_delay_shuffle_subtracted'
 df_animal_sti = pd.read_csv(path+file_name+'.csv', index_col = 0)
 
 color= sns.diverging_palette(220, 20, as_cmap=True)
@@ -172,7 +93,7 @@ def _tick_labels(values):
         labels.append(str(t_r) if abs(t - t_r) < 0.01 and -2 <= t_r <= 14 else '')
     return labels
 
-panel.set_xticklabels(_tick_labels(df_new.columns))
+panel.set_xticklabels(_tick_labels(df_new.columns), rotation=0)
 
 # Set yticks only at integer-second positions to avoid count mismatch
 y_tick_pos, y_tick_lab = [], []
@@ -202,17 +123,24 @@ for train_value in train_value_list:
     else:
         df_diagonal = pd.merge(df_diagonal, df_temp, on=['session'])
 
-# ---------------------------------------------------------------------------
-# Panels b/c/d/d1 — decoder traces for selected training windows
-# ---------------------------------------------------------------------------
+# #########################################################################################
+# Panels b/c/d/d1: decoder traces for selected training windows
+# #########################################################################################
 
 # This when we want to recover the traces of the crossdecoder
 for panel, df_cum_sti, upper_limit in zip([b,c,d,d1],[df_animal_sti.loc[df_animal_sti.train == '0.0_0.25'],
                                       df_animal_sti.loc[df_animal_sti.train == '10.0_10.25'],
                                       df_animal_sti.loc[df_animal_sti.train == '10.75_11.0'],
                                       df_diagonal],[0.3,0.2,0.4,0.4]):
-    plot_decoder([panel], df_cum_sti,baseline=0.0,individual_sessions=False, upper_limit=upper_limit)
+    plots.plot_decoder([panel], df_cum_sti, baseline=0.0, individual_sessions=False, upper_limit=upper_limit, epoch_markers=[(0, 0.45, 'lightgrey', 1), (10.45, 10.65, 'lightgrey', 1)])
     panel.margins(x=0)
+
+# Add ticks to trace panels
+for panel_ax, ul in zip([b, c, d, d1], [0.3, 0.2, 0.4, 0.4]):
+    panel_ax.set_xticks([0, 5, 10])
+    panel_ax.set_xticklabels([0, 5, 10])
+    panel_ax.set_yticks([0, ul])
+    panel_ax.set_yticklabels([0, ul])
 
 # Show the figure
 sns.despine()
@@ -220,8 +148,8 @@ plt.subplots_adjust(left=0.07,
                     bottom=0.07,
                     right=0.97,
                     top=0.97,
-                    wspace=1.5,
-                    hspace=0.5)
+                    wspace=0.8,
+                    hspace=0.6)
 
 # plt.savefig(save_path+'/supp_fig5_crossdecoder_10.svg', bbox_inches='tight',dpi=300)
 

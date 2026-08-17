@@ -88,8 +88,11 @@ fig.text(0.25, 0.25, 'm', fontsize=10, fontweight='bold', va='top')
 fig.text(0.5, 0.25, 'n', fontsize=10, fontweight='bold', va='top')
 fig.text(0.75, 0.25, 'o', fontsize=10, fontweight='bold', va='top')
 
-#-----------------############################## B - C Panel #################################-----------------------
-file_name = 'global_behavior_10_paper'
+# #############################################################################################
+# Panels B-C
+# #############################################################################################
+
+file_name = 'panels_a-h_behavior_all_trials_all_animals'
 df = pd.read_csv(path+file_name+'.csv', index_col=0, low_memory=False)
 
 df_results = pd.DataFrame()
@@ -101,11 +104,12 @@ palette = sns.color_palette(['black'], len(df.subject.unique()))
 sns.lineplot(x='delay_times',y='hit',hue='subject',data=df_results, marker='', palette = list(np.repeat('Grey', len(df.subject.unique()))), ax=panel, legend=False, linewidth =0.6, err_style=None)
 
 panel.set_ylim(0.45,1)
-panel.hlines(xmin=0, xmax=10, y=0.5, linestyles=':')
+panel.hlines(xmin=0, xmax=10, y=0.5, color='black', linestyles=':')
 panel.set_ylabel('Accuracy')
 panel.set_xlabel('Delay (s)')
 panel.text(x=0,y=0.55, s='N: ' + str(len(df_results.subject.unique())), fontsize=5)
 panel.locator_params(nbins=4)
+sns.despine(ax=panel)
 
 panel=a2
 xaxis=[0,1,3,10]
@@ -128,6 +132,7 @@ group3 = df.loc[df.delay_times == 3].groupby('subject')['hit'].mean()
 group4 = df.loc[df.delay_times == 10].groupby('subject')['hit'].mean()
 
 f_statistic, p_value = stats.f_oneway(group1, group2, group3, group4)
+sns.despine(ax=panel)
 
 # slope_list = []
 # for animal in df_results.subject.unique():
@@ -138,7 +143,10 @@ f_statistic, p_value = stats.f_oneway(group1, group2, group3, group4)
 # ----------------------------------------------------------------------------------------
 
 
-# -----------------############################## D Panel #################################-----------------------
+# #############################################################################################
+# Panel D
+# #############################################################################################
+
 df_temp=pd.DataFrame()
 df_cumulative = pd.DataFrame()
 
@@ -155,7 +163,7 @@ df_results.reset_index(inplace=True)
 
 palette = sns.color_palette(['black'], len(df.subject.unique()))
 sns.regplot(x="slope", y="accuracy",data=df_results, ax=b, color='black',marker='')
-sns.scatterplot(x="slope", y="accuracy", hue='subject',data=df_results, palette='Greys',ax=b,legend=False)
+sns.scatterplot(x="slope", y="accuracy", hue='subject',data=df_results, palette=palette,ax=b,legend=False)
 b.set_xlabel('Rate of Accuracy decay (($s^-1$)')
 b.set_ylabel('Accuracy')
 b.set_ylim(0.5,1)
@@ -163,11 +171,15 @@ b.set_xlim(-0.02,0)
 b.locator_params(nbins=3)
 slope, intercept, r_value, p_value, std_err = stats.linregress(x = np.array(df_results['slope']), y = np.array(df_results['accuracy']))
 b.text(x=-0.018,y=0.9, s= 'R='+ str(round(r_value**2,3))+'\nP= '+ str(round(p_value,3)), fontsize=5)
+sns.despine(ax=b)
 
 # ----------------------------------------------------------------------------------------------------------------
 
 
-# -----------------############################## E Panel #################################-----------------------
+# #############################################################################################
+# Panel E
+# #############################################################################################
+
 df_results = pd.DataFrame()
 # df_results['repeat_choice'] = df.loc[df['presented_delays']=='0.01,1.0,3.0,10.0'].groupby(['subject'])['repeat_choice'].mean()
 df_results['acc0'] = df.loc[(df['delay_times']==0.01)].groupby(['subject'])['hit'].mean()
@@ -186,10 +198,15 @@ b2.set_ylim(0.6,1)
 slope, intercept, r_value, p_value, std_err = stats.linregress(x = np.array(df_results['lapse']), y = np.array(df_results['accuracy']))
 plt.locator_params(nbins=3)
 b2.text(x=0.05,y=0.7, s= 'R= '+ str(round(r_value**2,3))+'\nP= '+ str(round(p_value,3)), fontsize=5)
+sns.despine(ax=b2)
+
 # ----------------------------------------------------------------------------------------------------------------
 
 
-# -----------------############################## F - G Panel #################################-----------------------
+# #############################################################################################
+# Panels F-G
+# #############################################################################################
+
 groupings=['subject','delay_times']
 df_results = pd.DataFrame()
 df_results['repeat_choice'] = 0.5* df.loc[(df['repeat_choice_side']==1)].groupby(groupings)['valids'].count()/df.loc[(df.vector_answer == 0)].groupby(groupings)['valids'].count() + 0.5*df.loc[(df['repeat_choice_side']==2)].groupby(groupings)['valids'].count()/df.loc[(df.vector_answer == 1)].groupby(groupings)['valids'].count()
@@ -204,13 +221,14 @@ c2.set_ylabel('Repeating bias')
 c2.set_xlabel('Delay (s)')
 c.set_xlabel('Delay (s)')
 c.hlines(y=0.5,xmin=0,xmax=10,linestyle=':')
+sns.despine(ax=c)
 
 fit = np.polyfit(xaxis,np.array(df_results.groupby('delay_times')['repeat_choice'].mean()),1)
 fit_fn = np.poly1d(fit)
 
 c2.plot(xaxis,np.array(df_results.groupby('delay_times')['repeat_choice'].mean()), 'k.', xaxis, fit_fn(xaxis), 'k')
 c2.errorbar(xaxis,np.array(df_results.groupby('delay_times')['repeat_choice'].mean()),yerr=np.array(df_results.groupby('delay_times')['repeat_choice'].sem()*2), fmt='.', markersize= 1, ecolor='grey',color='black', capsize=2)
-c2.hlines(y=0.5,xmin=0,xmax=10,linestyle=':')
+c2.hlines(y=0.5,xmin=0,xmax=10, color='black',linestyle=':')
 #Print the slopes
 slope, intercept, r_value, p_value, std_err = stats.linregress(x = xaxis, y = np.array(df_results.groupby('delay_times')['repeat_choice'].mean()))
 c2.text(x=0,y=0.65, s= 'Slope= '+str(round(slope,3))+'\nP= '+ str(round(p_value,3)), fontsize=5)
@@ -225,11 +243,15 @@ f_statistic, p_value = stats.f_oneway(group1, group2, group3, group4)
 c.locator_params(nbins=3)
 c2.locator_params(nbins=3)
 c2.set_ylim(0.4,0.8)
+sns.despine(ax=c2)
 
 # ----------------------------------------------------------------------------------------------------------------
 
 
-# -----------------############################## H Panel #################################-----------------------
+# #############################################################################################
+# Panel H
+# #############################################################################################
+
 df_results = pd.DataFrame()
 # df_results['repeat_choice'] = df.loc[df['presented_delays']=='0.01,1.0,3.0,10.0'].groupby(['subject'])['repeat_choice'].mean()
 df_results['prob_repeat'] = 0.5* df.loc[(df['delay_times']==0.01)&(df['repeat_choice_side']==1)].groupby(['subject'])['valids'].count()/df.loc[(df['delay_times']==0.01)&(df.vector_answer == 0)].groupby(['subject'])['valids'].count() + 0.5*df.loc[(df['delay_times']==0.01)&(df['repeat_choice_side']==2)].groupby(['subject'])['valids'].count()/df.loc[(df['delay_times']==0.01)&(df.vector_answer == 1)].groupby(['subject'])['valids'].count()
@@ -244,7 +266,7 @@ sns.scatterplot(x="lapse", y="prob_repeat", hue='subject',data=df_results, palet
 
 d.set_xlabel('Lapse rate')
 d.set_ylabel('Repeating bias')
-d.hlines(y=0.5,xmin=0.0,xmax=0.32,linestyle=':')
+d.hlines(y=0.5,xmin=0.0,xmax=0.32, color='black',linestyle=':')
 # plt.legend removed: no labeled artists (hue artists suppressed by legend=False)
 
 slope, intercept, r_value, p_value, std_err = stats.linregress(x = np.array(df_results['prob_repeat']), y = np.array(df_results['lapse']))
@@ -262,12 +284,15 @@ df_results.reset_index(inplace=True)
 sns.lineplot(x='delay_times',y='repeat_choice',data=df_results, legend=False, marker='', color='black', ax=c2)
 d.set_xlim(0.0,0.35)
 plt.locator_params(nbins=3)
+sns.despine(ax=d)
 
 # ----------------------------------------------------------------------------------------------------------------
 
-# -----------------############################## L - O Panel GLM results #################################-----------------------
+# #############################################################################################
+# Panels L-O: GLM results
+# #############################################################################################
 
-file_name = 'GLMM_final_data'
+file_name = 'panels_l-o_GLMM_stimulus_history_weights_per_animal'
 coef_matrix = pd.read_csv(path+file_name+'.csv',  index_col=0)
 coef_matrix['const'] = 0
 for regressor, panel in zip(['SL','SR','SL:D','SR:D','exp_C','D:exp_C'], [e,e,f,f,g,h]):
@@ -392,13 +417,10 @@ for regressor, panel in zip(['SL','SR','SL:D','SR:D','exp_C','D:exp_C'], [e,e,f,
 
     if regressor=='D:exp_C':
         panel.set_ylim(-0.05,0.05)
+        
     panel.set_ylabel('Weights')
     panel.locator_params(axis='y', nbins=3)
     y_min, y_max = panel.get_ylim()
-
-    # print(regressor)
-    # print(stats.ttest_1samp(coef_matrix[regressor],0)[1])
-
     if stats.ttest_1samp(coef_matrix[regressor],0)[1] <=0.001:
         panel.text(const-0.13, y_max, '***', fontsize=6)
 
@@ -410,14 +432,15 @@ for regressor, panel in zip(['SL','SR','SL:D','SR:D','exp_C','D:exp_C'], [e,e,f,
 
     else:
         panel.text(const-0.1, y_max, 'ns', fontsize=6)
+    sns.despine(ax=panel, top=True, right=True, left=False, bottom=True)
 
     plt.gca().tick_params(direction='out') #direction
 
-h.set_ylabel('')
+# #############################################################################################
+# Panel I: Autocorrelogram for correct
+# #############################################################################################
 
-# -------------------------------------    panel i - Autocorrelogram  for correct  ------------------------------------------
-
-file_name = 'hit_autocorrelation'
+file_name = 'panel_i_trial_outcome_autocorrelation_by_lag_per_animal'
 corr = pd.read_csv(path+file_name+'.csv', index_col=0)
 corr = corr[:25]
 
@@ -439,7 +462,7 @@ p0 = [y_fit[0] - y_fit[-1], len(x_fit) / 3]
 # Plot raw data + error band first (lower zorder)
 panel.plot(x_data, mean, marker='o', color='black', zorder=2)
 panel.fill_between(x_data, lower, upper, alpha=0.2, color='black', zorder=1)
-panel.hlines(y=0, xmin=0, xmax=25, linestyles=':', zorder=1)
+panel.hlines(y=0, xmin=0, xmax=25, linestyles=':',color='black', zorder=1)
 
 try:
     popt, pcov = curve_fit(exp_decay, x_fit, y_fit, p0=p0, maxfev=10000)
@@ -458,9 +481,13 @@ except RuntimeError:
 
 panel.set_xlabel('Trial lag')
 panel.set_title('Choice outcome', fontsize=8)
+sns.despine(ax=panel)
 
-# -------------------------------------   panel j -   Autocorrelogram  for repetition    ------------------------------------------
-file_name = 'repeat_autocorrelation'
+# #############################################################################################
+# Panel J: Autocorrelogram for repetition
+# #############################################################################################
+
+file_name = 'panel_j_repeat_choice_autocorrelation_by_lag_per_animal'
 corr = pd.read_csv(path+file_name+'.csv', index_col=0)
 corr = corr[:25]
 
@@ -486,7 +513,7 @@ p0 = [y_fit[0] - y_fit[-1], len(x_fit) / 3]
 # Plot raw data + error band first (lower zorder) — full data, including lag 1
 panel.plot(x_data, mean, marker='o', color='black', zorder=2)
 panel.fill_between(x_data, lower, upper, alpha=0.2, color='black', zorder=1)
-panel.hlines(y=0, xmin=0, xmax=25, linestyles=':', zorder=1)
+panel.hlines(y=0, xmin=0, xmax=25, linestyles=':', color='black', zorder=1)
 
 try:
     popt, pcov = curve_fit(exp_decay, x_fit, y_fit, p0=p0, maxfev=10000)
@@ -505,10 +532,7 @@ except RuntimeError:
 
 panel.set_xlabel('Trial indexes')
 panel.set_title('Repetitions', fontsize=8)
-
-# ----------------------------------------------------------------------------------------------------------------
-
-sns.despine()
+sns.despine(ax=panel)
 plt.subplots_adjust(left=0.07,
                     bottom=0.07,
                     right=0.97,

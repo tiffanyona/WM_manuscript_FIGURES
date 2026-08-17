@@ -50,109 +50,32 @@ def add_stat_annotation(ax, data=None, x=None, y=None, hue=None,
     return ann.apply_and_annotate()
 
 
-def plot_results_shuffle(df_cum_sti, df_cum_res, colors, variables_combined, fig = False, ax1=False, ax2=False, upper_limit=0.4, baseline=0):
-    if fig == False:
-        fig, ([ax1,ax2])  = plt.subplots(1,2, figsize=(14, 4), sharey=True)
+def p_to_stars(p):
+    """Convert a p-value to a significance star string."""
+    if p < 0.001:
+        return '***'
+    elif p < 0.01:
+        return '**'
+    elif p < 0.05:
+        return '*'
+    return 'ns'
 
-    for color, variable,left,right in zip(colors,variables_combined,[ax1],[ax2]):
 
-        # Aligmnent for Stimulus cue
-        real = np.array(df_cum_sti.groupby('session').mean(numeric_only=True).drop(columns=['session_shuffle']).mean())
-        # real = np.array(np.mean(df_cum_sti.groupby('session').median()))
-        times = df_cum_sti
-        times = np.array(times.drop(columns=['session','session_shuffle','subject'],axis = 1).columns.astype(float))
+def _bootstrap_ci(df_for_boots, times, n_iter=1000, lower_pct=2.5, upper_pct=97.5):
+    """Bootstrap CI across timepoints: returns (lower_array, upper_array)."""
+    df_lower = pd.DataFrame()
+    df_upper = pd.DataFrame()
+    for timepoint in times:
+        try:
+            array = df_for_boots[timepoint].to_numpy()
+        except KeyError:
+            array = df_for_boots[str(timepoint)].to_numpy()
+        means = [np.mean(np.random.choice(array, size=len(array), replace=True))
+                 for _ in range(n_iter)]
+        df_lower.at[0, timepoint] = np.percentile(means, lower_pct)
+        df_upper.at[0, timepoint] = np.percentile(means, upper_pct)
+    return df_lower.iloc[0].values, df_upper.iloc[0].values
 
-        mean_surr = []
-        df_lower = pd.DataFrame()
-        df_upper = pd.DataFrame()
-
-        df_for_boots = df_cum_sti.groupby('session').mean(numeric_only=True)
-        for timepoint in times:
-            mean_surr = []
-
-            # recover the values for that specific timepoint
-            try:
-                array = df_for_boots[timepoint].to_numpy()
-            except:
-                array = df_for_boots[str(timepoint)].to_numpy()
-
-            # iterate several times with resampling: chose X time among the same list of values
-            for iteration in range(1000):
-                x = np.random.choice(array, size=len(array), replace=True)
-                # recover the mean of that new distribution
-                mean_surr.append(np.mean(x))
-
-            df_lower.at[0,timepoint] = np.percentile(mean_surr, 2.5)
-            df_upper.at[0,timepoint] = np.percentile(mean_surr, 97.5)
-
-        lower =  df_lower.iloc[0].values
-        upper =  df_upper.iloc[0].values
-        # lower =  real - 2*df_for_boots.std()
-        # upper =  real + 2*df_for_boots.std()
-        # lower =  df_cum_sti.quantile(0.025)
-        # upper =  df_cum_sti.quantile(0.975)
-        x=times
-
-        # plt.plot(x, y_mean, label='Non-prefered Stimulus', color=color)
-        left.plot(times,real, color=color)
-        left.plot(x, lower, color=color, linestyle = '',alpha=0.6)
-        left.plot(x, upper, color=color, linestyle = '',alpha=0.6)
-        left.fill_between(x, lower, upper, alpha=0.2, color=color)
-        left.set_ylim(baseline-0.1,baseline+upper_limit)
-        left.axhline(y=0.0,linestyle=':',color='black')
-        left.fill_betweenx(np.arange(-1,1.15,0.1), 0,0.4, color='lightlightgrey', alpha=.4)
-        sns.despine()
-
-        # -------------------- For Aligment to Go cue
-        real = np.array(df_cum_res.groupby('session').mean(numeric_only=True).drop(columns=['session_shuffle']).mean())
-        times = df_cum_res
-        times = np.array(times.drop(columns=['session','session_shuffle','subject'],axis = 1).columns.astype(float))
-
-        mean_surr = []
-        df_lower = pd.DataFrame()
-        df_upper = pd.DataFrame()
-
-        # df_for_boots = df_cum_res.loc[:, df_cum_res.columns != 'session']
-        df_for_boots = df_cum_res.groupby('session').mean(numeric_only=True)
-        for timepoint in times:
-            mean_surr = []
-
-            # recover the values for that specific timepoint
-            try:
-                array = df_for_boots[timepoint].to_numpy()
-            except:
-                array = df_for_boots[str(timepoint)].to_numpy()
-
-            # iterate several times with resampling: chose X time among the same list of values
-            for iteration in range(1000):
-                # print(array)
-                x = np.random.choice(array, size=len(array), replace=True)
-                # recover the mean of that new distribution
-                mean_surr.append(np.mean(x))
-
-            df_lower.at[0,timepoint] = np.percentile(mean_surr, 2.5)
-            df_upper.at[0,timepoint] = np.percentile(mean_surr, 97.5)
-
-        lower =  df_lower.iloc[0].values
-        upper =  df_upper.iloc[0].values
-        # lower =  real - 2*df_for_boots.std()
-        # upper =  real + 2*df_for_boots.std()
-        # lower =  df_cum_res.quantile(0.025)
-        # upper =  df_cum_res.quantile(0.975)
-
-        # lower = -np.mean(df_cum_res.loc[df_cum_sti['trial_type'] ==variable].groupby(['session','fold']).sem(),axis=0)*2
-        # upper = np.mean(df_cum_res.loc[df_cum_sti['trial_type'] ==variable].groupby(['session','fold']).sem(),axis=0)*2
-        x=times
-
-        # ax2.plot(x, y_mean, color=color)
-        right.plot(times,real, color=color)
-        right.plot(x, lower, color=color, linestyle = '',alpha=0.6)
-        right.plot(x, upper, color=color, linestyle = '',alpha=0.6)
-        right.fill_between(x, lower, upper, alpha=0.2, color=color)
-        right.set_ylim(baseline-0.1,baseline+upper_limit)
-        right.axhline(y=0,linestyle=':',color='black')
-        right.fill_betweenx(np.arange(-1.1,1.1,0.1), 0,0.2, color='lightgrey', alpha=.8)
-        right.set_xlabel('Time from go cue (s)')
 
 def single_trial_with_decoder(df, df_decoder, big_data, filename, T, panels = [], threshold = 0.4,
                               align = 'Stimulus_ON', show_y = True ):
@@ -214,8 +137,8 @@ def single_trial_with_decoder(df, df_decoder, big_data, filename, T, panels = []
     panel.xaxis.set_visible(False)
 
     y = np.arange(0,75,0.1)
-    panel.fill_betweenx(y, cue_on,cue_off, color='lightgrey', alpha=.8)
-    panel.fill_betweenx(y, cue_off+delay,cue_off+delay+.2, color='lightgrey', alpha=.8)
+    panel.fill_betweenx(y, cue_on,cue_off, color='lightgrey', alpha=.8, zorder=0, linewidth=0)
+    panel.fill_betweenx(y, cue_off+delay,cue_off+delay+.2, color='lightgrey', alpha=.8, zorder=0, linewidth=0)
     panel.set_ylim(0,max(df_results.groupby('time_centered').firing.mean().values)+5)
     panel.xaxis.set_tick_params(labelbottom=False)
 
@@ -266,8 +189,8 @@ def single_trial_with_decoder(df, df_decoder, big_data, filename, T, panels = []
     panel.set_ylabel('Neurons')
 
     y = np.arange(0,len(dft.new_order.unique())+1,0.1)
-    panel.fill_betweenx(y, cue_on,cue_off, color='lightgrey', alpha=1)
-    panel.fill_betweenx(y, cue_off+delay,cue_off+delay+.2, color='lightgrey', alpha=1)
+    panel.fill_betweenx(y, cue_on,cue_off, color='lightgrey', alpha=1, zorder=0, linewidth=0)
+    panel.fill_betweenx(y, cue_off+delay,cue_off+delay+.2, color='lightgrey', alpha=1, zorder=0, linewidth=0)
     panel.set_xlim(start,stop)
     panel.xaxis.set_tick_params(labelbottom=False)
     panel.xaxis.set_visible(False)
@@ -294,16 +217,12 @@ def single_trial_with_decoder(df, df_decoder, big_data, filename, T, panels = []
     panel.set_ylabel('Log odds')
     panel.set_xlim(start,stop)
 
-    if show_y == False:
-        panel[0].yaxis.set_tick_params(labelbottom=False)
-        panel[1].yaxis.set_tick_params(labelbottom=False)
-        panel[2].yaxis.set_tick_params(labelbottom=False)
+    if not show_y:
+        for p in panels:
+            p.yaxis.set_tick_params(labelbottom=False)
 
-def convolveandplot(df, upper_plot, lower_plot, variable='reward_side', cluster_id = 153, delay = 10, labels=['Correct right stimulus','Correct left stimulus'],
-                   colors=[COLORRIGHT,COLORLEFT], align = 'Stimulus_ON', j=1, alpha=1, spikes=True, kernel=50, add_state=False):
+def convolveandplot(df, upper_plot, lower_plot, variable='reward_side', cluster_id=153, delay=10, labels=['Correct right stimulus','Correct left stimulus'], colors=[COLORRIGHT,COLORLEFT], align='Stimulus_ON', j=1, alpha=1, spikes=True, kernel=50, add_state=False, cue_off=0.4, start=-2, show_xlabel=True):
     cue_on=0
-    cue_off=0.4
-    start=-2
     stop= 5 + delay
 
     neuron = new_convolve(df.loc[df.cluster_id==cluster_id], df, kernel, add_state=add_state)
@@ -334,21 +253,20 @@ def convolveandplot(df, upper_plot, lower_plot, variable='reward_side', cluster_
         panel.fill_between(x, lower, upper, alpha=0.2, color=color, linewidth=0)
 
     panel.set_xlim(start,stop)
-    panel.set_ylim(0,50)
-    panel.set_xlabel('Time from stimulus onset (s)')
-    y = np.arange(0,50,0.1)
-    panel.fill_betweenx(y, cue_on,cue_off, color='lightgrey', alpha=1, linewidth=0)
-    panel.fill_betweenx(y, cue_off+delay,cue_off+delay+.2, color='lightgrey', alpha=1, linewidth=0)
+    y_max = df_results.firing.max() + df_results.error.max()
+    panel.set_ylim(0, max(50, y_max))
+    if show_xlabel: panel.set_xlabel('Time from stimulus onset (s)')
+    y = np.arange(0, max(50, y_max), 0.1)
+    panel.fill_betweenx(y, cue_on,cue_off, color='lightgrey', alpha=1, linewidth=0, zorder=0)
+    panel.fill_betweenx(y, cue_off+delay,cue_off+delay+.2, color='lightgrey', alpha=1, linewidth=0, zorder=0)
 
     # axis labels and legend
     lower_plot.legend(frameon=False)
-    panel.set_xlabel('Time from stimulus onset (s)')
+    if show_xlabel: panel.set_xlabel('Time from stimulus onset (s)')
     panel.set_ylabel('Firing rate (spks/s)')
     panel.locator_params(nbins=4)
 
-    if spikes:
-        pass
-    else:
+    if not spikes:
         return j
 
     panel = upper_plot
@@ -366,35 +284,35 @@ def convolveandplot(df, upper_plot, lower_plot, variable='reward_side', cluster_
     SpikesLeft['a_'+align] = SpikesLeft['fixed_times'] - SpikesLeft['Stimulus_ON']
 
     trial=1
-    spikes = []
+    spike_times = []
     trial_repeat = []
     for i in range(len(SpikesRight)):
         # Plot for licks for left trials
         if SpikesRight.trial.iloc[i] != trial:
-            panel.plot(spikes,trial_repeat, '|', markersize=ms, linewidth=0.3, color=colors[0], zorder=1)
-            spikes = []
+            panel.plot(spike_times,trial_repeat, '|', markersize=ms, linewidth=0.3, color=colors[0], zorder=1)
+            spike_times = []
             trial_repeat = []
             trial = SpikesRight.trial.iloc[i]
             j+=1
         if SpikesRight['a_'+align].iloc[i] > start and SpikesRight['a_'+align].iloc[i] < stop:
-            spikes.append(SpikesRight['a_'+align].iloc[i])
+            spike_times.append(SpikesRight['a_'+align].iloc[i])
             trial_repeat.append(j)
         else:
             continue
 
     trial=1
-    spikes = []
+    spike_times = []
     trial_repeat = []
     for i in range(len(SpikesLeft)):
         # Plot for licks for left trials
         if SpikesLeft.trial.iloc[i] != trial:
-            panel.plot(spikes,trial_repeat, '|', markersize=ms, color=colors[1], zorder=1)
-            spikes = []
+            panel.plot(spike_times,trial_repeat, '|', markersize=ms, color=colors[1], zorder=1)
+            spike_times = []
             trial_repeat = []
             trial = SpikesLeft.trial.iloc[i]
             j+=1
         if SpikesLeft['a_'+align].iloc[i] > start and SpikesLeft['a_'+align].iloc[i] < stop:
-            spikes.append(SpikesLeft['a_'+align].iloc[i])
+            spike_times.append(SpikesLeft['a_'+align].iloc[i])
             trial_repeat.append(j)
         else:
             continue
@@ -404,33 +322,33 @@ def convolveandplot(df, upper_plot, lower_plot, variable='reward_side', cluster_
     panel.set_xlim(start,stop)
 
     y = np.arange(0,j+1,0.1)
-    panel.fill_betweenx(y, cue_on,cue_off, color='lightgrey', alpha=1, linewidth=0)
-    panel.fill_betweenx(y, cue_off+delay,cue_off+delay+.2, color='lightgrey', alpha=1, linewidth=0)
+    panel.fill_betweenx(y, cue_on,cue_off, color='lightgrey', alpha=1, linewidth=0, zorder=0)
+    panel.fill_betweenx(y, cue_off+delay,cue_off+delay+.2, color='lightgrey', alpha=1, linewidth=0, zorder=0)
 
     panel.locator_params(nbins=5)
     panel.axes.get_xaxis().set_visible(False)
 
     return j
 
-def plot_decoder(left, df,baseline=0.5,individual_sessions=False, align='Stimulus_ON', show_axis=True,colors=['black'], upper_limit=0.2, variables_combined=['WM_roll_1']):
-    for color, variable,left in zip(colors,variables_combined,left):
+def plot_decoder(axes, df,baseline=0.5,individual_sessions=False, align='Stimulus_ON', show_axis=True,colors=['black'], upper_limit=0.2, variables_combined=['WM_roll_1'], epoch_markers=None):
+    for color, variable, ax in zip(colors,variables_combined,axes):
         if individual_sessions == True:
             # Aligmnent for Stimulus cue - sessions separately
             real = df.groupby('session').median(numeric_only=True).reset_index()
             try:
                 times = np.array(df.columns[:-4]).astype(float)
-            except:
+            except Exception:
                 times = np.array(df.columns[1:]).astype(float)
 
-            left.set_xlabel('Time (s) to Cue')
+            ax.set_xlabel('Time (s) to Cue')
 
             x=times
             for i in range(len(real)):
-                left.plot(times,real.iloc[i][1:-1], color=color,alpha=0.1)
+                ax.plot(times,real.iloc[i][1:-1], color=color,alpha=0.1)
 
         try:
             df_loop = df.loc[(df['trial_type'] == variable)]
-        except:
+        except Exception:
             df_loop = df
 
         # Select only columns where the column name is a number or can be transformed to a number
@@ -439,57 +357,40 @@ def plot_decoder(left, df,baseline=0.5,individual_sessions=False, align='Stimulu
         real = np.array(df_loop.groupby('session').mean(numeric_only=True)[numeric_columns].mean())
         times = df_loop[numeric_columns].columns.astype(float)
 
-
         df_results = pd.DataFrame()
         df_results['times'] = times
         df_results['real'] = real
         df_results = df_results.sort_values(by='times')
 
-        mean_surr = []
-        df_lower = pd.DataFrame()
-        df_upper = pd.DataFrame()
-
         df_for_boots = df_loop.groupby('session').mean(numeric_only=True)[numeric_columns]
-
-        for timepoint in df_results['times']:
-            mean_surr = []
-
-            # recover the values for that specific timepoint
-            array = df_for_boots[str(timepoint)].to_numpy()
-
-            # iterate several times with resampling: chose X time among the same list of values
-            for iteration in range(1000):
-                x = np.random.choice(array, size=len(array), replace=True)
-                # recover the mean of that new distribution
-                mean_surr.append(np.mean(x))
-
-            df_lower.at[0,timepoint] = np.percentile(mean_surr, 0.5)
-            df_upper.at[0,timepoint] = np.percentile(mean_surr, 99.5)
+        lower, upper = _bootstrap_ci(df_for_boots, df_results['times'], lower_pct=0.5, upper_pct=99.5)
 
         x=times
-        lower =  df_lower.iloc[0].values
-        upper =  df_upper.iloc[0].values
-        left.plot(x, lower, color=color, linestyle = '',alpha=0.6, linewidth=0)
-        left.plot(x, upper, color=color, linestyle = '',alpha=0.6, linewidth=0)
-        left.fill_between(x, lower, upper, alpha=0.2, color=color, linewidth=0)
+        ax.plot(x, lower, color=color, linestyle = '',alpha=0.6, linewidth=0)
+        ax.plot(x, upper, color=color, linestyle = '',alpha=0.6, linewidth=0)
+        ax.fill_between(x, lower, upper, alpha=0.2, color=color, linewidth=0)
 
-        left.plot(times,real, color=color)
+        ax.plot(times,real, color=color)
 
-        left.fill_betweenx(np.arange(-baseline-0.1,baseline+.5,0.1), 0,0.35, color='lightgrey', alpha=1, linewidth=0)
-        left.fill_betweenx(np.arange(-baseline-0.1,baseline+.5,0.1), 3.35,3.55, color='lightgrey', alpha=1, linewidth=0)
-        left.set_ylim(baseline-0.1,upper_limit+baseline)
-        left.axhline(y=baseline,linestyle=':',color='black')
-        left.set_xlabel('Time from stimulus onset (s)')
-        left.set_ylabel('Excess decoding\n accuracy')
+        if epoch_markers is not None:
+            for x0, x1, clr, alp in epoch_markers:
+                ax.fill_betweenx(np.arange(-baseline-0.1, baseline+.5, 0.1), x0, x1, color=clr, alpha=alp, linewidth=0)
+        else:
+            ax.fill_betweenx(np.arange(-baseline-0.1,baseline+.5,0.1), 0,0.35, color='lightgrey', alpha=1, linewidth=0)
+            ax.fill_betweenx(np.arange(-baseline-0.1,baseline+.5,0.1), 3.35,3.55, color='lightgrey', alpha=1, linewidth=0)
+        ax.set_ylim(baseline-0.1,upper_limit+baseline)
+        ax.axhline(y=baseline,linestyle=':',color='black')
+        ax.set_xlabel('Time from stimulus onset (s)')
+        ax.set_ylabel('Excess decoding\n accuracy')
 
         y = np.arange(-1,1.15,0.1)
         if align == 'Stimulus_ON':
-            left.fill_betweenx(y, 0,.35, color='lightgrey', alpha=1, linewidth=0)
+            ax.fill_betweenx(y, 0,.35, color='lightgrey', alpha=1, linewidth=0)
         elif align == 'Delay_OFF':
-            left.fill_betweenx(y, 0,0.2, color='lightgrey', alpha=1, linewidth=0)
+            ax.fill_betweenx(y, 0,0.2, color='lightgrey', alpha=1, linewidth=0)
 
         if show_axis==False:
-            left.spines['left'].set_visible(False)
+            ax.spines['left'].set_visible(False)
 
 def new_convolve(nx, df, kernel=50, bin_size=20, add_state=False):
     '''
@@ -563,29 +464,10 @@ def plotsingledelay(df_cum_sti, panel, colors, variables_combined, delay, baseli
         real = np.array(df_loop.groupby('session').mean(numeric_only=True)[numeric_columns].mean())
         times = df_loop[numeric_columns].columns.astype(float)
 
-        df_lower = pd.DataFrame()
-        df_upper = pd.DataFrame()
+        df_for_boots = (df_cum_sti.loc[(df_cum_sti.trial_type == variable) & (df_cum_sti['delay'] == delay)]
+                        .drop(columns='delay').groupby('session').mean(numeric_only=True))
+        lower, upper = _bootstrap_ci(df_for_boots, times)
 
-        for timepoint in times:
-            mean_surr = []
-
-            # recover the values for that specific timepoint
-            try:
-                array = df_cum_sti.loc[(df_cum_sti.trial_type ==variable)&(df_cum_sti['delay'] == delay)].drop(columns='delay').groupby('session').mean(numeric_only=True)[str(timepoint)].to_numpy()
-            except:
-                array = df_cum_sti.loc[(df_cum_sti.trial_type ==variable)&(df_cum_sti['delay'] == delay)].drop(columns='delay').groupby('session').mean(numeric_only=True)[timepoint].to_numpy()
-
-            # iterate several times with resampling: chose X time among the same list of values
-            for iteration in range(1000):
-                x = np.random.choice(array, size=len(array), replace=True)
-                # recover the mean of that new distribution
-                mean_surr.append(np.mean(x))
-
-            df_lower.at[0,timepoint] = np.percentile(mean_surr, 2.5)
-            df_upper.at[0,timepoint] = np.percentile(mean_surr, 97.5)
-
-        lower =  df_lower.iloc[0].values
-        upper =  df_upper.iloc[0].values
         x=times
 
         if invert:
@@ -609,287 +491,20 @@ def plotsingledelay(df_cum_sti, panel, colors, variables_combined, delay, baseli
         if panel=='crimson':
             panel.set_xlabel('Time from stimulus onset (s)')
 
-def plot_results(df_cum_sti, df_cum_res, colors, variables_combined, fig = False, ax1=False, ax2=False, upper_limit=0.3):
-    if fig == False:
-        fig, ([ax1,ax2])  = plt.subplots(1,2, figsize=(14, 4), sharey=True)
-    for color, variable,left,right in zip(colors,variables_combined,[ax1],[ax2]):
-
-        # Aligmnent for Stimulus cue
-        real = np.array(df_cum_sti.groupby('session').mean(numeric_only=True).mean())
-        # real = np.array(np.mean(df_cum_sti.groupby('session').median()))
-        times = df_cum_sti
-        times = np.array(times.drop(columns=['session','subject'],axis = 1).columns.astype(float))
-
-        mean_surr = []
-        df_lower = pd.DataFrame()
-        df_upper = pd.DataFrame()
-
-        df_for_boots = df_cum_sti.groupby('session').mean(numeric_only=True)
-        for timepoint in times:
-            mean_surr = []
-
-            # recover the values for that specific timepoint
-            try:
-                array = df_for_boots[timepoint].to_numpy()
-            except:
-                array = df_for_boots[str(timepoint)].to_numpy()
-
-            # iterate several times with resampling: chose X time among the same list of values
-            for iteration in range(1000):
-                x = np.random.choice(array, size=len(array), replace=True)
-                # recover the mean of that new distribution
-                mean_surr.append(np.mean(x))
-
-            df_lower.at[0,timepoint] = np.percentile(mean_surr, 2.5)
-            df_upper.at[0,timepoint] = np.percentile(mean_surr, 97.5)
-
-        lower =  df_lower.iloc[0].values
-        upper =  df_upper.iloc[0].values
-        # lower =  real - 2*df_for_boots.std()
-        # upper =  real + 2*df_for_boots.std()
-        # lower =  df_cum_sti.quantile(0.025)
-        # upper =  df_cum_sti.quantile(0.975)
-        x=times
-
-        # plt.plot(x, y_mean, label='Non-prefered Stimulus', color=color)
-        left.plot(times,real, color=color)
-        left.plot(x, lower, color=color, linestyle = '',alpha=0.6)
-        left.plot(x, upper, color=color, linestyle = '',alpha=0.6)
-        left.fill_between(x, lower, upper, alpha=0.2, color=color)
-        left.axhline(y=0.0,linestyle=':',color='black')
-        left.fill_betweenx(np.arange(-1,1.15,0.1), 0,0.35, color='lightgrey', alpha=.4)
-        left.set_xlabel('Time from stimulus onset (s)')
-
-        sns.despine()
-
-        # -------------------- For Aligment to Go cue
-        real = np.array(df_cum_res.groupby('session').mean(numeric_only=True).mean())
-        times = df_cum_res
-        times = np.array(times.drop(columns=['session','subject'],axis = 1).columns.astype(float))
-
-        mean_surr = []
-        df_lower = pd.DataFrame()
-        df_upper = pd.DataFrame()
-
-        # df_for_boots = df_cum_res.loc[:, df_cum_res.columns != 'session']
-        df_for_boots = df_cum_res.groupby('session').mean(numeric_only=True)
-        for timepoint in times:
-            mean_surr = []
-
-            # recover the values for that specific timepoint
-            try:
-                array = df_for_boots[timepoint].to_numpy()
-            except:
-                array = df_for_boots[str(timepoint)].to_numpy()
-
-            # iterate several times with resampling: chose X time among the same list of values
-            for iteration in range(1000):
-                # print(array)
-                x = np.random.choice(array, size=len(array), replace=True)
-                # recover the mean of that new distribution
-                mean_surr.append(np.mean(x))
-
-            df_lower.at[0,timepoint] = np.percentile(mean_surr, 2.5)
-            df_upper.at[0,timepoint] = np.percentile(mean_surr, 97.5)
-
-        lower =  df_lower.iloc[0].values
-        upper =  df_upper.iloc[0].values
-        # lower =  real - 2*df_for_boots.std()
-        # upper =  real + 2*df_for_boots.std()
-        # lower =  df_cum_res.quantile(0.025)
-        # upper =  df_cum_res.quantile(0.975)
-
-        # lower = -np.mean(df_cum_res.loc[df_cum_sti['trial_type'] ==variable].groupby(['session','fold']).sem(),axis=0)*2
-        # upper = np.mean(df_cum_res.loc[df_cum_sti['trial_type'] ==variable].groupby(['session','fold']).sem(),axis=0)*2
-        x=times
-
-        # ax2.plot(x, y_mean, color=color)
-        right.plot(times,real, color=color)
-        right.plot(x, lower, color=color, linestyle = '',alpha=0.6)
-        right.plot(x, upper, color=color, linestyle = '',alpha=0.6)
-        right.fill_between(x, lower, upper, alpha=0.2, color=color)
-        right.set_ylim(-0.1,upper_limit)
-        right.axhline(y=0,linestyle=':',color='black')
-        right.fill_betweenx(np.arange(-1.1,1.1,0.1), 0,0.2, color='lightgrey', alpha=.8)
-        right.set_xlabel('Time from go cue (s)')
-
-        sns.despine()
-    #     plt.ylim(0.4,0.8)
-
-def plot_results_shuffle_substraction(df_cum_sti, df_cum_res, df_cum_sti_shuffle, df_cum_res_shuffle, colors, variables_combined,
-                                      fig = False, ax1=False, ax2=False, upper_limit=0.4, lower_limit = -0.1, baseline=0):
-    if fig == False:
-        fig, ([ax1,ax2])  = plt.subplots(1,2, figsize=(14, 4), sharey=True)
-
-    for color, variable,left,right in zip(colors,variables_combined,[ax1],[ax2]):
-
-        df_grouped = df_cum_sti.groupby('session').mean(numeric_only=True)-df_cum_sti_shuffle.drop(columns=['session_shuffle']).groupby('session').mean(numeric_only=True)
-        real = np.array(df_grouped.mean())
-        times = np.array(df_grouped.mean().index).astype(float)
-
-        mean_surr = []
-        df_lower = pd.DataFrame()
-        df_upper = pd.DataFrame()
-        df_for_boots = df_grouped
-
-        for timepoint in times:
-            mean_surr = []
-
-            # recover the values for that specific timepoint
-            try:
-                array = df_for_boots[timepoint].to_numpy()
-            except:
-                array = df_for_boots[str(timepoint)].to_numpy()
-
-            # iterate several times with resampling: chose X time among the same list of values
-            for iteration in range(1000):
-                x = np.random.choice(array, size=len(array), replace=True)
-                # recover the mean of that new distribution
-                mean_surr.append(np.mean(x))
-
-            df_lower.at[0,timepoint] = np.percentile(mean_surr, 2.5)
-            df_upper.at[0,timepoint] = np.percentile(mean_surr, 97.5)
-
-        lower =  df_lower.iloc[0].values
-        upper =  df_upper.iloc[0].values
-        x=times
-
-        # plt.plot(x, y_mean, label='Non-prefered Stimulus', color=color)
-        left.plot(times,real, color=color)
-        left.plot(x, lower, color=color, linestyle = '',alpha=0.6, linewidth=0)
-        left.plot(x, upper, color=color, linestyle = '',alpha=0.6, linewidth=0)
-        left.fill_between(x, lower, upper, alpha=0.2, color=color, linewidth=0)
-        left.set_ylim(lower_limit-0.05,upper_limit+0.1)
-        left.axhline(y=0.0,linestyle=':',color='black')
-        left.fill_betweenx(np.arange(lower_limit,upper_limit,0.1), 0,0.45, color='lightgrey', alpha=.8)
-        left.set_xlabel('Time from stimulus onset (s)')
-
-
-        # -------------------- For Aligment to Go cue
-        df_grouped = df_cum_res.groupby('session').mean(numeric_only=True)-df_cum_res_shuffle.drop(columns=['session_shuffle']).groupby('session').mean(numeric_only=True)
-        real = np.array(df_grouped.mean())
-        times = np.array(df_grouped.mean().index).astype(float)
-
-        mean_surr = []
-        df_lower = pd.DataFrame()
-        df_upper = pd.DataFrame()
-        # df_for_boots = df_cum_res.loc[:, df_cum_res.columns != 'session']
-        df_for_boots = df_grouped
-        for timepoint in times:
-            mean_surr = []
-
-            # recover the values for that specific timepoint
-            try:
-                array = df_for_boots[timepoint].to_numpy()
-            except:
-                array = df_for_boots[str(timepoint)].to_numpy()
-
-            # iterate several times with resampling: chose X time among the same list of values
-            for iteration in range(1000):
-                # print(array)
-                x = np.random.choice(array, size=len(array), replace=True)
-                # recover the mean of that new distribution
-                mean_surr.append(np.mean(x))
-
-            df_lower.at[0,timepoint] = np.percentile(mean_surr, 2.5)
-            df_upper.at[0,timepoint] = np.percentile(mean_surr, 97.5)
-
-        lower =  df_lower.iloc[0].values
-        upper =  df_upper.iloc[0].values
-        # lower =  real - 2*df_for_boots.std()
-        # upper =  real + 2*df_for_boots.std()
-        # lower =  df_cum_res.quantile(0.025)
-        # upper =  df_cum_res.quantile(0.975)
-
-        # lower = -np.mean(df_cum_res.loc[df_cum_sti['trial_type'] ==variable].groupby(['session','fold']).sem(),axis=0)*2
-        # upper = np.mean(df_cum_res.loc[df_cum_sti['trial_type'] ==variable].groupby(['session','fold']).sem(),axis=0)*2
-        x=times
-
-        # ax2.plot(x, y_mean, color=color)
-        right.plot(times,real, color=color)
-        right.plot(x, lower, color=color, linestyle = '',alpha=0.6, linewidth=0)
-        right.plot(x, upper, color=color, linestyle = '',alpha=0.6, linewidth=0)
-        right.fill_between(x, lower, upper, alpha=0.2, color=color, linewidth=0)
-        right.set_ylim(lower_limit,upper_limit)
-        right.axhline(y=0,linestyle=':',color='black')
-        right.fill_betweenx(np.arange(lower_limit-0.05,upper_limit+0.1,0.1), 0,0.2, color='lightgrey', alpha=0.8)
-        right.set_xlabel('Time from go cue (s)')
-
-def plot_results_session_summary_substract(fig, plot, df, df_shuffle, color, variable= 'WM_roll_1',
-                                 y_range = [-0.05, 0.3], x_range = None, epoch = 'Stimulus_ON', baseline=0.5):
-
-        df_loop = (df.loc[(df['trial_type'] == variable)].groupby('session').mean(numeric_only=True)
-                    - df_shuffle.loc[(df_shuffle['trial_type'] == variable)].groupby('session').mean(numeric_only=True))
-        df_loop.fillna(0)
-        # df_loop = df.loc[(df['trial_type'] == variable)].groupby('session').mean(numeric_only=True)
-
-        # Select only columns where the column name is a number or can be transformed to a number
-        numeric_columns = df_loop.columns[df_loop.columns.to_series().apply(pd.to_numeric, errors='coerce').notna()]
-
-        real = np.array(df_loop.groupby('session').mean(numeric_only=True)[numeric_columns].mean())
-        times = np.array(df_loop[numeric_columns].mean().index).astype(float)
-
-        df_results = pd.DataFrame()
-        df_results['times'] = times
-        df_results['real'] = real
-        df_results = df_results.sort_values(by='times')
-
-        if x_range == None:
-            x_range = [min(times), max(times)]
-
-        mean_surr = []
-        df_lower = pd.DataFrame()
-        df_upper = pd.DataFrame()
-
-        df_for_boots = df_loop.groupby('session').mean(numeric_only=True)
-        df_for_boots = df_for_boots.dropna(how='all')
-
-        for timepoint in df_results['times']:
-            mean_surr = []
-
-            # recover the values for that specific timepoint
-            try:
-                array = df_for_boots[timepoint].to_numpy()
-            except:
-                array = df_for_boots[str(timepoint)].to_numpy()
-
-
-            # iterate several times with resampling: chose X time among the same list of values
-            for iteration in range(1000):
-                x = np.random.choice(array, size=len(array), replace=True)
-                # recover the mean of that new distribution
-                mean_surr.append(np.mean(x))
-
-            df_lower.at[0, timepoint] = np.percentile(mean_surr, 2.5)
-            df_upper.at[0, timepoint] = np.percentile(mean_surr, 97.5)
-
-        lower =  df_lower.iloc[0].values
-        upper =  df_upper.iloc[0].values
-
-        plot.plot(df_results.times,df_results.real, color=color)
-        plot.fill_between(df_results.times, lower, upper,  alpha=0.2, color=color, linewidth=0)
-        plot.axhline(y=baseline,linestyle=':',color='black')
-        plot.set_ylim(y_range)
-        plot.set_xlim(x_range)
-
-        if epoch == 'Stimulus_ON':
-            plot.set_xlabel('Time to stimulus onset (s)')
-            plot.fill_betweenx(np.arange(-1,1.15,0.1), 0,0.4, color='lightgrey', alpha=1)
-        else:
-            plot.set_xlabel('Time to go cue (s)')
-            plot.fill_betweenx(np.arange(-1,1.15,0.1), 0,0.2, color='lightgrey', alpha=1)
-
-        sns.despine()
-
 def plot_results_session_summary(fig, plot, df, colors, variables_combined = ['WM_roll_1', 'RL_roll_1'],
                                  y_range = [], x_range = None, epoch = 'Stimulus_ON', baseline=0.5,
-                                 epoch_markers=None):
+                                 epoch_markers=None, shuffle_df=None):
 
     for color, variable, ax in zip(colors, variables_combined, np.repeat(plot, len(variables_combined))):
         try:
             df_loop = df.loc[(df['trial_type'] == variable)]
-        except:
+        except Exception:
             df_loop = df
+
+        if shuffle_df is not None:
+            shuffle_loop = shuffle_df.loc[(shuffle_df['trial_type'] == variable)]
+            df_loop = (df_loop.groupby('session').mean(numeric_only=True)
+                       - shuffle_loop.groupby('session').mean(numeric_only=True)).fillna(0)
 
         df_loop = df_loop.dropna(axis=1, how='all')
 
@@ -899,41 +514,19 @@ def plot_results_session_summary(fig, plot, df, colors, variables_combined = ['W
         real = np.array(df_loop.groupby('session').mean(numeric_only=True)[numeric_columns].mean())
         times = df_loop[numeric_columns].columns.astype(float)
 
-
         df_results = pd.DataFrame()
         df_results['times'] = times
         df_results['real'] = real
         df_results = df_results.sort_values(by='times')
 
-
         if x_range == None:
             x_range = [min(times), max(times)]
 
-        mean_surr = []
-        df_lower = pd.DataFrame()
-        df_upper = pd.DataFrame()
-
-        df_for_boots = df_loop.groupby('session').mean(numeric_only=True)
-        for timepoint in df_results['times'].values:
-            mean_surr = []
-
-            # recover the values for that specific timepoint
-            try:
-                array = df_for_boots[timepoint].to_numpy()
-            except:
-                array = df_for_boots[str(timepoint)].to_numpy()
-
-            # iterate several times with resampling: chose X time among the same list of values
-            for iteration in range(1000):
-                x = np.random.choice(array, size=len(array), replace=True)
-                # recover the mean of that new distribution
-                mean_surr.append(np.mean(x))
-
-            df_lower.at[0, timepoint] = np.percentile(mean_surr, 2.5)
-            df_upper.at[0, timepoint] = np.percentile(mean_surr, 97.5)
-
-        lower =  df_lower.iloc[0].values
-        upper =  df_upper.iloc[0].values
+        if shuffle_df is not None:
+            df_for_boots = df_loop[numeric_columns].dropna(how='all')
+        else:
+            df_for_boots = df_loop.groupby('session').mean(numeric_only=True)
+        lower, upper = _bootstrap_ci(df_for_boots, df_results['times'].values)
 
         ax.plot(df_results.times,df_results.real, color=color)
         ax.fill_between(df_results.times, lower, upper, alpha=0.2, color=color, linewidth=0)
@@ -946,15 +539,16 @@ def plot_results_session_summary(fig, plot, df, colors, variables_combined = ['W
         else:
             ax.set_xlabel('Time to go cue (s)')
 
-        if epoch_markers is not None:
-            for x0, x1, clr, alpha in epoch_markers:
-                ax.fill_betweenx(np.arange(-1, 1.15, 0.1), x0, x1, color=clr, alpha=alpha, edgecolor='none')
-        elif epoch == 'Stimulus_ON':
-            ax.fill_betweenx(np.arange(-1, 1.15, 0.1), 0, 0.4, color='grey', alpha=.4)
-        else:
-            ax.fill_betweenx(np.arange(-1, 1.15, 0.1), 0, 0.2, color='grey', alpha=.4)
-
         sns.despine()
+
+    # Draw epoch shading once after all variables are plotted
+    if epoch_markers is not None:
+        for x0, x1, clr, alpha in epoch_markers:
+            ax.fill_betweenx(np.arange(-1, 1.15, 0.1), x0, x1, color=clr, alpha=alpha, edgecolor='none')
+    elif epoch == 'Stimulus_ON':
+        ax.fill_betweenx(np.arange(-1, 1.15, 0.1), 0, 0.4, color='grey', alpha=.4, edgecolor='none', zorder=0)
+    else:
+        ax.fill_betweenx(np.arange(-1, 1.15, 0.1), 0, 0.2, color='grey', alpha=.4, edgecolor='none', zorder=0)
 
 
 # ── Utility / math ────────────────────────────────────────────────────────────
@@ -991,8 +585,6 @@ def trials_label(row):
         return 'Early'
     elif row['T'] >= 0.5:
         return 'Late'
-    else:
-        return 'Mid'
 
 
 # ── Rolling-window helpers ─────────────────────────────────────────────────────
@@ -1017,6 +609,7 @@ def compute_window_centered(data, runningwindow, option):
     """Centered rolling average: expanding at start, full window in middle, shrinking at end."""
     performance = []
     start_on = False
+    end = False
     for i in range(len(data)):
         if data['trial'].iloc[i] <= int(runningwindow / 2):
             if start_on == False:
@@ -1041,8 +634,8 @@ def compute_window_centered(data, runningwindow, option):
 # ── Model figure helpers ───────────────────────────────────────────────────────
 
 def figureplot(new_df_real, new_df, panel):
-    Left = 'teal'
-    Right = '#FF8D3F'
+    Left = COLORLEFT
+    Right = COLORRIGHT
 
     df_results = pd.DataFrame()
     df_results['accuracy'] = new_df_real.groupby(['delays', 'session', 'stim'])['hit'].mean()
@@ -1142,9 +735,9 @@ def distribution(df_final, variable='WM_roll'):
         test_df = df_final.loc[df_final.animal == animal].dropna()
         corr_synch = test_df['synch'].values
         r_value_list = []
-        for animal in df_final.animal.unique():
+        for other_animal in df_final.animal.unique():
             try:
-                corr_WM = df_final.loc[df_final.animal == animal][variable].values[-len(corr_synch):]
+                corr_WM = df_final.loc[df_final.animal == other_animal][variable].values[-len(corr_synch):]
                 slope, intercept, r_value, p_value, std_err = stats.linregress(corr_synch, corr_WM)
                 r_value_list.append(r_value)
             except Exception:
@@ -1155,11 +748,11 @@ def distribution(df_final, variable='WM_roll'):
 
 # ── Decoder plot variants ──────────────────────────────────────────────────────
 
-def plot_decoder_shuffle(left, df_cum_sti, df_shuffle, baseline=0.5,
+def plot_decoder_shuffle(axes, df_cum_sti, df_shuffle, baseline=0.5,
                          individual_sessions=False, colors=['black'],
                          upper_limit=0.2, variables_combined=['WM_roll_1']):
     """plot_decoder variant that subtracts a shuffle baseline before plotting."""
-    for color, variable, left in zip(colors, variables_combined, [left]):
+    for color, variable, ax in zip(colors, variables_combined, [axes]):
         if individual_sessions:
             real = df_cum_sti.groupby('session').median(numeric_only=True).reset_index()
             try:
@@ -1167,7 +760,7 @@ def plot_decoder_shuffle(left, df_cum_sti, df_shuffle, baseline=0.5,
             except Exception:
                 times = np.array(df_cum_sti.columns[1:]).astype(float)
             for i in range(len(real)):
-                left.plot(times, real.iloc[i][1:-1], color=color, alpha=0.1)
+                ax.plot(times, real.iloc[i][1:-1], color=color, alpha=0.1)
 
         real = np.array(df_cum_sti.loc[:, (df_cum_sti.columns != 'session_shuffle')
                                        & (df_cum_sti.columns != 'fold')
@@ -1186,43 +779,32 @@ def plot_decoder_shuffle(left, df_cum_sti, df_shuffle, baseline=0.5,
             times = np.array(df_cum_sti.columns[1:]).astype(float)
             time_points = df_cum_sti.columns[1:]
 
-        df_lower = pd.DataFrame()
-        df_upper = pd.DataFrame()
         df_for_boots = (df_cum_sti.loc[:, (df_cum_sti.columns != 'session_shuffle')
                                        & (df_cum_sti.columns != 'fold')]
                         .groupby('session').mean(numeric_only=True).reset_index())
 
-        for timepoint in time_points:
-            mean_surr = []
-            array = df_for_boots[timepoint].to_numpy()
-            for _ in range(1000):
-                x = np.random.choice(array, size=len(array), replace=True)
-                mean_surr.append(np.mean(x))
-            df_lower.at[0, timepoint] = np.percentile(mean_surr, 0.5)
-            df_upper.at[0, timepoint] = np.percentile(mean_surr, 99.5)
+        lower, upper = _bootstrap_ci(df_for_boots, time_points, lower_pct=0.5, upper_pct=99.5)
 
-        lower = df_lower.iloc[0].values
-        upper = df_upper.iloc[0].values
-        left.plot(times, lower - df_shuffle_mean, color=color, linestyle='', alpha=0.6, linewidth=0)
-        left.plot(times, upper - df_shuffle_mean, color=color, linestyle='', alpha=0.6, linewidth=0)
-        left.fill_between(times, lower - df_shuffle_mean, upper - df_shuffle_mean,
+        ax.plot(times, lower - df_shuffle_mean, color=color, linestyle='', alpha=0.6, linewidth=0)
+        ax.plot(times, upper - df_shuffle_mean, color=color, linestyle='', alpha=0.6, linewidth=0)
+        ax.fill_between(times, lower - df_shuffle_mean, upper - df_shuffle_mean,
                           alpha=0.2, color=color, linewidth=0)
-        left.plot(times, real - df_shuffle_mean, color=color)
-        left.fill_betweenx(np.arange(-baseline - 0.1, baseline + .5, 0.1), 0, 0.35,
-                           color='lightgrey', alpha=1, linewidth=0)
-        left.fill_betweenx(np.arange(-baseline - 0.1, baseline + .5, 0.1), 3.35, 3.55,
-                           color='lightgrey', alpha=1, linewidth=0)
-        left.set_ylim(baseline - 0.1, upper_limit + baseline)
-        left.axhline(y=baseline, linestyle=':', color='black')
-        left.set_xlabel('Time from Cue onset (s)')
-        left.set_ylabel('Decoding\n accuracy')
+        ax.plot(times, real - df_shuffle_mean, color=color)
+        ax.fill_betweenx(np.arange(-baseline - 0.1, baseline + .5, 0.1), 0, 0.4,
+                           color='lightgrey', alpha=1, linewidth=0, zorder=0)
+        ax.fill_betweenx(np.arange(-baseline - 0.1, baseline + .5, 0.1), 3.35, 3.55,
+                           color='lightgrey', alpha=1, linewidth=0, zorder=0)
+        ax.set_ylim(baseline - 0.1, upper_limit + baseline)
+        ax.axhline(y=baseline, linestyle=':', color='black')
+        ax.set_xlabel('Time from Cue onset (s)')
+        ax.set_ylabel('Decoding\n accuracy')
 
 
-def plot_decoder_single(left, df_cum_sti, baseline=0.5, individual_sessions=False,
+def plot_decoder_single(axes, df_cum_sti, baseline=0.5, individual_sessions=False,
                         align='Stimulus_ON', colors=['black'], upper_limit=0.2,
                         alpha=1, variables_combined=['WM_roll_1']):
     """Mean-trace-only decoder plot with no bootstrap CI bands."""
-    for color, variable, left in zip(colors, variables_combined, left):
+    for color, variable, ax in zip(colors, variables_combined, axes):
         if individual_sessions:
             real = (df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
                     .groupby('session').mean(numeric_only=True).drop(columns=['fold', 'score']).reset_index())
@@ -1234,7 +816,7 @@ def plot_decoder_single(left, df_cum_sti, baseline=0.5, individual_sessions=Fals
                 times = np.array(times.drop(columns=['trial_type', 'session', 'fold', 'score', 'subject'],
                                             axis=1).columns.astype(float))
             for i in range(len(real)):
-                left.plot(times, real.iloc[i][1:-1], color=color, alpha=0.1)
+                ax.plot(times, real.iloc[i][1:-1], color=color, alpha=0.1)
 
         try:
             times = df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
@@ -1256,24 +838,11 @@ def plot_decoder_single(left, df_cum_sti, baseline=0.5, individual_sessions=Fals
                 real = np.array(df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
                                         .groupby('session').mean(numeric_only=True).drop(columns=['fold', 'score']).mean())
 
-        left.plot(times, real, color=color, alpha=alpha)
-        left.set_ylim(baseline - 0.1, upper_limit + baseline)
-        left.axhline(y=baseline, linestyle=':', color='black')
-        left.set_ylabel('Decoding\n accuracy')
+        ax.plot(times, real, color=color, alpha=alpha)
+        ax.set_ylim(baseline - 0.1, upper_limit + baseline)
+        ax.axhline(y=baseline, linestyle=':', color='black')
+        ax.set_ylabel('Decoding\n accuracy')
 
 
 # ── Notebook helpers ───────────────────────────────────────────────────────────
 
-def plot_lines(data, ax, variable='total_rewards', group='patch_label',
-               one_line='mouse', order=None):
-    """Draw individual connecting lines between two conditions on a grouped boxplot."""
-    if order is None:
-        order = sorted(data[group].unique())
-    x_map = {label: i for i, label in enumerate(order)}
-    for value in data[one_line].unique():
-        df_subset = data[data[one_line] == value]
-        y = df_subset[variable].values
-        x_labels = df_subset[group].values
-        x = [x_map[label] for label in x_labels]
-        lst_new = [x[0] - 0.925, x[1] - 0.075]
-        ax.plot(lst_new, y, marker='', linestyle='-', color='black', alpha=0.4, linewidth=1)

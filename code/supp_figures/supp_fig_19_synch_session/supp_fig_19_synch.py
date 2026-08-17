@@ -68,11 +68,12 @@ b = fig.add_subplot(gs[0, 2:3])
 fig.text(0.01, 1, 'a', fontsize=10, fontweight='bold', va='top')
 fig.text(0.65, 1, 'b', fontsize=10, fontweight='bold', va='top')
 
-# ----------------------------------------------------------------------------------------------------------------
 
+# #######################################################################################
+# Panel A: Example trial
+# #######################################################################################
 
-# -----------------############## A2 Panel - Example trial  #############-----------------------
-file_name = 'synch_data_trials_2beforeSti'
+file_name = 'panel_a_per_trial_synchrony_and_behavioral_state_all_sessions'
 df_final = pd.read_csv(save_path+file_name+'.csv', index_col=0)
 
 # df_final = df_final.loc[df_final.T_norm < 0.6 ]
@@ -93,16 +94,19 @@ panel.set_ylabel('Synch')
 panel.set_xlabel('Normalized trial index')
 
 
-# -----------------############### C Panel  -  Synchrony depending on state  ######################-----------------------
-file_name = 'avg_session_MEAN_rate_per_level'
+# #######################################################################################
+# Panel B: Synchrony depending on state
+# #######################################################################################
+
+file_name = 'panel_b_mean_prestimulus_firing_rate_by_HMM_state_per_session'
 df_final = pd.read_csv(save_path+file_name+'.csv', header=None)
 df_final.columns = ['RL', 'WM']
 
 panel = b
 
 melted_data = pd.melt(df_final)
-sns.boxplot(data=melted_data, x='variable', y='value', hue='variable', 
-            legend=False, ax=b, order=['WM', 'RL'], palette=['darkgreen', 'indigo'], 
+sns.boxplot(data=melted_data, x='variable', y='value', hue='variable',
+            legend=False, ax=b, order=['WM', 'RL'], palette=['darkgreen', 'indigo'],
                 medianprops=dict(color='white', linewidth=1.5),
                 boxprops=dict(linewidth=0),
                 whiskerprops=dict(color='black', lw=1),
@@ -116,11 +120,11 @@ add_stat_annotation(panel, data=melted_data, x='variable', y='value',
                     box_pairs=[( 'WM','RL')],
                     test='t-test_paired', text_format='star', loc='inside', line_offset_to_box=0.05, text_offset=-0.5, line_offset=0, verbose=1, fontsize=6, linewidth=0.5)
 
-# ----------------------------------------------------------------------------------------------------------------
 
+# #######################################################################################
+# Save Figure
+# #######################################################################################
 
-
-# ------##############################################################################-----------------------
 # Show the figure
 sns.despine(offset = 10)
 plt.subplots_adjust(left=0.07,

@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from config import ROOT, FIGURES_OUT, DATA_DIR
 sys.path.insert(0, str(ROOT / 'src'))
 from functions import convolveandplot, plot_decoder_shuffle
+import functions as plots
 
 save_path = str(FIGURES_OUT / 'fig_3_ephys_wm') + '/'
 path = str(DATA_DIR / 'fig_3_ephys_wm') + '/'
@@ -75,12 +76,97 @@ fig.text(0.50, 0.270,'e', fontsize=10, fontweight='bold', va='top')
 fig.text(0.50, 0.160,'f', fontsize=10, fontweight='bold', va='top')
 fig.text(0.01, 0.392,'g', fontsize=10, fontweight='bold', va='top')
 
-# ---------------------------------------------------------------------------
-# Panel c — heatmap
-# ---------------------------------------------------------------------------
-file_name = 'crossdecoder_WM_roll1_3s_r0.25_choice_Stimulus_ON_substraction_V3'
-df_animal_shuffle = pd.read_csv(path + file_name + '_shuffle.csv', index_col=0, low_memory=False)
-df_animal_sti     = pd.read_csv(path + file_name + '_sti.csv',     index_col=0, low_memory=False)
+# #########################################################################################
+# Panel a: population raster (h2) and PSTH (h1)
+# #########################################################################################
+
+big_data = pd.read_csv(path + 'panel_a_population_firing_rates_trial237_session_E20.csv', index_col=0)
+n_neurons = big_data['neuron'].nunique()
+
+dft = pd.read_csv(path + 'panel_a_population_spike_times_trial237_session_E20.csv', index_col=0)
+dft['a_Stimulus_ON'] = dft['fixed_times'] - dft['Stimulus_ON']
+
+delay  = 3
+align  = 'Stimulus_ON'
+cue_on = 0; cue_off = 0.38; start = -2
+stop   = max(dft['a_' + align])
+
+big_data['time_centered'] = np.round(
+    (big_data['times'] - big_data['Stimulus_ON']) / 1000, 2)
+big_data['firing_'] = big_data['firing'] * 1000
+
+df_results = pd.DataFrame(dtype=float)
+df_results['firing'] = (big_data.loc[big_data.time_centered <= stop]
+                        .groupby(['time_centered', 'neuron'])['firing_'].mean())
+df_results.reset_index(inplace=True)
+
+viridis_colors = plt.cm.viridis(np.linspace(0.05, 0.95, n_neurons))
+h1.set_prop_cycle(cycler(color=viridis_colors))
+
+panel = h1
+for N in df_results.neuron.unique():
+    panel.plot(df_results.loc[df_results.neuron == N].time_centered,
+               df_results.loc[df_results.neuron == N].firing, alpha=0.5)
+panel.set_xlim(start, stop)
+panel.set_xlabel('Time from stimulus onset (s)')
+y = np.arange(0, 80, 0.1)
+panel.fill_betweenx(y, cue_on, cue_off,                 color='lightgrey', alpha=1, linewidth=0, zorder=0)
+panel.fill_betweenx(y, cue_off+delay, cue_off+delay+.2, color='lightgrey', alpha=1, linewidth=0, zorder=0)
+panel.set_ylabel('Firing rate (spks/s)')
+
+panel = h2
+FR_mean = []; cluster_id_list = []
+for N in dft.cluster_id.unique():
+    spk = dft.loc[(dft.cluster_id == N) & (dft['a_'+align] > 0.2) &
+                  (dft['a_'+align] < delay)]['a_'+align].values
+    FR_mean.append(len(spk) / delay); cluster_id_list.append(N)
+df_spikes = pd.DataFrame({'cluster_id': cluster_id_list, 'FR': FR_mean})
+df_spikes = df_spikes.sort_values('FR')
+df_spikes['new_order'] = np.arange(len(df_spikes))
+dft = pd.merge(df_spikes, dft, on=['cluster_id'])
+
+j = 0
+for N in dft.new_order.unique():
+    spk = dft.loc[dft.new_order == N]['a_'+align].values
+    j += 1
+    panel.plot(spk, np.repeat(j, len(spk)), '|',
+               markersize=0.5, color='black', zorder=1)
+panel.set_ylabel('Single units')
+panel.set_ylim(0, j); panel.set_xlim(start, stop)
+panel.axes.get_xaxis().set_visible(False)
+y = np.arange(0, j+1, 0.1)
+panel.xaxis.set_visible(False)
+panel.fill_betweenx(y, cue_on, cue_off,                 color='lightgrey',      alpha=1, linewidth=0, zorder=0)
+panel.fill_betweenx(y, cue_off+delay, cue_off+delay+.2, color='lightgrey', alpha=1, linewidth=0, zorder=0)
+h2.set_title('Session E20 2022-02-14', fontsize=7)
+
+# #########################################################################################
+# Panel b: single neuron raster and PSTH
+# #########################################################################################
+
+df_sn   = pd.read_csv(path + 'panel_b_neuron153_spike_times_all_10s_delay_trials.csv', index_col=0)
+df_sn   = df_sn.loc[df_sn.WM_roll > 0.6]
+temp_df = df_sn.loc[(df_sn.WM_roll > 0.6) & (df_sn.hit == 1)]
+j = convolveandplot(temp_df, e, f, variable='reward_side',
+                    cluster_id=153, delay=10, j=1)
+e.set_title('Session E20 2022-02-14 - Cluster 153', fontsize=7)
+
+for ax in [e, f]:
+    leg = ax.get_legend()
+    if leg is not None:
+        for text in leg.get_texts():
+            t = text.get_text()
+            if 'right' in t.lower():
+                text.set_text('Right')
+            elif 'left' in t.lower():
+                text.set_text('Left')
+
+# #########################################################################################
+# Panel c: cross-temporal decoding heatmap
+# #########################################################################################
+
+df_animal_shuffle = pd.read_csv(path + 'panels_c-f_cross_temporal_choice_decoding_3s_delay_shuffle_control.csv', index_col=0, low_memory=False)
+df_animal_sti     = pd.read_csv(path + 'panels_c-f_cross_temporal_choice_decoding_3s_delay.csv',                 index_col=0, low_memory=False)
 
 panel = a
 df_shuffle_mean = pd.DataFrame()
@@ -169,9 +255,10 @@ for train_value in df_animal_sti.train.unique():
     else:
         df_diagonal = pd.merge(df_diagonal, df_temp_d, on=['session'])
 
-# ---------------------------------------------------------------------------
-# Panels d / e / f
-# ---------------------------------------------------------------------------
+# #########################################################################################
+# Panels d / e / f: decoder time courses (stimulus, delay, response codes)
+# #########################################################################################
+
 for panel, df_cum_sti, df_shuffle, upper_limit in zip(
         [b, c, d],
         [df_animal_sti.loc[df_animal_sti.train == '0.0_0.25'],
@@ -196,93 +283,11 @@ c.set_ylabel('Excess decoding')
 d.set_ylabel('Excess decoding')
 d.set_xlabel('Time from stimulus onset (s)')
 
-# ---------------------------------------------------------------------------
-# Panel a — population raster (h2) + PSTH (h1)
-# ---------------------------------------------------------------------------
-big_data = pd.read_csv(path + 'single_trial_example_237.csv', index_col=0)
-n_neurons = big_data['neuron'].nunique()
+# #########################################################################################
+# Panel g: code overlap (weight vector comparisons)
+# #########################################################################################
 
-dft = pd.read_csv(path + 'single_trial_example_df_237.csv', index_col=0)
-dft['a_Stimulus_ON'] = dft['fixed_times'] - dft['Stimulus_ON']
-
-delay  = 3
-align  = 'Stimulus_ON'
-cue_on = 0; cue_off = 0.38; start = -2
-stop   = max(dft['a_' + align])
-
-big_data['time_centered'] = np.round(
-    (big_data['times'] - big_data['Stimulus_ON']) / 1000, 2)
-big_data['firing_'] = big_data['firing'] * 1000
-
-df_results = pd.DataFrame(dtype=float)
-df_results['firing'] = (big_data.loc[big_data.time_centered <= stop]
-                        .groupby(['time_centered', 'neuron'])['firing_'].mean())
-df_results.reset_index(inplace=True)
-
-viridis_colors = plt.cm.viridis(np.linspace(0.05, 0.95, n_neurons))
-h1.set_prop_cycle(cycler(color=viridis_colors))
-
-panel = h1
-for N in df_results.neuron.unique():
-    panel.plot(df_results.loc[df_results.neuron == N].time_centered,
-               df_results.loc[df_results.neuron == N].firing, alpha=0.5)
-panel.set_xlim(start, stop)
-panel.set_xlabel('Time from stimulus onset (s)')
-y = np.arange(0, 80, 0.1)
-panel.fill_betweenx(y, cue_on, cue_off,                 color='lightgrey', alpha=1, linewidth=0)
-panel.fill_betweenx(y, cue_off+delay, cue_off+delay+.2, color='lightgrey', alpha=1, linewidth=0)
-panel.set_ylabel('Firing rate (spks/s)')
-
-panel = h2
-FR_mean = []; cluster_id_list = []
-for N in dft.cluster_id.unique():
-    spk = dft.loc[(dft.cluster_id == N) & (dft['a_'+align] > 0.2) &
-                  (dft['a_'+align] < delay)]['a_'+align].values
-    FR_mean.append(len(spk) / delay); cluster_id_list.append(N)
-df_spikes = pd.DataFrame({'cluster_id': cluster_id_list, 'FR': FR_mean})
-df_spikes = df_spikes.sort_values('FR')
-df_spikes['new_order'] = np.arange(len(df_spikes))
-dft = pd.merge(df_spikes, dft, on=['cluster_id'])
-
-j = 0
-for N in dft.new_order.unique():
-    spk = dft.loc[dft.new_order == N]['a_'+align].values
-    j += 1
-    panel.plot(spk, np.repeat(j, len(spk)), '|',
-               markersize=0.5, color='black', zorder=1)
-panel.set_ylabel('Single units')
-panel.set_ylim(0, j); panel.set_xlim(start, stop)
-panel.axes.get_xaxis().set_visible(False)
-y = np.arange(0, j+1, 0.1)
-panel.xaxis.set_visible(False)
-panel.fill_betweenx(y, cue_on, cue_off,                 color='lightgrey',      alpha=1, linewidth=0)
-panel.fill_betweenx(y, cue_off+delay, cue_off+delay+.2, color='lightgrey', alpha=1, linewidth=0)
-h2.set_title('Session E20 2022-02-14', fontsize=7)
-
-# ---------------------------------------------------------------------------
-# Panel b — single neuron
-# ---------------------------------------------------------------------------
-df_sn   = pd.read_csv(path + 'single_neuron_10s.csv', index_col=0)
-df_sn   = df_sn.loc[df_sn.WM_roll > 0.6]
-temp_df = df_sn.loc[(df_sn.WM_roll > 0.6) & (df_sn.hit == 1)]
-j = convolveandplot(temp_df, e, f, variable='reward_side',
-                    cluster_id=153, delay=10, j=1)
-e.set_title('Session E20 2022-02-14 - Cluster 153', fontsize=7)
-
-for ax in [e, f]:
-    leg = ax.get_legend()
-    if leg is not None:
-        for text in leg.get_texts():
-            t = text.get_text()
-            if 'right' in t.lower():
-                text.set_text('Right')
-            elif 'left' in t.lower():
-                text.set_text('Left')
-
-# ---------------------------------------------------------------------------
-# Panel g — code overlap
-# ---------------------------------------------------------------------------
-df_temp   = pd.read_csv(path + 'parsed_weights for the modelling_late3.csv',
+df_temp   = pd.read_csv(path + 'panel_g_decoder_weight_vectors_epoch_overlap.csv',
                         index_col=0).reset_index(drop=True)
 panel     = g1
 orderlist = ['Stim x Late Delay', 'Late Delay x Response',
@@ -306,7 +311,7 @@ panel.set_ylabel('Code overlap')
 for i, cond in enumerate(orderlist):
     vals = df_temp.loc[df_temp.condition == cond, 'vector'].values
     _, p = stats.ttest_1samp(vals, 0)
-    star  = '***' if p < 0.001 else ('**' if p < 0.01 else ('*' if p < 0.05 else 'ns'))
+    star  = plots.p_to_stars(p)
     y_top = df_temp.loc[df_temp.condition == cond, 'vector'].max()
     panel.text(i, y_top + 0.05, star, ha='center', va='bottom', fontsize=7)
 

@@ -28,12 +28,14 @@ sns.set_context('paper', rc={
     'ytick.major.size': 1, 'ytick.labelsize': 6,
     'xtick.major.pad': 0, 'ytick.major.pad': 0, 'xlabel.labelpad': -10})
 
-# ── Figure & GridSpec ─────────────────────────────────────────────────────
+# #########################################################################################
+# Figure & GridSpec
+# #########################################################################################
+
 fig = plt.figure(figsize=(21*cm, 12*cm))
 gs = gridspec.GridSpec(nrows=2, ncols=9, figure=fig,
                        left=0.07, bottom=0.07, right=0.97, top=0.97,
                        wspace=1.0, hspace=0.5)
-
 gs_a = gridspec.GridSpecFromSubplotSpec(3, 1, subplot_spec=gs[0, 0:3],
                                         hspace=0, height_ratios=[2, 2, 1])
 a2 = fig.add_subplot(gs_a[0])
@@ -65,14 +67,17 @@ fig.text(0.36, 0.5,  'd', fontsize=10, fontweight='bold', va='top')
 fig.text(0.56, 1,    'e', fontsize=10, fontweight='bold', va='top')
 fig.text(0.56, 0.5,  'f', fontsize=10, fontweight='bold', va='top')
 
-# ── Panel a ───────────────────────────────────────────────────────────────
+# #########################################################################################
+# Panel a
+# #########################################################################################
+
 os.chdir(save_path)
 color = plt.cm.viridis(np.linspace(0, 1, 4))
 mpl.rcParams['axes.prop_cycle'] = cycler(color=color)
 
-file_name = 'single_trial_example_432'
+file_name = 'panel_a_population_firing_rates_trial432_session_E20'
 big_data = pd.read_csv(path+file_name+'.csv', index_col=0)
-file_name = 'single_trial_example_df_432'
+file_name = 'panel_a_population_spike_times_trial432_session_E20'
 dft = pd.read_csv(path+file_name+'.csv', index_col=0)
 dft['a_Stimulus_ON'] = dft['fixed_times'] - dft['Stimulus_ON']
 
@@ -150,8 +155,11 @@ sns.despine(ax=a2); sns.despine(ax=a1); sns.despine(ax=a3)
 a2.spines['bottom'].set_visible(False)
 a1.spines['bottom'].set_visible(False)
 
-# ── Panel b ───────────────────────────────────────────────────────────────
-file_name = 'synch_data_trials_2beforeSti'
+# #########################################################################################
+# Panel b
+# #########################################################################################
+
+file_name = 'panel_b_per_trial_synchrony_and_behavioral_state_all_sessions'
 df_final = pd.read_csv(path+file_name+'.csv', index_col=0)
 df_final['state'] = np.where(df_final['WM_roll'] > 0.5, 0, 1)
 
@@ -159,11 +167,15 @@ animal = "E22_2022-01-13_16-34-24.csv"
 threshold = 0.5
 df_session = df_final.loc[df_final.animal == animal]
 
-fig.text(0.08, 0.5, 'Mouse E22 13-01', fontsize=7, ha='left', va='bottom')
+fig.text(0.08, 0.45, 'Mouse E22 13-01', fontsize=7, ha='left', va='bottom')
 
+synch_trial_names = {
+    153: 'panel_b_spike_times_trial153_for_synchrony_display',
+    212: 'panel_b_spike_times_trial212_for_synchrony_display',
+    340: 'panel_b_spike_times_trial340_for_synchrony_display',
+}
 for ax_r, ax_fr, T in [(g2,g1,153),(f2,f1,212),(h2,h1,340)]:
-    filename = 'single_trial_synch_'+str(T)
-    df = pd.read_csv(path+filename+'.csv', sep=',', index_col=0)
+    df = pd.read_csv(path + synch_trial_names[T] + '.csv', sep=',', index_col=0)
     synch_trial(df, T, ax_r, ax_fr, trial=T)
     ax_fr.set_title(str(T), fontsize=6)
     ax_r.set_xlabel('')
@@ -232,7 +244,10 @@ for T_mark, target_ax in [(153, g2), (212, f2), (340, h2)]:
 
 sns.despine(ax=d)
 
-# ── Panel c ───────────────────────────────────────────────────────────────
+# #########################################################################################
+# Panel c
+# #########################################################################################
+
 panel = c1
 df_results = pd.DataFrame()
 df_results['synch'] = df_final.groupby(['animal','state']).synch.mean()
@@ -274,8 +289,11 @@ sns.despine(ax=panel)
 panel.spines['bottom'].set_visible(False)
 panel.tick_params(bottom=True)
 
-# ── Panel d ───────────────────────────────────────────────────────────────
-file_name = 'synch_corrdata_final'
+# #########################################################################################
+# Panel d
+# #########################################################################################
+
+file_name = 'panel_d_synchrony_correlation_with_behavior_per_session'
 df_corr = pd.read_csv(path+file_name+'.csv', index_col=0)
 
 panel = i1
@@ -309,9 +327,12 @@ sns.despine(ax=panel)
 panel.spines['bottom'].set_visible(False)
 panel.tick_params(bottom=True)
 
-# ── Panel e ───────────────────────────────────────────────────────────────
+# #########################################################################################
+# Panel e
+# #########################################################################################
+
 panel = j1
-file_name = 'auto_corrs_indiv_session'
+file_name = 'panel_e_left_spike_autocorrelogram_STM_vs_RepL_example_session'
 df = pd.read_csv(path+file_name+'.csv', header=None, index_col=0)
 panel.plot(df.index, df[1], color='indigo')
 panel.plot(df.index, df[2], color='darkgreen')
@@ -326,7 +347,7 @@ sns.despine(ax=panel)
 panel.tick_params(bottom=True)
 
 panel = j2
-file_name = 'psd_ratio_indiv_session'
+file_name = 'panel_e_right_PSD_ratio_RepL_over_STM_example_session'
 df = pd.read_csv(path+file_name+'.csv', header=None, index_col=0)
 panel.scatter(x=6.2, y=2.5, color='crimson')
 panel.plot(df.index, df[1], color='black')
@@ -344,9 +365,12 @@ panel.text(0.05, 0.95, 'Session E11_2021-05-12', transform=panel.transAxes,
 sns.despine(ax=panel)
 panel.tick_params(bottom=True, which='both')
 
-# ── Panel f ───────────────────────────────────────────────────────────────
+# #########################################################################################
+# Panel f
+# #########################################################################################
+
 panel = k1
-file_name = 'avg_PSDs_V2'
+file_name = 'panel_f_left_mean_power_spectrum_STM_vs_RepL_all_sessions'
 df = pd.read_csv(path+file_name+'.csv', header=None, index_col=0)
 panel.plot(df.index, df[1], color='indigo')
 panel.plot(df.index, df[2], color='darkgreen')
@@ -362,7 +386,7 @@ panel.tick_params(axis='both', which='both', direction='out')
 sns.despine(ax=panel)
 
 panel = k2
-file_name = 'AVG_psd_ratio_w_band'
+file_name = 'panel_f_right_mean_PSD_ratio_with_confidence_interval'
 df = pd.read_csv(path+file_name+'.csv', header=None, index_col=0)
 x, y, y_min, y_max = df.index, df[1], df[3], df[2]
 panel.plot(x, y, color='black')
@@ -380,10 +404,16 @@ panel.set_xlabel('Frequency (Hz)')
 panel.tick_params(axis='both', which='both', direction='out')
 sns.despine(ax=panel)
 
-# ── Finalise ──────────────────────────────────────────────────────────────
+# #########################################################################################
+# Finalise
+# #########################################################################################
+
 sns.despine()
 
-# ── Re-apply all spine/tick fixes AFTER global despine ──────────────────
+# #########################################################################################
+# Re-apply all spine/tick fixes after global despine
+# #########################################################################################
+
 # a: no bottom axis line on raster and PSTH
 a2.spines['bottom'].set_visible(False)
 a1.spines['bottom'].set_visible(False)

@@ -34,7 +34,11 @@ sys.path.insert(0, str(ROOT / 'src'))
 from functions import convolveandplot
 import functions as plots
 
-# ---------------------------------------------------------------------------
+
+# #########################################################################################
+# Setup — imports, paths, and global style
+# #########################################################################################
+
 save_path = str(FIGURES_OUT / 'fig_5_ephys_repl') + '/'
 path      = str(DATA_DIR   / 'fig_5_ephys_repl') + '/'
 os.chdir(path)
@@ -53,9 +57,11 @@ sns.set_context('paper', rc={
     'ytick.major.pad':  0,
 })
 
-# ============================================================
-# Figure & GridSpec
-# ============================================================
+
+# #########################################################################################
+# Figure layout and GridSpec
+# #########################################################################################
+
 fig = plt.figure(figsize=(25 * cm, 22 * cm))
 
 outer = gridspec.GridSpec(
@@ -104,16 +110,18 @@ i_gs = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=bot[0, 1], hspace=0.3
 i1 = fig.add_subplot(i_gs[0])
 i2 = fig.add_subplot(i_gs[1])
 
-j_outer = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=bot[0, 2:4], height_ratios=[1, 3], hspace=0)
+j_outer = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=bot[0, 2:4], height_ratios=[2, 3], hspace=0)
 j0 = fig.add_subplot(j_outer[0])
 j_gs = gridspec.GridSpecFromSubplotSpec(1, 3, subplot_spec=j_outer[1], wspace=0.08)
 j1 = fig.add_subplot(j_gs[0])
 j2 = fig.add_subplot(j_gs[1])
 j3 = fig.add_subplot(j_gs[2])
 
-# ============================================================
-# Helpers
-# ============================================================
+
+# #########################################################################################
+# Helper functions
+# #########################################################################################
+
 def label_panel(ax, letter, x=-0.25, y=1.25):
     ax.text(x, y, letter, transform=ax.transAxes,
             fontsize=9, fontweight='bold', va='top', ha='left')
@@ -145,70 +153,76 @@ def no_left_spine(ax):
     ax.tick_params(left=False, labelleft=False)
     ax.set_ylabel('')
 
-# ============================================================
-# Panel a
-# ============================================================
+
+# #########################################################################################
+# Panel a: stimulus-aligned decoding (STM vs RepL)
+# #########################################################################################
+
 y_range = [-0.1, 0.45]
 
 variable  = 'WM_roll_1'
-df_sti    = pd.read_csv(path + 'panel_a_stimAligned.csv', index_col=0)
+df_sti    = pd.read_csv(path + 'panel_a_stimulus_aligned_choice_decoding_STM_vs_RepL.csv', index_col=0)
 df_sti    = df_sti.loc[df_sti.trial_type == variable]
-df_shuf   = pd.read_csv(path + 'panel_a_stimAligned_shuffle_WM.csv', index_col=0)
+df_shuf   = pd.read_csv(path + 'panel_a_stimulus_aligned_choice_decoding_STM_shuffle.csv', index_col=0)
 sess      = df_shuf.session.unique()
 df_sti    = df_sti[df_sti.session.isin(sess)]
-plots.plot_results_session_summary_substract(fig, a, df_sti, df_shuf,
-    color=COLOR_STM, variable=variable, y_range=y_range, x_range=[-2, 1.3], baseline=0)
+plots.plot_results_session_summary(fig, a, df_sti, [COLOR_STM], [variable], shuffle_df=df_shuf,
+    y_range=y_range, x_range=[-2, 1.3], baseline=0)
 
 variable  = 'RL_roll_1'
-df_sti    = pd.read_csv(path + 'panel_a_stimAligned.csv', index_col=0)
+df_sti    = pd.read_csv(path + 'panel_a_stimulus_aligned_choice_decoding_STM_vs_RepL.csv', index_col=0)
 df_sti    = df_sti.loc[df_sti.trial_type == variable]
-df_shuf2  = pd.read_csv(path + 'panel_a_stimAligned_shuffle_RL.csv', index_col=0)
+df_shuf2  = pd.read_csv(path + 'panel_a_stimulus_aligned_choice_decoding_RepL_shuffle.csv', index_col=0)
 df_shuf2  = df_shuf2[df_shuf2.session.isin(sess)]
-plots.plot_results_session_summary_substract(fig, a, df_sti, df_shuf2,
-    color=COLOR_REPL, variable=variable, y_range=y_range, x_range=[-2, 1.3], baseline=0)
+plots.plot_results_session_summary(fig, a, df_sti, [COLOR_REPL], [variable], shuffle_df=df_shuf2,
+    y_range=y_range, x_range=[-2, 1.3], baseline=0)
 
 a.set_title('Stimulus code', fontsize=7, fontweight='bold')
 a.set_ylabel('Excess decoding\naccuracy')
 label_panel(a, 'a')
 
-# ============================================================
-# Panel b
-# ============================================================
+
+# #########################################################################################
+# Panel b: response-aligned decoding (STM vs RepL)
+# #########################################################################################
+
 variable = 'WM_roll_1'
-df_res   = pd.read_csv(path + 'panel_b_respAligned.csv', index_col=0)
+df_res   = pd.read_csv(path + 'panel_b_response_aligned_choice_decoding_STM_vs_RepL.csv', index_col=0)
 df_res   = df_res.loc[df_res.trial_type == variable]
-df_shuf  = pd.read_csv(path + 'panel_b_respAligned_shuffle_WM.csv', index_col=0)
-plots.plot_results_session_summary_substract(fig, b, df_res, df_shuf,
-    color=COLOR_STM, variable=variable, y_range=y_range, x_range=[-1, 3], baseline=0)
+df_shuf  = pd.read_csv(path + 'panel_b_response_aligned_choice_decoding_STM_shuffle.csv', index_col=0)
+plots.plot_results_session_summary(fig, b, df_res, [COLOR_STM], [variable], shuffle_df=df_shuf,
+    y_range=y_range, x_range=[-1, 3], baseline=0)
 
 variable = 'RL_roll_1'
-df_res   = pd.read_csv(path + 'panel_b_respAligned.csv', index_col=0)
+df_res   = pd.read_csv(path + 'panel_b_response_aligned_choice_decoding_STM_vs_RepL.csv', index_col=0)
 df_res   = df_res.loc[df_res.trial_type == variable]
-df_shuf  = pd.read_csv(path + 'panel_b_respAligned_shuffle_RL.csv', index_col=0)
-plots.plot_results_session_summary_substract(fig, b, df_res, df_shuf,
-    color=COLOR_REPL, variable=variable, y_range=y_range, x_range=[-1, 3], baseline=0)
+df_shuf  = pd.read_csv(path + 'panel_b_response_aligned_choice_decoding_RepL_shuffle.csv', index_col=0)
+plots.plot_results_session_summary(fig, b, df_res, [COLOR_REPL], [variable], shuffle_df=df_shuf,
+    y_range=y_range, x_range=[-1, 3], baseline=0)
 
 b.set_title('Response code', fontsize=7, fontweight='bold')
 b.set_xlabel('Time from Go cue onset (s)')
 hide_yaxis(b)
 label_panel(b, 'b')
 
-# ============================================================
-# Panel c
-# ============================================================
+
+# #########################################################################################
+# Panel c: delay code decoding (STM vs RepL, stimulus and response aligned)
+# #########################################################################################
+
 for variable, color in [('WM_roll_1', COLOR_STM), ('RL_roll_1', COLOR_REPL)]:
-    df_sti  = pd.read_csv(path + 'panel_c_stimAligned.csv', index_col=0)
-    df_res  = pd.read_csv(path + 'panel_c_respAligned.csv', index_col=0)
+    df_sti  = pd.read_csv(path + 'panel_c_stimulus_aligned_delay_decoding_STM_vs_RepL.csv', index_col=0)
+    df_res  = pd.read_csv(path + 'panel_c_response_aligned_delay_decoding_STM_vs_RepL.csv', index_col=0)
     df_sti  = df_sti.loc[df_sti.trial_type == variable]
     df_res  = df_res.loc[df_res.trial_type == variable]
-    shuf_sti = 'panel_c_stimAligned_shuffle_WM.csv' if variable == 'WM_roll_1' else 'panel_c_stimAligned_shuffle_RL.csv'
-    shuf_res = 'panel_c_respAligned_shuffle_WM.csv' if variable == 'WM_roll_1' else 'panel_c_respAligned_shuffle_RL.csv'
+    shuf_sti = 'panel_c_stimulus_aligned_delay_decoding_STM_shuffle.csv' if variable == 'WM_roll_1' else 'panel_c_stimulus_aligned_delay_decoding_RepL_shuffle.csv'
+    shuf_res = 'panel_c_response_aligned_delay_decoding_STM_shuffle.csv' if variable == 'WM_roll_1' else 'panel_c_response_aligned_delay_decoding_RepL_shuffle.csv'
     df_ss   = pd.read_csv(path + shuf_sti, index_col=0)
     df_rs   = pd.read_csv(path + shuf_res, index_col=0)
-    plots.plot_results_session_summary_substract(fig, c1, df_sti, df_ss,
-        color=color, variable=variable, y_range=y_range, x_range=[-2, 1.3], baseline=0)
-    plots.plot_results_session_summary_substract(fig, c2, df_res, df_rs,
-        color=color, variable=variable, y_range=y_range, x_range=[-1, 3], baseline=0)
+    plots.plot_results_session_summary(fig, c1, df_sti, [color], [variable], shuffle_df=df_ss,
+        y_range=y_range, x_range=[-2, 1.3], baseline=0)
+    plots.plot_results_session_summary(fig, c2, df_res, [color], [variable], shuffle_df=df_rs,
+        y_range=y_range, x_range=[-1, 3], baseline=0)
 
 c1.set_title('Delay code', fontsize=7, fontweight='bold')
 c1.set_ylabel('Excess decoding\naccuracy')
@@ -232,11 +246,13 @@ b.fill_betweenx( [grey_y_bot, grey_y_top], 0, 0.2,  color='lightgrey', alpha=1, 
 c1.fill_betweenx([grey_y_bot, grey_y_top], 0, 0.35, color='lightgrey', alpha=1, linewidth=0, zorder=0)
 c2.fill_betweenx([grey_y_bot, grey_y_top], 0, 0.2,  color='lightgrey', alpha=1, linewidth=0, zorder=0)
 
-# ============================================================
-# Panel d
-# ============================================================
+
+# #########################################################################################
+# Panel d: ramp code decoding (delay vs pre-stimulus probability)
+# #########################################################################################
+
 baseline_d = 0.5
-df_ramp = pd.read_csv(path + 'panel_d.csv')
+df_ramp = pd.read_csv(path + 'panel_d_delay_vs_prestimulus_ramp_probability_STM_vs_RepL.csv')
 
 plots.plot_results_session_summary(None, d, df_ramp, [COLOR_STM, COLOR_REPL],
                                    ['WM_roll_1', 'RL_roll_1'],
@@ -252,13 +268,15 @@ d.set_xlim(-2, 10)
 d.set_ylim(0, 1.0)
 label_panel(d, 'd', x=-0.08)
 
-# ============================================================
-# Panel e
-# ============================================================
-df_sti_e  = pd.read_csv(path + 'panel_e_stimAligned.csv',         index_col=0)
-df_res_e  = pd.read_csv(path + 'panel_e_respAligned.csv',         index_col=0)
-df_ss_e   = pd.read_csv(path + 'panel_e_stimAligned_shuffle.csv', index_col=0)
-df_rs_e   = pd.read_csv(path + 'panel_e_respAligned_shuffle.csv', index_col=0)
+
+# #########################################################################################
+# Panel e: example session single-trial decoding (stimulus and response aligned)
+# #########################################################################################
+
+df_sti_e  = pd.read_csv(path + 'panel_e_example_session_stimulus_aligned_delay_decoding.csv',         index_col=0)
+df_res_e  = pd.read_csv(path + 'panel_e_example_session_response_aligned_delay_decoding.csv',         index_col=0)
+df_ss_e   = pd.read_csv(path + 'panel_e_example_session_stimulus_aligned_delay_decoding_shuffle.csv', index_col=0)
+df_rs_e   = pd.read_csv(path + 'panel_e_example_session_response_aligned_delay_decoding_shuffle.csv', index_col=0)
 
 for color, variable in [(COLOR_STM,'WM_roll_1'), (COLOR_REPL,'RL_roll_1')]:
     real   = np.array(np.mean(
@@ -316,16 +334,18 @@ hide_yaxis(e2)
 hide_inner(e1, e2)
 label_panel(e1, 'e')
 
-# ============================================================
-# Panels f & g
-# ============================================================
+
+# #########################################################################################
+# Panels f & g: single-trial raster and decoder (STM and RepL example trials)
+# #########################################################################################
+
 T = 223
 plots.single_trial_with_decoder(
-    pd.read_csv(path + 'panel_f_spikes.csv',    index_col=0),
-    pd.read_csv(path + 'panel_f_decoder.csv',   index_col=0),
-    pd.read_csv(path + 'panel_f_firingrate.csv', index_col=0),
+    pd.read_csv(path + 'panel_f_spike_times_trial223_correct_STM.csv',    index_col=0),
+    pd.read_csv(path + 'panel_f_delay_decoder_output_trial223_correct_STM.csv',   index_col=0),
+    pd.read_csv(path + 'panel_f_population_firing_rates_trial223_correct_STM.csv', index_col=0),
     'E17_2022-01-31_16-30-44.csv', T, panels=[f1, f2, f3])
-f1.set_title('Correct Right stimulus STM trial\n(trial 185)', fontsize=5.5, pad=2)
+f1.set_title('Correct Right stimulus STM trial\n(trial 223)', fontsize=5.5, pad=2)
 f3.set_ylim(-10, 10)
 label_panel(f1, 'f')
 f1.tick_params(labelbottom=False); f1.set_xlabel('')
@@ -340,11 +360,11 @@ f2.text(0.40, 0.55, 'Left prefering neurons',  transform=f2.transAxes, fontsize=
 
 T = 21
 plots.single_trial_with_decoder(
-    pd.read_csv(path + 'panel_g_spikes.csv',    index_col=0),
-    pd.read_csv(path + 'panel_g_decoder.csv',   index_col=0),
-    pd.read_csv(path + 'panel_g_firingrate.csv', index_col=0),
+    pd.read_csv(path + 'panel_g_spike_times_trial21_RepL.csv',    index_col=0),
+    pd.read_csv(path + 'panel_g_delay_decoder_output_trial21_RepL.csv',   index_col=0),
+    pd.read_csv(path + 'panel_g_population_firing_rates_trial21_RepL.csv', index_col=0),
     'E17_2022-01-31_16-30-44.csv', T, panels=[g1, g2, g3])
-g1.set_title('Correct Right stimulus RepL trial\n(trial 83)', fontsize=5.5, pad=2)
+g1.set_title('Correct Right stimulus RepL trial\n(trial 21)', fontsize=5.5, pad=2)
 g3.set_ylim(-10, 10)
 label_panel(g1, 'g')
 g1.tick_params(labelbottom=False); g1.set_xlabel('')
@@ -355,10 +375,12 @@ for gax in [g1, g2, g3]:
     gax.axvspan(10.4,10.6,color='lightgrey', alpha=0.8, linewidth=0, zorder=0)
 # no neuron labels on g
 
-# ============================================================
-# Panel h — manual boxplots with correct per-group colours
-# ============================================================
-df_final   = pd.read_csv(path + 'panel_h.csv', index_col=0)
+
+# #########################################################################################
+# Panel h: epoch-split decoding log-odds (early vs late delay, STM vs RepL)
+# #########################################################################################
+
+df_final   = pd.read_csv(path + 'panel_h_delay_decoder_log_odds_by_epoch_STM_vs_RepL.csv', index_col=0)
 df_results = df_final.groupby(['session','trial_type','epoch']).log_odds.mean().reset_index()
 
 positions    = [-0.25, 0.2, 0.75, 1.2]
@@ -396,10 +418,12 @@ if HAS_RPY2:
     model = lme4.lmer(formula, data=r_df)
     print(base.summary(model))
 
-# ============================================================
-# Panel i
-# ============================================================
-df_neuron = pd.read_csv(path + 'panel_i.csv')
+
+# #########################################################################################
+# Panel i: example neuron firing rate by WM state
+# #########################################################################################
+
+df_neuron = pd.read_csv(path + 'panel_i_neuron138_spike_times_all_10s_delay_trials.csv')
 temp_df   = df_neuron.loc[df_neuron.cluster_id==138].copy()
 temp_df['state'] = np.where(temp_df['WM_roll']>0.6, 1, 0)
 
@@ -424,63 +448,62 @@ try:    i1.get_legend().remove()
 except: pass
 label_panel(i1, letter="i",y=1.05)
 
-# ============================================================
-# Panel j
-# j1 = Time from Go (trial t-1)  x: 0->4   data: _sti files
-# j2 = Time from Stim.           x: -4->-1  data: _substracted sti files
-# j3 = Time from Go (trial t)    x: -1->3   data: _res files
-# ============================================================
+
+# #########################################################################################
+# Panel j: previous-response decoding across trial epochs (j1 prev-Go, j2 Stim, j3 Go)
+# #########################################################################################
+
 y_range_j = [-0.1, 0.45]
 
 # j1
 variable = 'WM_roll_1'
-df_sj  = pd.read_csv(path + 'panel_j2_WM.csv', index_col=0)
-df_sjs = pd.read_csv(path + 'panel_j2_WM_shuffle.csv', index_col=0)
+df_sj  = pd.read_csv(path + 'panel_j_stimulus_aligned_previous_response_decoding_STM.csv', index_col=0)
+df_sjs = pd.read_csv(path + 'panel_j_stimulus_aligned_previous_response_decoding_STM_shuffle.csv', index_col=0)
 df_sjs['trial_type'] = variable
 sess_js = df_sjs.session.unique()
 df_sj   = df_sj[df_sj.session.isin(sess_js)]
-plots.plot_results_session_summary_substract(fig, j2, df_sj, df_sjs,
-    color=COLOR_STM, variable=variable, y_range=y_range_j, x_range=[-4, -1], baseline=0)
+plots.plot_results_session_summary(fig, j2, df_sj, [COLOR_STM], [variable], shuffle_df=df_sjs,
+    y_range=y_range_j, x_range=[-4, 1], baseline=0)
 
 variable = 'RL_roll_1'
-df_sj2  = pd.read_csv(path + 'panel_j2_RL.csv', index_col=0)
-df_sjs2 = pd.read_csv(path + 'panel_j2_RL_shuffle.csv', index_col=0)
+df_sj2  = pd.read_csv(path + 'panel_j_stimulus_aligned_previous_response_decoding_RepL.csv', index_col=0)
+df_sjs2 = pd.read_csv(path + 'panel_j_stimulus_aligned_previous_response_decoding_RepL_shuffle.csv', index_col=0)
 df_sjs2['trial_type'] = variable
 df_sj2  = df_sj2[df_sj2.session.isin(sess_js)]
-plots.plot_results_session_summary_substract(fig, j2, df_sj2, df_sjs2,
-    color=COLOR_REPL, variable=variable, y_range=y_range_j, x_range=[-4, -1], baseline=0)
+plots.plot_results_session_summary(fig, j2, df_sj2, [COLOR_REPL], [variable], shuffle_df=df_sjs2,
+    y_range=y_range_j, x_range=[-4, 1], baseline=0)
 
 # j2 — data already pre-subtracted, plot directly without shuffle
-df_ss1 = pd.read_csv(path + 'trainedcorrect_testedWMcorrect_gocueprevious_substracted_res.csv', index_col=0)
+df_ss1 = pd.read_csv(path + 'panel_j_gocue_previous_response_decoding_STM_shuffle_subtracted.csv', index_col=0)
 plots.plot_results_session_summary(fig, j1, df_ss1, colors=[COLOR_STM],
     variables_combined=['WM_roll_1'], y_range=y_range_j, x_range=[-1, 4], baseline=0)
 
-df_ss2 = pd.read_csv(path + 'trainedcorrect_testedRLcorrect_gocueprevious_substracted_res.csv', index_col=0)
+df_ss2 = pd.read_csv(path + 'panel_j_gocue_previous_response_decoding_RepL_shuffle_subtracted.csv', index_col=0)
 plots.plot_results_session_summary(fig, j1, df_ss2, colors=[COLOR_REPL],
     variables_combined=['RL_roll_1'], y_range=y_range_j, x_range=[-1, 4], baseline=0)
 
 # j3
 variable = 'WM_roll_1'
-df_rj  = pd.read_csv(path + 'panel_j3_WM.csv', index_col=0)
-df_rjs = pd.read_csv(path + 'panel_j3_WM_shuffle.csv', index_col=0)
+df_rj  = pd.read_csv(path + 'panel_j_gocue_aligned_previous_response_decoding_STM.csv', index_col=0)
+df_rjs = pd.read_csv(path + 'panel_j_gocue_aligned_previous_response_decoding_STM_shuffle.csv', index_col=0)
 df_rjs['trial_type'] = variable
 df_rj  = df_rj[df_rj.session.isin(sess_js)]
-plots.plot_results_session_summary_substract(fig, j3, df_rj, df_rjs,
-    color=COLOR_STM, variable=variable, y_range=y_range_j, x_range=[-1, 3], baseline=0)
+plots.plot_results_session_summary(fig, j3, df_rj, [COLOR_STM], [variable], shuffle_df=df_rjs,
+    y_range=y_range_j, x_range=[-1, 3], baseline=0)
 
 variable = 'RL_roll_1'
-df_rj2  = pd.read_csv(path + 'panel_j3_RL.csv', index_col=0)
-df_rjs2 = pd.read_csv(path + 'panel_j3_RL_shuffle.csv', index_col=0)
+df_rj2  = pd.read_csv(path + 'panel_j_gocue_aligned_previous_response_decoding_RepL.csv', index_col=0)
+df_rjs2 = pd.read_csv(path + 'panel_j_gocue_aligned_previous_response_decoding_RepL_shuffle.csv', index_col=0)
 df_rjs2['trial_type'] = variable
 df_rj2  = df_rj2[df_rj2.session.isin(sess_js)]
-plots.plot_results_session_summary_substract(fig, j3, df_rj2, df_rjs2,
-    color=COLOR_REPL, variable=variable, y_range=y_range_j, x_range=[-1, 3], baseline=0)
+plots.plot_results_session_summary(fig, j3, df_rj2, [COLOR_REPL], [variable], shuffle_df=df_rjs2,
+    y_range=y_range_j, x_range=[-1, 3], baseline=0)
 
 j1.set_xlabel('Time from Go (s)')
 j1.set_ylabel('Excess decoding\naccuracy')
 j1.set_xlim(-1, 4)
 j2.set_xlabel('Time from Stim. (s)')
-j2.set_xlim(-4, -1)
+j2.set_xlim(-4, 1)
 j3.set_xlabel('Time from Go (s)')
 j3.set_xlim(-1, 3)
 no_right_spine(j1); no_left_spine(j2); no_right_spine(j2); no_left_spine(j3)
@@ -491,17 +514,21 @@ j3.xaxis.get_major_ticks()[0].label1.set_visible(False)
 label_panel(j0, 'j', x=-0.12)
 j0.axis('off')
 
-# ============================================================
+
+# #########################################################################################
 # Significance bars
-# ============================================================
+# #########################################################################################
+
 sig_bar(a,  0, 0.4)
 sig_bar(b,  0, 0.2)
 sig_bar(c1, 0, 0.4)
 sig_bar(c2, 0, 0.2)
 
-# ============================================================
-# Final polish
-# ============================================================
+
+# #########################################################################################
+# Final polish — despine, align axes, spine cleanup
+# #########################################################################################
+
 sns.despine()
 
 # After despine: align b, c2, e2 to same height/y0 as a, c1, e1
@@ -537,44 +564,37 @@ i1.spines['bottom'].set_visible(False)
 b.spines['left'].set_visible(False)
 b.tick_params(left=False, labelleft=False)
 
-# ============================================================
-# j panel annotations
-# ============================================================
+
+# #########################################################################################
+# Panel j annotations — arrows, labels, and trial boundary line
+# #########################################################################################
+
 fig.canvas.draw()
 
 
 # Arrows
-j1.annotate('', xy=(1.0, 1.14), xytext=(0.0, 1.14),
+j1.annotate('', xy=(1.0, 1.22), xytext=(0.0, 1.22),
     xycoords='axes fraction', textcoords='axes fraction',
     arrowprops=dict(arrowstyle='<->', color='black', lw=0.8),
     annotation_clip=False)
-j1.text(0.5, 1.19, 'trial  t −1', transform=j1.transAxes,
-    ha='center', va='bottom', fontsize=6, style='italic')
+j1.text(0.5, 1.225, 'trial  t −1', transform=j1.transAxes,
+    ha='center', va='bottom', fontsize=7, style='italic')
 
-l = fig.transFigure.inverted().transform(j2.transAxes.transform([0.0, 1.14]))
-r = fig.transFigure.inverted().transform(j3.transAxes.transform([1.0, 1.14]))
+l = fig.transFigure.inverted().transform(j2.transAxes.transform([0.0, 1.22]))
+r = fig.transFigure.inverted().transform(j3.transAxes.transform([1.0, 1.22]))
 j2.annotate('', xy=(r[0], r[1]), xytext=(l[0], l[1]),
     xycoords='figure fraction', textcoords='figure fraction',
     arrowprops=dict(arrowstyle='<->', color='black', lw=0.8),
     annotation_clip=False)
-fig.text((l[0]+r[0])/2, l[1]+0.004, 'trial  t',
-    ha='center', va='bottom', fontsize=6, style='italic',
+fig.text((l[0]+r[0])/2, l[1]+0.005, 'trial  t',
+    ha='center', va='bottom', fontsize=7, style='italic',
     transform=fig.transFigure)
 
-# Arrows
-j1.annotate('', xy=(1.0, 1.05), xytext=(0.0, 1.05),
-    xycoords='axes fraction', textcoords='axes fraction',
-    arrowprops=dict(arrowstyle='<->', color='black', lw=0.8),
-    annotation_clip=False)
-j1.text(0.5, 1.19, 'trial  t −1', transform=j1.transAxes,
-    ha='center', va='bottom', fontsize=6, style='italic')
 
-
-# Title
 lj = fig.transFigure.inverted().transform(j1.transAxes.transform([0.0, 1.02]))
 rj = fig.transFigure.inverted().transform(j3.transAxes.transform([1.0, 1.02]))
-fig.text((lj[0]+rj[0])/2, lj[1]+0.5, 'Previous response decoding',
-    ha='center', va='bottom', fontsize=7, fontweight='bold',
+fig.text((lj[0]+rj[0])/2, lj[1]+0.06, 'Previous response decoding',
+    ha='center', va='bottom', fontsize=8, fontweight='bold',
     transform=fig.transFigure)
 
 # Trial boundary: tall black dashed line between j1 and j2
@@ -584,16 +604,17 @@ j1.axvline(x=j1.get_xlim()[1], ymin=-0.15, ymax=1.20,
 # Internal grey dashed lines
 j1.axvline(x=0, color='lightgrey', linestyle='--', linewidth=0.5, zorder=1)
 j2.axvline(x=0, color='lightgrey', linestyle='--', linewidth=0.5, zorder=1)
+j2.axvline(x=0.4, color='lightgrey', linestyle='--', linewidth=0.5, zorder=1)
 j3.axvline(x=0, color='lightgrey', linestyle='--', linewidth=0.5, zorder=1)
 
 # Grey context labels inside panels
-j1.text(0.02, 0.98, 'Go cue',             transform=j1.transAxes, fontsize=4.5, color='grey', va='top', clip_on=True)
-j1.text(0.22, 0.98, 'Resp. window + ITI', transform=j1.transAxes, fontsize=4.5, color='grey', va='top', clip_on=True)
-j2.text(0.04, 0.98, 'Pre-stim.',          transform=j2.transAxes, fontsize=4.5, color='grey', va='top', clip_on=True)
-j2.text(0.68, 0.98, 'Stim.',              transform=j2.transAxes, fontsize=4.5, color='grey', va='top', clip_on=True)
-j3.text(0.02, 0.98, 'Delay',              transform=j3.transAxes, fontsize=4.5, color='grey', va='top', clip_on=True)
-j3.text(0.38, 0.98, 'Go cue',             transform=j3.transAxes, fontsize=4.5, color='grey', va='top', clip_on=True)
-j3.text(0.58, 0.98, 'Resp. window + ITI', transform=j3.transAxes, fontsize=4.5, color='grey', va='top', clip_on=True)
+j1.text(0.04, 0.98, 'Go cue',             transform=j1.transAxes, fontsize=6, color='grey', va='top', clip_on=True)
+j1.text(0.22, 0.98, 'Resp. window + ITI', transform=j1.transAxes, fontsize=6, color='grey', va='top', clip_on=True)
+j2.text(0.04, 0.98, 'Pre-stim.',          transform=j2.transAxes, fontsize=6, color='grey', va='top', clip_on=True)
+j2.text(0.68, 0.98, 'Stim.',              transform=j2.transAxes, fontsize=6, color='grey', va='top', clip_on=True)
+j3.text(0.02, 0.98, 'Delay',              transform=j3.transAxes, fontsize=6, color='grey', va='top', clip_on=True)
+j3.text(0.38, 0.98, 'Go cue',             transform=j3.transAxes, fontsize=6, color='grey', va='top', clip_on=True)
+j3.text(0.58, 0.98, 'Resp. window + ITI', transform=j3.transAxes, fontsize=6, color='grey', va='top', clip_on=True)
 
 # plt.savefig(save_path + 'fig_5_ephys_repl_v5.svg', bbox_inches='tight', dpi=300)
 # plt.savefig(save_path + 'fig_5_ephys_repl_v5.png', bbox_inches='tight', dpi=300)

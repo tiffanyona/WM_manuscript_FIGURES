@@ -21,6 +21,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from config import ROOT, FIGURES_OUT, DATA_DIR
 sys.path.insert(0, str(ROOT / 'src'))
+import functions as plots
 from functions import add_stat_annotation, exp_decay, figureplot, compute_window_centered
 
 save_path = str(FIGURES_OUT / 'supp_figures' / 'supp_fig_3_extra_results_model')
@@ -69,17 +70,18 @@ fig.text(0.25, 0.35, 'g', fontsize=10, fontweight='bold', va='top')
 fig.text(0.49, 0.357, 'h', fontsize=10, fontweight='bold', va='top')
 
 
-
-## ----------------------- Panel A HMM LL (bits/trial) ---------------------------------
+# #######################################################################################
+# Panel A: HMM log-likelihood (bits/trial)
+# #######################################################################################
 
 panel = a
-file_name = '/pertrialLL'
+file_name = '/panel_a_per_trial_log_likelihood_HMM_vs_DW_models'
 full_fit = pd.read_csv(analysis_path + file_name + '.csv', index_col=0)
 xA = np.random.normal(0, 0.05, len(full_fit))
 
 sns.violinplot(x='model', y='LL/trial', data=full_fit.loc[(full_fit.delay == 10)&(full_fit.model == 'all')], legend=False,
                linewidth=0, alpha=0.4, width=0.5, ax=panel, zorder=1, color='lightgrey')
-sns.stripplot(x='model', y='LL/trial', data=full_fit.loc[(full_fit.delay == 10)&(full_fit.model == 'all')], jitter=0.3, size=3,   
+sns.stripplot(x='model', y='LL/trial', data=full_fit.loc[(full_fit.delay == 10)&(full_fit.model == 'all')], jitter=0.3, size=3,
               legend=False, edgecolor='none', color='black', linewidth=0, ax=panel, zorder=2)
 sns.boxplot(x='model', y='LL/trial', data=full_fit.loc[(full_fit.delay == 10)&(full_fit.model == 'all')], legend=False,
             width=0.12, showcaps=False, showfliers=False, ax=panel,
@@ -90,12 +92,15 @@ sns.boxplot(x='model', y='LL/trial', data=full_fit.loc[(full_fit.delay == 10)&(f
 panel.set_xlabel('')
 panel.set_ylabel('LL (bits/trial)')
 
-# ----------------------------------------------------------------------------------------------------------------
+# ###########################################################################################
 
-# ------------------------### PAnel B - LL difference versus Lapse rate -------------------------
+# #######################################################################################
+# Panel B: LL difference versus lapse rate
+# #######################################################################################
+
 from scipy.stats import linregress
 
-merge_df = pd.read_csv(analysis_path+'/difference_vs_lapse.csv')
+merge_df = pd.read_csv(analysis_path+'/panel_b_log_likelihood_gain_vs_lapse_rate_per_animal.csv')
 plot = merge_df.loc[merge_df.model == '11']
 
 panel = b1
@@ -132,8 +137,191 @@ panel.set_xlabel('Lapse rate')
 panel.set_ylabel('Delta - LL \n(bits/trial)')
 panel.set_xlim(0, 0.3)
 
-# -----------------############################## H Panel - HMM parameter values #################################
-file_name = '/fit_HMM_selected_final'
+# ###########################################################################################
+
+# #######################################################################################
+# Panel B: X-Y
+# #######################################################################################
+
+panel = b2
+
+df_results = pd.read_csv(analysis_path+'/panel_b2_accuracy_by_choice_streak_history_and_delay.csv')
+cmap = sns.diverging_palette(15, 250, s=100, l=60, n=len(df_results.loc[df_results.streak != 0].streak.unique()), center="dark")
+
+sns.lineplot(x='delays', y='accuracy_model', hue='streak', data=df_results,errorbar=('ci', 67), legend=False, ax=panel, palette=cmap)
+sns.lineplot(x='delays', y='accuracy_data', hue='streak', data=df_results, errorbar=('ci', 67), linestyle='', ax=panel,
+             markeredgewidth=0.2, marker='o', err_style="bars", legend=False, palette=cmap)
+
+panel.hlines(xmin=0, xmax=10, y=0.5, linestyles=':', color='black')
+panel.set_ylim(0.4, 1)
+panel.set_xlabel("Delay (s)")
+panel.set_ylabel("Accuracy")
+panel.locator_params(nbins=3)
+
+# Legend for repetition and alternation plot
+legend_elements = [Line2D([0], [0], color=cmap[-1], label='XXX'),
+                   Line2D([0], [0], color=cmap[-2], label='XX'),
+                   Line2D([0], [0], color=cmap[-3], label='X'),
+                   Line2D([0], [0], color=cmap[2], label='Y'),
+                   Line2D([0], [0], color=cmap[1], label='YY'),
+                   Line2D([0], [0], color=cmap[0], label='YYY')]
+panel.legend(handles=legend_elements, ncol=1, fontsize=6, bbox_to_anchor=(1, 1), borderaxespad=0).get_frame().set_linewidth(0.0)
+
+# ###########################################################################################
+
+# #######################################################################################
+# Panel C: figureplot
+# #######################################################################################
+
+new_df_real = pd.read_csv(analysis_path + '/panel_c_mouse_N27_10s_delay_behavioral_data.csv')
+new_df = pd.read_csv(analysis_path + '/panel_c_mouse_N27_10s_delay_HMM_model_predictions.csv')
+figureplot(new_df_real, new_df, c)
+
+# ###########################################################################################
+
+# #######################################################################################
+# Panel D: After correct
+# #######################################################################################
+
+panel = d1
+df_results = pd.read_csv(analysis_path + '/panel_d_accuracy_and_repeat_bias_conditioned_on_previous_outcome.csv')
+sns.lineplot(x='delays', y='accuracy_data', hue='after_correct',
+             data=df_results.loc[df_results.after_correct != -1],
+             markeredgewidth=0.2, ax=panel, marker='o', palette=['crimson', 'darkgreen'],
+             linestyle='', err_style="bars", legend=False)
+sns.lineplot(x='delays', y='accuracy_model', hue='after_correct',
+             data=df_results.loc[df_results.after_correct != -1],
+             ax=panel, marker='', palette=['crimson', 'darkgreen'], legend=False)
+panel.hlines(xmin=0, xmax=10, y=0.5, linestyles=':')
+panel.set_xlabel("Delay (s)")
+panel.set_ylim(0.45, 1)
+panel.set_ylabel("Accuracy")
+
+panel = d2
+sns.lineplot(x='delays', y='repeat_data', data=df_results, marker='o', hue='after_correct',
+             palette=['crimson', 'darkgreen'], markeredgewidth=0.2, ax=panel, legend=False,
+             err_style="bars", linestyle='')
+sns.lineplot(x='delays', y='repeat_model', data=df_results, hue='after_correct',
+             palette=['crimson', 'darkgreen'], ax=panel, legend=False)
+panel.hlines(xmin=0, xmax=10, y=0.5, linestyles=':')
+panel.set_ylim(0.45, 1)
+legend_elements = [Line2D([0], [0], color='crimson', label='After incorrect'),
+                   Line2D([0], [0], color='darkgreen', label='After correct')]
+panel.legend(handles=legend_elements, fontsize=6, ncol=1).get_frame().set_linewidth(0.0)
+panel.set_xlabel("Delay (s)")
+panel.set_ylabel("Repeating bias")
+panel.locator_params(nbins=3)
+
+# ###########################################################################################
+
+# #######################################################################################
+# Panel E: Previous correct
+# #######################################################################################
+
+panel = e1
+df_results = pd.read_csv(analysis_path + '/panel_e_accuracy_and_repeat_bias_conditioned_on_upcoming_outcome.csv')
+sns.lineplot(x='delays', y='accuracy_data', hue='previous_correct',
+             data=df_results.loc[df_results.previous_correct != -1],
+             markeredgewidth=0.2, ax=panel, marker='o', palette=['crimson', 'darkgreen'],
+             linestyle='', err_style="bars", legend=False)
+sns.lineplot(x='delays', y='accuracy_model', hue='previous_correct',
+             data=df_results.loc[df_results.previous_correct != -1],
+             ax=panel, marker='', palette=['crimson', 'darkgreen'], legend=False)
+panel.hlines(xmin=0, xmax=10, y=0.5, linestyles=':')
+panel.set_xlabel("Delay (s)")
+panel.set_ylim(0.45, 1)
+panel.set_ylabel("Accuracy")
+
+panel = e2
+sns.lineplot(x='delays', y='repeat_data', data=df_results, marker='o', hue='previous_correct',
+             palette=['crimson', 'darkgreen'], markeredgewidth=0.2, ax=panel, legend=False,
+             err_style="bars", linestyle='')
+sns.lineplot(x='delays', y='repeat_model', data=df_results, hue='previous_correct',
+             palette=['crimson', 'darkgreen'], ax=panel, legend=False)
+panel.hlines(xmin=0, xmax=10, y=0.5, linestyles=':')
+panel.set_ylim(0.45, 1)
+legend_elements = [Line2D([0], [0], color='crimson', label='Before incorrect trial'),
+                   Line2D([0], [0], color='darkgreen', label='Before correct trial')]
+panel.legend(handles=legend_elements, fontsize=6, ncol=1).get_frame().set_linewidth(0.0)
+panel.set_xlabel("Delay (s)")
+panel.set_ylabel("Repeating bias")
+panel.locator_params(nbins=3)
+
+# ###########################################################################################
+
+# #######################################################################################
+# Panel F: Hit autocorrelation
+# #######################################################################################
+
+cumulative_autocorrelation_hit_model = pd.read_csv(analysis_path+'\\panel_f_HMM_simulated_trial_outcome_autocorrelation.csv', index_col=0)
+cumulative_autocorrelation_repeat_model = pd.read_csv(analysis_path+'\\panel_g_HMM_simulated_repeat_choice_autocorrelation.csv', index_col=0)
+
+cumulative_autocorrelation_hit_data = pd.read_csv(analysis_path+'\\panel_f_trial_outcome_autocorrelation_by_lag_per_animal.csv', index_col=0)
+cumulative_autocorrelation_repeat_data = pd.read_csv(analysis_path+'\\panel_g_repeat_choice_autocorrelation_by_lag_per_animal.csv', index_col=0)
+
+panel = f
+color = 'darkgreen'
+corr = cumulative_autocorrelation_hit_model[:25].mean(axis=1)
+
+panel.plot(np.arange(1,len(corr)+1), corr, marker='.', linestyle='', color='grey')
+params, cov = curve_fit(exp_decay, np.arange(len(corr)), corr.values)
+print(params[1])
+
+corr = cumulative_autocorrelation_hit_data[:25]
+lower, upper = plots._bootstrap_ci(corr.T, corr.index)
+
+mean = corr.mean(axis=1)[:25]
+lower = corr.quantile(q=0.025, axis=1, numeric_only=True)
+upper = corr.quantile(q=0.975, axis=1, numeric_only=True)
+
+panel.plot(np.arange(1,len(corr)+1), mean, marker='', color=color)
+panel.hlines(y=0, xmin=0, xmax=25, linestyles=':')
+panel.set_xlabel('Trial indexes')
+panel.set_xlim(0, 25)
+panel.text(10, 0.08, f"HMM", ha='left', va='top', fontsize=6, color='grey')
+panel.text(10, 0.07, f"Data", ha='left', va='top', fontsize=6, color='darkgreen')
+
+params, cov = curve_fit(exp_decay, np.arange(len(corr.mean(axis=1))), corr.mean(axis=1).values)
+print(params[1])
+
+# ###########################################################################################
+
+# #######################################################################################
+# Panel G: Repeat autocorrelation
+# #######################################################################################
+
+panel = g
+color = 'indigo'
+corr = cumulative_autocorrelation_repeat_model.mean(axis=1)
+
+panel.plot(np.arange(1,len(corr)+1), corr, marker='.', linestyle='', color='grey')
+params, cov = curve_fit(exp_decay, np.arange(len(corr)), corr.values)
+print(params[1])
+
+corr = cumulative_autocorrelation_repeat_data[:25]
+lower, upper = plots._bootstrap_ci(corr.T, corr.index)
+
+mean = corr.mean(axis=1)[:25]
+lower = corr.quantile(q=0.025, axis=1, numeric_only=True)
+upper = corr.quantile(q=0.975, axis=1, numeric_only=True)
+
+panel.plot(np.arange(1,len(corr)+1), mean, marker='', color=color)
+panel.hlines(y=0, xmin=0, xmax=25, linestyles=':', color='black')
+panel.set_xlabel('Trial indexes')
+panel.set_xlim(0, 25)
+panel.text(10, 0.08, f"HMM", ha='left', va='top', fontsize=6, color='grey')
+panel.text(10, 0.07, f"Data", ha='left', va='top', fontsize=6, color='indigo')
+
+params, cov = curve_fit(exp_decay, np.arange(len(corr.mean(axis=1))), corr.mean(axis=1).values)
+print(params[1])
+
+# ###########################################################################################
+
+# #######################################################################################
+# Panel H: HMM parameter values
+# #######################################################################################
+
+file_name = '/panel_h_HMM_fitted_parameters_all_animals'
 full_fit = pd.read_csv(analysis_path+file_name+'.csv', index_col=0)
 
 full_fit['const'] = 1
@@ -176,190 +364,6 @@ sns.violinplot(data=plot, palette=['darkgreen','grey','grey'], ax=panel, width=0
 # panel.set_xlabel(r'$\pi \quad t_{11} \quad t_{22}$')
 panel.set_xlim(-0.7, 2.7)
 
-# ----------------------------------------------------------------------------------------------------------------
-# -----------------############################## B Panel - X-Y #################################
-panel = b2
-
-df_results = pd.read_csv(analysis_path+'/X-Y.csv')
-cmap = sns.diverging_palette(15, 250, s=100, l=60, n=len(df_results.loc[df_results.streak != 0].streak.unique()), center="dark")
-
-sns.lineplot(x='delays', y='accuracy_model', hue='streak', data=df_results,errorbar=('ci', 67), legend=False, ax=panel, palette=cmap)
-sns.lineplot(x='delays', y='accuracy_data', hue='streak', data=df_results, errorbar=('ci', 67), linestyle='', ax=panel,
-             markeredgewidth=0.2, marker='o', err_style="bars", legend=False, palette=cmap)
-
-panel.hlines(xmin=0, xmax=10, y=0.5, linestyles=':', color='black')
-panel.set_ylim(0.4, 1)
-panel.set_xlabel("Delay (s)")
-panel.set_ylabel("Accuracy")
-panel.locator_params(nbins=3)
-
-# Legend for repetition and alternation plot
-legend_elements = [Line2D([0], [0], color=cmap[-1], label='XXX'),
-                   Line2D([0], [0], color=cmap[-2], label='XX'),
-                   Line2D([0], [0], color=cmap[-3], label='X'),
-                   Line2D([0], [0], color=cmap[2], label='Y'),
-                   Line2D([0], [0], color=cmap[1], label='YY'),
-                   Line2D([0], [0], color=cmap[0], label='YYY')]
-panel.legend(handles=legend_elements, ncol=1, fontsize=6, bbox_to_anchor=(1, 1), borderaxespad=0).get_frame().set_linewidth(0.0)
-
-# ----------------------------------------------------------------------------------------------------------------
-# -----------------############################## C Panel - figureplot #################################
-animal = '/N27_10'
-new_df_real = pd.read_csv(analysis_path + animal + '_data.csv')
-new_df = pd.read_csv(analysis_path + animal + '_model.csv')
-figureplot(new_df_real, new_df, c)
-
-# ----------------------------------------------------------------------------------------------------------------
-# -----------------############################## D Panel - After correct #################################
-panel = d1
-df_results = pd.read_csv(analysis_path + '/after_correct.csv')
-sns.lineplot(x='delays', y='accuracy_data', hue='after_correct',
-             data=df_results.loc[df_results.after_correct != -1],
-             markeredgewidth=0.2, ax=panel, marker='o', palette=['crimson', 'darkgreen'],
-             linestyle='', err_style="bars", legend=False)
-sns.lineplot(x='delays', y='accuracy_model', hue='after_correct',
-             data=df_results.loc[df_results.after_correct != -1],
-             ax=panel, marker='', palette=['crimson', 'darkgreen'], legend=False)
-panel.hlines(xmin=0, xmax=10, y=0.5, linestyles=':')
-panel.set_xlabel("Delay (s)")
-panel.set_ylim(0.45, 1)
-panel.set_ylabel("Accuracy")
-
-panel = d2
-sns.lineplot(x='delays', y='repeat_data', data=df_results, marker='o', hue='after_correct',
-             palette=['crimson', 'darkgreen'], markeredgewidth=0.2, ax=panel, legend=False,
-             err_style="bars", linestyle='')
-sns.lineplot(x='delays', y='repeat_model', data=df_results, hue='after_correct',
-             palette=['crimson', 'darkgreen'], ax=panel, legend=False)
-panel.hlines(xmin=0, xmax=10, y=0.5, linestyles=':')
-panel.set_ylim(0.45, 1)
-legend_elements = [Line2D([0], [0], color='crimson', label='After incorrect'),
-                   Line2D([0], [0], color='darkgreen', label='After correct')]
-panel.legend(handles=legend_elements, fontsize=6, ncol=1).get_frame().set_linewidth(0.0)
-panel.set_xlabel("Delay (s)")
-panel.set_ylabel("Repeating bias")
-panel.locator_params(nbins=3)
-
-# ----------------------------------------------------------------------------------------------------------------
-# -----------------############################## E Panel - Previous correct #################################
-panel = e1
-df_results = pd.read_csv(analysis_path + '/previous_correct.csv')
-sns.lineplot(x='delays', y='accuracy_data', hue='previous_correct',
-             data=df_results.loc[df_results.previous_correct != -1],
-             markeredgewidth=0.2, ax=panel, marker='o', palette=['crimson', 'darkgreen'],
-             linestyle='', err_style="bars", legend=False)
-sns.lineplot(x='delays', y='accuracy_model', hue='previous_correct',
-             data=df_results.loc[df_results.previous_correct != -1],
-             ax=panel, marker='', palette=['crimson', 'darkgreen'], legend=False)
-panel.hlines(xmin=0, xmax=10, y=0.5, linestyles=':')
-panel.set_xlabel("Delay (s)")
-panel.set_ylim(0.45, 1)
-panel.set_ylabel("Accuracy")
-
-panel = e2
-sns.lineplot(x='delays', y='repeat_data', data=df_results, marker='o', hue='previous_correct',
-             palette=['crimson', 'darkgreen'], markeredgewidth=0.2, ax=panel, legend=False,
-             err_style="bars", linestyle='')
-sns.lineplot(x='delays', y='repeat_model', data=df_results, hue='previous_correct',
-             palette=['crimson', 'darkgreen'], ax=panel, legend=False)
-panel.hlines(xmin=0, xmax=10, y=0.5, linestyles=':')
-panel.set_ylim(0.45, 1)
-legend_elements = [Line2D([0], [0], color='crimson', label='Before incorrect trial'),
-                   Line2D([0], [0], color='darkgreen', label='Before correct trial')]
-panel.legend(handles=legend_elements, fontsize=6, ncol=1).get_frame().set_linewidth(0.0)
-panel.set_xlabel("Delay (s)")
-panel.set_ylabel("Repeating bias")
-panel.locator_params(nbins=3)
-
-# ----------------------------------------------------------------------------------------------------------------
-# -----------------############################## F Panel - Hit autocorrelation #################################
-cumulative_autocorrelation_hit_model = pd.read_csv(analysis_path+'\\hit_autocorrelation_10_model_V2.csv', index_col=0)
-cumulative_autocorrelation_repeat_model = pd.read_csv(analysis_path+'\\repeat_autocorrelation_10_model_V2.csv', index_col=0)
-
-cumulative_autocorrelation_hit_data = pd.read_csv(analysis_path+'\\hit_autocorrelation.csv', index_col=0)
-cumulative_autocorrelation_repeat_data = pd.read_csv(analysis_path+'\\repeat_autocorrelation.csv', index_col=0)
-
-panel = f
-color = 'darkgreen'
-corr = cumulative_autocorrelation_hit_model[:25].mean(axis=1)
-
-panel.plot(np.arange(1,len(corr)+1), corr, marker='.', linestyle='', color='grey')
-params, cov = curve_fit(exp_decay, np.arange(len(corr)), corr.values)
-print(params[1])
-
-corr = cumulative_autocorrelation_hit_data[:25]
-df_lower = pd.DataFrame()
-df_upper = pd.DataFrame()
-
-for timepoint in range(len(corr)):
-    mean_surr = []
-    array = corr.iloc[timepoint].to_numpy()
-    array = array[~np.isnan(array)]
-    for iteration in range(1000):
-        x = np.random.choice(array, size=len(array), replace=True)
-        mean_surr.append(np.mean(x))
-    df_lower.at[0, timepoint] = np.percentile(mean_surr, 2.5)
-    df_upper.at[0, timepoint] = np.percentile(mean_surr, 97.5)
-
-lower = df_lower.iloc[0].values[:25]
-upper = df_upper.iloc[0].values[:25]
-
-mean = corr.mean(axis=1)[:25]
-lower = corr.quantile(q=0.025, axis=1, numeric_only=True)
-upper = corr.quantile(q=0.975, axis=1, numeric_only=True)
-
-panel.plot(np.arange(1,len(corr)+1), mean, marker='', color=color)
-panel.hlines(y=0, xmin=0, xmax=25, linestyles=':')
-panel.set_xlabel('Trial indexes')
-panel.set_xlim(0, 25)
-panel.text(10, 0.08, f"HMM", ha='left', va='top', fontsize=6, color='grey')
-panel.text(10, 0.07, f"Data", ha='left', va='top', fontsize=6, color='darkgreen')
-
-params, cov = curve_fit(exp_decay, np.arange(len(corr.mean(axis=1))), corr.mean(axis=1).values)
-print(params[1])
-
-# ----------------------------------------------------------------------------------------------------------------
-# -----------------############################## G Panel - Repeat autocorrelation #################################
-panel = g
-color = 'indigo'
-corr = cumulative_autocorrelation_repeat_model.mean(axis=1)
-
-panel.plot(np.arange(1,len(corr)+1), corr, marker='.', linestyle='', color='grey')
-params, cov = curve_fit(exp_decay, np.arange(len(corr)), corr.values)
-print(params[1])
-
-corr = cumulative_autocorrelation_repeat_data[:25]
-df_lower = pd.DataFrame()
-df_upper = pd.DataFrame()
-
-for timepoint in range(len(corr)):
-    mean_surr = []
-    array = corr.iloc[timepoint].to_numpy()
-    array = array[~np.isnan(array)]
-    for iteration in range(1000):
-        x = np.random.choice(array, size=len(array), replace=True)
-        mean_surr.append(np.mean(x))
-    df_lower.at[0, timepoint] = np.percentile(mean_surr, 2.5)
-    df_upper.at[0, timepoint] = np.percentile(mean_surr, 97.5)
-
-lower = df_lower.iloc[0].values[:25]
-upper = df_upper.iloc[0].values[:25]
-
-mean = corr.mean(axis=1)[:25]
-lower = corr.quantile(q=0.025, axis=1, numeric_only=True)
-upper = corr.quantile(q=0.975, axis=1, numeric_only=True)
-
-panel.plot(np.arange(1,len(corr)+1), mean, marker='', color=color)
-panel.hlines(y=0, xmin=0, xmax=25, linestyles=':', color='black')
-panel.set_xlabel('Trial indexes')
-panel.set_xlim(0, 25)
-panel.text(10, 0.08, f"HMM", ha='left', va='top', fontsize=6, color='grey')
-panel.text(10, 0.07, f"Data", ha='left', va='top', fontsize=6, color='indigo')
-
-params, cov = curve_fit(exp_decay, np.arange(len(corr.mean(axis=1))), corr.mean(axis=1).values)
-print(params[1])
-
-# ----------------------------------------------------------------------------------------------------------------
 # Show the figure
 sns.despine()
 plt.subplots_adjust(left=0.07,

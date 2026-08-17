@@ -31,6 +31,7 @@ from config import ROOT, FIGURES_OUT, DATA_DIR
 
 sys.path.insert(0, str(ROOT / 'src'))
 from functions import add_stat_annotation, figureplot, compute_window_centered
+import functions as plots
 
 save_path = str(FIGURES_OUT) + '/fig_2_model/'
 path = str(DATA_DIR) + '/fig_2_model/'
@@ -100,12 +101,12 @@ fig.text(0.75, 0.22, 'r', fontsize=10, fontweight='bold', va='top')
 threshold = 0.5
 groupings = ['subject', 'delays', 'state']
 
-file = 'all_data_HMM'
+file = 'panels_fg_ij_behavior_all_trials_with_HMM_state_posteriors'
 df = pd.read_csv(path + file + '.csv', low_memory=False)
 df['WM_roll'] = compute_window_centered(df, 3, 'WM')
 df['state']   = np.where(df.WM_roll > threshold, 1, 0)
 
-file = 'all_data_HMM_model'
+file = 'panels_ij_HMM_model_simulated_trials_with_state_posteriors'
 df_model = pd.read_csv(path + file + '.csv')
 df_model = df_model.loc[df_model.animal_delay == 10]
 df       = df.loc[df.animal_delay == 10]
@@ -209,8 +210,8 @@ for line, label, color, va in [
 # Panel e (x) — model LL comparison
 # ---------------------------------------------------------------------------
 panel = x
-file_name = 'pertrialLL'
-full_fit = pd.read_csv(save_path + file_name + '.csv', index_col=0)
+file_name = 'panel_e_per_trial_log_likelihood_HMM_vs_DW_models'
+full_fit = pd.read_csv(path + file_name + '.csv', index_col=0)
 
 order_list    = ["all", '12', '9', '10', '11']
 color_palette = {"all": 'black', "12": 'lightgrey',
@@ -241,7 +242,7 @@ for i, model in enumerate(order_list):
         continue
     vals = full_fit.loc[full_fit.model == model, 'substracted'].values
     _, p = stats.ttest_1samp(vals, 0)
-    star = '***' if p < 0.001 else ('**' if p < 0.01 else ('*' if p < 0.05 else 'ns'))
+    star = plots.p_to_stars(p)
     y_top = full_fit.loc[full_fit.model == model, 'substracted'].max()
     panel.text(i, y_top + 0.003, star, ha='center', va='bottom', fontsize=7)
 
@@ -266,7 +267,7 @@ sns.lineplot(x='delays', y='repeat_choice', data=df_results, marker='o',
              legend=False, linestyle='', ax=c2, err_style='bars')
 
 for model, color, label in zip(DW_MODELS, DW_COLORS, DW_LABELS):
-    df_results = pd.read_csv(path + 'results alternative DW models_' + model + '_cross_V4.csv')
+    df_results = pd.read_csv(path + 'panels_bc_DW_model' + model + '_predicted_accuracy_and_repeat_bias.csv')
     sns.lineplot(x='delays', y='hit', data=df_results, marker='', ax=c,
                  color=color, errorbar=('ci',95), legend=False, err_style=None)
     sns.lineplot(x='delays', y='repeat_choice', data=df_results, color=color,
@@ -296,7 +297,7 @@ c2.locator_params(nbins=3)
 # ---------------------------------------------------------------------------
 # Panels k-p (d panels) — HMM fitted parameter distributions
 # ---------------------------------------------------------------------------
-file_name = 'fit_HMM_selected_final'
+file_name = 'panels_k-p_HMM_fitted_parameters_all_animals'
 full_fit  = pd.read_csv(path + file_name + '.csv', index_col=0)
 full_fit  = full_fit.loc[full_fit.delay == 10]
 full_fit['alfa']  = full_fit['c2'] / 2
@@ -384,7 +385,7 @@ for regressor, panel, color in zip(
 # ---------------------------------------------------------------------------
 # Panel h (x2) — posterior p(WM) histogram
 # ---------------------------------------------------------------------------
-df_summary = pd.read_csv(path + 'histogram_all.csv', index_col=0)
+df_summary = pd.read_csv(path + 'panel_h_HMM_state_probability_histogram_all_sessions.csv', index_col=0)
 panel  = x2
 patches = panel.bar(np.arange(0, 10),
                     df_summary.astype(float).mean(axis=0),
@@ -409,7 +410,7 @@ panel.text(7.5, _y_top * 0.95, 'STM\n state',  fontsize=5, ha='center', color='d
 # ---------------------------------------------------------------------------
 # Panels f/g (a/a2) — example session p(STM) and running RB
 # ---------------------------------------------------------------------------
-file = 'final data from HMM (delays 10)'
+file = 'panels_fg_example_session_10s_delay_with_HMM_state_posteriors'
 df = pd.read_csv(path + file + '.csv', low_memory=False)
 df['WM_roll'] = compute_window_centered(df, 3, 'WM')
 df['state']   = np.where(df.WM_roll > threshold, 1, 0)
@@ -458,16 +459,14 @@ panel.text(0.02, 0.04, 'Session C38-2021-07-03', transform=panel.transAxes,
 # ---------------------------------------------------------------------------
 # Panels q/r (g2/g3) — individual animal model fits
 # ---------------------------------------------------------------------------
-animal = 'N11_10'
-new_df_real = pd.read_csv(path + animal + '_data.csv', index_col=0)
-new_df      = pd.read_csv(path + animal + '_model.csv', index_col=0)
+new_df_real = pd.read_csv(path + 'panel_q_mouse_N11_10s_delay_behavioral_data.csv', index_col=0)
+new_df      = pd.read_csv(path + 'panel_q_mouse_N11_10s_delay_HMM_model_predictions.csv', index_col=0)
 figureplot(new_df_real, new_df, g2)
 g2.text(0.5, 0.97, 'Mouse C10', transform=g2.transAxes,
         fontsize=7, ha='center', va='top')
 
-animal = 'C37_10'
-new_df_real = pd.read_csv(path + animal + '_data.csv', index_col=0)
-new_df      = pd.read_csv(path + animal + '_model.csv', index_col=0)
+new_df_real = pd.read_csv(path + 'panel_r_mouse_C37_10s_delay_behavioral_data.csv', index_col=0)
+new_df      = pd.read_csv(path + 'panel_r_mouse_C37_10s_delay_HMM_model_predictions.csv', index_col=0)
 figureplot(new_df_real, new_df, g3)
 g3.text(0.5, 0.97, 'Mouse C37', transform=g3.transAxes,
         fontsize=7, ha='center', va='top')
