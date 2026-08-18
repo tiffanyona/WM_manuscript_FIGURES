@@ -34,6 +34,7 @@ from functions import add_stat_annotation, figureplot, compute_window_centered
 import functions as plots
 
 save_path = str(FIGURES_OUT) + '/fig_2_model/'
+Path(save_path).mkdir(parents=True, exist_ok=True)
 path = str(DATA_DIR) + '/fig_2_model/'
 os.chdir(path)
 

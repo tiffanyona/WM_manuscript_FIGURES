@@ -40,7 +40,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from config import ROOT, FIGURES_OUT, DATA_DIR
 sys.path.insert(0, str(ROOT / 'src'))
-from functions import add_stat_annotation, trials_synch, synch_trial, distribution
+from functions import add_stat_annotation, synch_trial, distribution
 
 save_path = str(DATA_DIR / 'supp_figures' / 'supp_fig_19_synch_session') + '/'  # input data
 fig_out_path = str(FIGURES_OUT / 'supp_figures' / 'supp_fig_19_synch_session') + '/'

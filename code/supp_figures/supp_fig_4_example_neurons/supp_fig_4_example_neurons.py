@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT / 'src'))
 from functions import COLORLEFT, COLORRIGHT, new_convolve, convolveandplot
 
 save_path = str(FIGURES_OUT / 'supp_figures' / 'supp_fig_4_example_neurons')
+Path(save_path).mkdir(parents=True, exist_ok=True)
 path = str(DATA_DIR/ 'supp_figures' / 'supp_fig_4_example_neurons')
 
 cm = 1/2.54

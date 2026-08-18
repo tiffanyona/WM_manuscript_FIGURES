@@ -1,23 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Fig 4 panel — original code + panels i and j added from supp_fig_XX_reversals.ipynb
-Changes vs original:
-  1. figsize height increased: 18cm -> 28cm
-  2. GridSpec expanded: 6 rows -> 8 rows, height_ratios added
-  3. Four new subplot axes: i_heat, i_line, j_heat, j_line
-  4. Two new panel labels: 'i' and 'j'
-  5. Panel i code (stimulus-aligned heatmap + lineplot) appended
-  6. Panel j code (reversal-aligned heatmap + lineplot) appended
-Dead code removed:
-  - Duplicate 'from pathlib import Path' import
-  - Unused R imports: Rstats, scales, lmerTest
-  - Intermediate variables: 'variables', 'hits' (inlined into variables_combined)
-  - Unused variables: labels, align, j (convolveandplot return)
-  - Silent wilcoxon calls (added print)
-  - normalize=True flag (inlined unconditional normalization)
-  - plot_df = new_df.copy() (use new_df directly)
-  - Redundant ax.set_xlabel('') before ax.xaxis.set_visible(False)
-"""
+
 COLORLEFT = 'teal'
 COLORRIGHT = '#FF8D3F'
 
@@ -47,6 +29,7 @@ sys.path.insert(0, str(ROOT / 'src'))
 import functions as plots
 
 save_path = str(FIGURES_OUT / 'fig_4_ephys_errors') + '/'
+Path(save_path).mkdir(parents=True, exist_ok=True)
 path = str(DATA_DIR / 'fig_4_ephys_errors') + '/'
 os.chdir(path)
 
@@ -67,7 +50,6 @@ fig = plt.figure(figsize=(12*cm, 25*cm))
 gs = gridspec.GridSpec(nrows=8, ncols=2, figure=fig,
                        height_ratios=[1, 1, 1, 1, 1, 1, 2.5, 0.8])
 
-# Original subplots
 # g and h: nested GridSpec with hspace=0 so the 3 subpanels are joined
 gs_g = gridspec.GridSpecFromSubplotSpec(3, 1, subplot_spec=gs[3:6, 1:2], hspace=0.05)
 a1 = fig.add_subplot(gs_g[0])
@@ -85,26 +67,22 @@ j2 = fig.add_subplot(gs[1, 0:1])
 j3 = fig.add_subplot(gs[1, 1:2])
 k  = fig.add_subplot(gs[2, 1:2])
 
-# New panels i and j
 i_heat = fig.add_subplot(gs[6, 0:1])
 i_line = fig.add_subplot(gs[7, 0:1])
 
 j_heat = fig.add_subplot(gs[6, 1:2])
 j_line = fig.add_subplot(gs[7, 1:2])
 
-# Panel labels — y positions match row tops in the 8-row GridSpec
-# height_ratios=[1,1,1,1,1,1,2.5,0.8] total=9.3, span=0.92 (top=0.97,bot=0.05)
-# row tops: r0=0.97, r1=0.87, r2=0.77, r3=0.67, r4=0.57, r5=0.46, r6=0.36
-fig.text(0.01, 1.00, 'a', fontsize=10, fontweight='bold', va='top')  # j1 row0
-fig.text(0.01, 0.9, 'b', fontsize=10, fontweight='bold', va='top')  # j2 row1
-fig.text(0.01, 0.77, 'c', fontsize=10, fontweight='bold', va='top')  # j0 row2
-fig.text(0.52, 1.00, 'd', fontsize=10, fontweight='bold', va='top')  # g2 row0
-fig.text(0.52, 0.9, 'e', fontsize=10, fontweight='bold', va='top')  # j3 row1
-fig.text(0.52, 0.77, 'f', fontsize=10, fontweight='bold', va='top')  # k  row2
-fig.text(0.01, 0.67, 'g', fontsize=10, fontweight='bold', va='top')  # b1 rows3-5
-fig.text(0.52, 0.67, 'h', fontsize=10, fontweight='bold', va='top')  # a1 rows3-5
-fig.text(0.01, 0.30, 'i', fontsize=10, fontweight='bold', va='top')  # i_heat row6
-fig.text(0.52, 0.30, 'j', fontsize=10, fontweight='bold', va='top')  # j_heat row6
+fig.text(0.01, 1.00, 'a', fontsize=10, fontweight='bold', va='top')
+fig.text(0.01, 0.9, 'b', fontsize=10, fontweight='bold', va='top')
+fig.text(0.01, 0.77, 'c', fontsize=10, fontweight='bold', va='top')
+fig.text(0.52, 1.00, 'd', fontsize=10, fontweight='bold', va='top')
+fig.text(0.52, 0.9, 'e', fontsize=10, fontweight='bold', va='top')
+fig.text(0.52, 0.77, 'f', fontsize=10, fontweight='bold', va='top')
+fig.text(0.01, 0.67, 'g', fontsize=10, fontweight='bold', va='top')
+fig.text(0.52, 0.67, 'h', fontsize=10, fontweight='bold', va='top')
+fig.text(0.01, 0.30, 'i', fontsize=10, fontweight='bold', va='top')
+fig.text(0.52, 0.30, 'j', fontsize=10, fontweight='bold', va='top')
 
 # #######################################################################################
 # Panels a / b / c: stimulus, response, and delay decoder accuracy
@@ -142,7 +120,7 @@ plots.plotsingledelay(df_cum_sti, j0, colors, variables_combined, delay, baselin
 j0.set_xlim(-2, 14)
 j0.set_title('Delay code', fontweight='bold', fontsize=6)
 j0.set_xlabel('Testing time from Stimulus onset (s)')
-sns.despine(j0)
+sns.despine(ax=j0)
 
 # #######################################################################################
 # Panel d: delay-code log-odds by trial outcome and epoch (boxplot + stats)
@@ -161,7 +139,6 @@ sns.boxplot(x='trial_type', y='log_odds', hue='epoch',
             linewidth=0, ax=panel, data=df_results, width=1,
             legend=False)
 
-# Scatter dots — filled circles; Incorrect Early = open circles to match target
 for xpos, tt, ep, col, fc in [
     (-0.25, 'WM_roll_1', 'early', 'darkgreen',  'darkgreen'),
     ( 0.25, 'WM_roll_1', 'late',  'lightgreen', 'lightgreen'),
@@ -178,17 +155,14 @@ panel.axhline(y=0, linestyle=':', color='black')
 panel.set_ylabel('Decoding accuracy \n (log odds)')
 panel.set_xlabel('')
 
-# x-axis: 4 ticks at box positions, labelled Early/Late/Early/Late
 panel.set_xticks([-0.25, 0.25, 0.75, 1.25])
 panel.set_xticklabels(['Early', 'Late', 'Early', 'Late'], fontsize=6)
 panel.set_xlim(-0.6, 1.6)
 
-# Group labels below x-axis
 panel.text(0.0, 5, 'Correct',   ha='center', fontsize=6, color='darkgreen')
 panel.text(1.0, 5, 'Incorrect', ha='center', fontsize=6, color='crimson')
 sns.despine(ax=panel)
 
-# Significance stars above each box (ttest_1samp vs 0)
 star_y = 4.2
 for xpos, tt, ep in [(-0.25,'WM_roll_1','early'),(0.25,'WM_roll_1','late'),
                       (0.75,'WM_roll_0','early'),(1.25,'WM_roll_0','late')]:
@@ -288,12 +262,10 @@ file_name = r'\panel_f_neuron153_spike_times_all_10s_delay_trials'
 df = pd.read_csv(path + file_name + '.csv', index_col=0)
 delay = 10; cluster_id = 153
 
-# Correct trials in grey (background)
 temp_df = df.loc[(df.WM_roll > 0.6) & (df.hit == 1)]
 plots.convolveandplot(temp_df, k, k, variable='reward_side',
                       cluster_id=cluster_id, delay=delay, j=1,
                       alpha=0.3, colors=['grey','grey'], spikes=False)
-# Correct trials in COLORRIGHT/COLORLEFT
 temp_df = df.loc[(df.WM_roll > 0.6) & (df.hit == 0)]
 plots.convolveandplot(temp_df, k, k, variable='reward_side',
                       cluster_id=cluster_id, delay=delay, j=1,

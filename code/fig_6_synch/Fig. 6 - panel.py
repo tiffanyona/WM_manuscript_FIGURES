@@ -20,6 +20,7 @@ sys.path.insert(0, str(ROOT / 'src'))
 from functions import add_stat_annotation, synch_trial
 
 save_path = str(FIGURES_OUT / 'fig_6_synch') + '/'
+Path(save_path).mkdir(parents=True, exist_ok=True)
 path = str(DATA_DIR / 'fig_6_synch') + '/'
 cm = 1/2.54
 sns.set_context('paper', rc={
@@ -180,7 +181,6 @@ for ax_r, ax_fr, T in [(g2,g1,153),(f2,f1,212),(h2,h1,340)]:
     ax_fr.set_title(str(T), fontsize=6)
     ax_r.set_xlabel('')
     ax_fr.set_xlabel('')
-    # raster on top: no spines, no ticks at all
     for sp in ax_fr.spines.values(): sp.set_visible(False)
     ax_fr.tick_params(left=False, labelleft=False, bottom=False, labelbottom=False)
     ax_fr.set_ylabel('')
@@ -200,7 +200,6 @@ for ax_r, ax_fr, T in [(g2,g1,153),(f2,f1,212),(h2,h1,340)]:
         ax_r.tick_params(left=False, labelleft=False)
         ax_r.spines['left'].set_visible(False)
 
-# Session synch trace
 panel = d
 panel.fill_between(df_session['trial'], 0.9, 2.5,
                    where=df_session['WM_roll'] <= threshold,
@@ -220,21 +219,15 @@ for T_mark in [153, 212, 340]:
     panel.plot(T_mark, y_val, 'o', color='crimson', markersize=5,
                markerfacecolor='none', markeredgewidth=1.2, zorder=5)
 
-# Arrows: from circle on synch trace up to the bottom of the correct mini FR panel
-# Use the x position of the trial on d, mapped to figure coords
 fig.canvas.draw()
 for T_mark, target_ax in [(153, g2), (212, f2), (340, h2)]:
     y_val = synch_vals.get(T_mark, 1.5)
-    # Get the x position of this trial in figure coordinates
     x_fig = fig.transFigure.inverted().transform(
         d.transData.transform([T_mark, y_val]))[0]
-    # Start: just above the circle on the synch trace
     y_start = fig.transFigure.inverted().transform(
         d.transData.transform([T_mark, y_val + 0.05]))[1]
-    # End: bottom of the target panel, at the same x
     y_end = fig.transFigure.inverted().transform(
         target_ax.transAxes.transform([0.5, -0.05]))[1]
-    # x at the panel's horizontal centre but use the trial's x coord
     x_end = fig.transFigure.inverted().transform(
         target_ax.transAxes.transform([0.5, 0.0]))[0]
     d.annotate('', xy=(x_end, y_end), xytext=(x_fig, y_start),
@@ -259,7 +252,6 @@ palette = sns.color_palette(['black'], len(df_results.animal.unique()))
 sns.lineplot(x="state", y="synch", data=df_results, hue='animal', alpha=0.8,
              palette=palette, ax=panel, linewidth=0.2, markeredgewidth=0.2,
              marker='', legend=False, markersize=3)
-# Manual boxplots: white median, no outline, coloured fill
 panel.boxplot(df_results.loc[df_results.state=='STM', 'synch'].values,
     positions=[0], widths=0.4, patch_artist=True, showfliers=False,
     medianprops=dict(color='white', linewidth=1.5),
@@ -297,7 +289,6 @@ file_name = 'panel_d_synchrony_correlation_with_behavior_per_session'
 df_corr = pd.read_csv(path+file_name+'.csv', index_col=0)
 
 panel = i1
-# Boxplots: lightgrey fill, no outline
 for xi, col in enumerate(['r_WM_shuff','r_acc_shuff','r_repeat_shuff']):
     panel.boxplot(df_corr[col].dropna().values, positions=[xi], widths=0.4,
         patch_artist=True, showfliers=False,
@@ -414,18 +405,15 @@ sns.despine()
 # Re-apply all spine/tick fixes after global despine
 # #########################################################################################
 
-# a: no bottom axis line on raster and PSTH
 a2.spines['bottom'].set_visible(False)
 a1.spines['bottom'].set_visible(False)
 a2.tick_params(bottom=False)
 a1.tick_params(bottom=False)
 
-# b: raster panels on top row (g1,f1,h1) — no spines, no ticks
 for ax in [g1, f1, h1]:
     for sp in ax.spines.values(): sp.set_visible(False)
     ax.tick_params(left=False, labelleft=False, bottom=False)
 
-# b: FR panels on bottom row (g2,f2,h2) — no top/right/bottom; only left on g2
 for ax in [f2, h2]:
     for sp in ['top','right','bottom','left']: ax.spines[sp].set_visible(False)
     ax.tick_params(left=False, labelleft=False, bottom=False)
@@ -434,15 +422,12 @@ g2.spines['right'].set_visible(False)
 g2.spines['bottom'].set_visible(False)
 g2.tick_params(bottom=False)
 
-# c: no bottom axis line, tick marks only
 c1.spines['bottom'].set_visible(False)
 c1.tick_params(bottom=True)
 
-# d: no bottom axis line, tick marks only
 i1.spines['bottom'].set_visible(False)
 i1.tick_params(bottom=True)
 
-# e: tick marks visible
 j1.tick_params(bottom=True)
 j2.tick_params(bottom=True, which='both')
 

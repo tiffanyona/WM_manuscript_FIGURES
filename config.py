@@ -12,3 +12,5 @@ EPHYS_SESSIONS = ROOT.parent / 'Ephys' / 'summary_complete'
 
 FIGURES_OUT = ROOT / 'figures'
 DATA_DIR    = ROOT / 'data'
+
+FIGURES_OUT.mkdir(exist_ok=True)

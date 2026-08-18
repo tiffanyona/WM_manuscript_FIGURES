@@ -18,6 +18,7 @@ sys.path.insert(0, str(ROOT / 'src'))
 import functions as plots
 
 save_path = str(FIGURES_OUT / 'supp_figures' / 'supp_fig_5_crossdecoder_10')
+Path(save_path).mkdir(parents=True, exist_ok=True)
 path = str(DATA_DIR / 'supp_figures' / 'supp_fig_5_crossdecoder_10')
 
 cm = 1/2.54

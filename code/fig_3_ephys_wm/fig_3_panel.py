@@ -20,10 +20,11 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from config import ROOT, FIGURES_OUT, DATA_DIR
 sys.path.insert(0, str(ROOT / 'src'))
-from functions import convolveandplot, plot_decoder_shuffle
+from functions import convolveandplot
 import functions as plots
 
 save_path = str(FIGURES_OUT / 'fig_3_ephys_wm') + '/'
+Path(save_path).mkdir(parents=True, exist_ok=True)
 path = str(DATA_DIR / 'fig_3_ephys_wm') + '/'
 os.chdir(path)
 
@@ -268,8 +269,11 @@ for panel, df_cum_sti, df_shuffle, upper_limit in zip(
          df_animal_shuffle.loc[df_animal_shuffle.train == '3.0_3.25'],
          df_animal_shuffle.loc[df_animal_shuffle.train == '3.75_4.0']],
         [0.25, 0.25, 0.4]):
-    plot_decoder_shuffle(panel, df_cum_sti, df_shuffle, baseline=0.0,
-                         individual_sessions=False, upper_limit=upper_limit)
+    plots.plot_decoder([panel], df_cum_sti, baseline=0.0,
+                       individual_sessions=False, upper_limit=upper_limit,
+                       shuffle_df=df_shuffle)
+    panel.set_xlabel('Time from Cue onset (s)')
+    panel.set_ylabel('Decoding\n accuracy')
     panel.margins(x=0)
     panel.locator_params(nbins=5)
     sns.despine(offset=2, ax=panel)

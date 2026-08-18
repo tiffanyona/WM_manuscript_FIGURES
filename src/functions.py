@@ -39,6 +39,7 @@ def add_stat_annotation(ax, data=None, x=None, y=None, hue=None,
                         order=None, hue_order=None, box_pairs=None,
                         test='Mann-Whitney', text_format='star', loc='inside',
                         verbose=2, **kwargs):
+    """Wrapper for statannotations.Annotator with renamed legacy kwargs."""
     if 'line_offset_to_box' in kwargs:
         kwargs['line_offset_to_group'] = kwargs.pop('line_offset_to_box')
     if 'linewidth' in kwargs:
@@ -79,6 +80,7 @@ def _bootstrap_ci(df_for_boots, times, n_iter=1000, lower_pct=2.5, upper_pct=97.
 
 def single_trial_with_decoder(df, df_decoder, big_data, filename, T, panels = [], threshold = 0.4,
                               align = 'Stimulus_ON', show_y = True ):
+    """Plot raster, PSTH, and decoder log-odds for trial T of session filename."""
     delay = df.loc[df.trial==T].delay.unique()[0]
     cue_on=0
     cue_off=0.38
@@ -222,6 +224,7 @@ def single_trial_with_decoder(df, df_decoder, big_data, filename, T, panels = []
             p.yaxis.set_tick_params(labelbottom=False)
 
 def convolveandplot(df, upper_plot, lower_plot, variable='reward_side', cluster_id=153, delay=10, labels=['Correct right stimulus','Correct left stimulus'], colors=[COLORRIGHT,COLORLEFT], align='Stimulus_ON', j=1, alpha=1, spikes=True, kernel=50, add_state=False, cue_off=0.4, start=-2, show_xlabel=True):
+    """Gaussian-convolve spike train for cluster_id and plot raster + PSTH."""
     cue_on=0
     stop= 5 + delay
 
@@ -330,30 +333,33 @@ def convolveandplot(df, upper_plot, lower_plot, variable='reward_side', cluster_
 
     return j
 
-def plot_decoder(axes, df,baseline=0.5,individual_sessions=False, align='Stimulus_ON', show_axis=True,colors=['black'], upper_limit=0.2, variables_combined=['WM_roll_1'], epoch_markers=None):
-    for color, variable, ax in zip(colors,variables_combined,axes):
-        if individual_sessions == True:
-            # Aligmnent for Stimulus cue - sessions separately
+def plot_decoder(axes, df, baseline=0.5, individual_sessions=False, align='Stimulus_ON',
+                 show_axis=True, colors=['black'], upper_limit=0.2, alpha=1,
+                 variables_combined=['WM_roll_1'], epoch_markers=None, shuffle_df=None):
+    """Plot cross-temporal decoder accuracy with bootstrap CI; subtract shuffle_df baseline when provided."""
+    shuffle_mean = None
+    if shuffle_df is not None:
+        _shuf = shuffle_df.groupby('times').median(numeric_only=True).reset_index()
+        shuffle_mean = np.array(
+            _shuf.loc[:, (_shuf.columns != 'times') & (_shuf.columns != 'fold')].mean(axis=1))
+
+    for color, variable, ax in zip(colors, variables_combined, axes):
+        if individual_sessions:
             real = df.groupby('session').median(numeric_only=True).reset_index()
             try:
                 times = np.array(df.columns[:-4]).astype(float)
             except Exception:
                 times = np.array(df.columns[1:]).astype(float)
-
             ax.set_xlabel('Time (s) to Cue')
-
-            x=times
             for i in range(len(real)):
-                ax.plot(times,real.iloc[i][1:-1], color=color,alpha=0.1)
+                ax.plot(times, real.iloc[i][1:-1], color=color, alpha=0.1)
 
         try:
             df_loop = df.loc[(df['trial_type'] == variable)]
         except Exception:
             df_loop = df
 
-        # Select only columns where the column name is a number or can be transformed to a number
         numeric_columns = df_loop.columns[df_loop.columns.to_series().apply(pd.to_numeric, errors='coerce').notna()]
-
         real = np.array(df_loop.groupby('session').mean(numeric_only=True)[numeric_columns].mean())
         times = df_loop[numeric_columns].columns.astype(float)
 
@@ -365,31 +371,35 @@ def plot_decoder(axes, df,baseline=0.5,individual_sessions=False, align='Stimulu
         df_for_boots = df_loop.groupby('session').mean(numeric_only=True)[numeric_columns]
         lower, upper = _bootstrap_ci(df_for_boots, df_results['times'], lower_pct=0.5, upper_pct=99.5)
 
-        x=times
-        ax.plot(x, lower, color=color, linestyle = '',alpha=0.6, linewidth=0)
-        ax.plot(x, upper, color=color, linestyle = '',alpha=0.6, linewidth=0)
-        ax.fill_between(x, lower, upper, alpha=0.2, color=color, linewidth=0)
+        if shuffle_mean is not None:
+            real = real - shuffle_mean
+            lower = lower - shuffle_mean
+            upper = upper - shuffle_mean
 
-        ax.plot(times,real, color=color)
+        x = times
+        ax.plot(x, lower, color=color, linestyle='', alpha=0.6, linewidth=0)
+        ax.plot(x, upper, color=color, linestyle='', alpha=0.6, linewidth=0)
+        ax.fill_between(x, lower, upper, alpha=0.2, color=color, linewidth=0)
+        ax.plot(times, real, color=color, alpha=alpha)
 
         if epoch_markers is not None:
             for x0, x1, clr, alp in epoch_markers:
                 ax.fill_betweenx(np.arange(-baseline-0.1, baseline+.5, 0.1), x0, x1, color=clr, alpha=alp, linewidth=0)
         else:
-            ax.fill_betweenx(np.arange(-baseline-0.1,baseline+.5,0.1), 0,0.35, color='lightgrey', alpha=1, linewidth=0)
-            ax.fill_betweenx(np.arange(-baseline-0.1,baseline+.5,0.1), 3.35,3.55, color='lightgrey', alpha=1, linewidth=0)
-        ax.set_ylim(baseline-0.1,upper_limit+baseline)
-        ax.axhline(y=baseline,linestyle=':',color='black')
+            ax.fill_betweenx(np.arange(-baseline-0.1, baseline+.5, 0.1), 0, 0.35, color='lightgrey', alpha=1, linewidth=0)
+            ax.fill_betweenx(np.arange(-baseline-0.1, baseline+.5, 0.1), 3.35, 3.55, color='lightgrey', alpha=1, linewidth=0)
+        ax.set_ylim(baseline-0.1, upper_limit+baseline)
+        ax.axhline(y=baseline, linestyle=':', color='black')
         ax.set_xlabel('Time from stimulus onset (s)')
         ax.set_ylabel('Excess decoding\n accuracy')
 
-        y = np.arange(-1,1.15,0.1)
+        y = np.arange(-1, 1.15, 0.1)
         if align == 'Stimulus_ON':
-            ax.fill_betweenx(y, 0,.35, color='lightgrey', alpha=1, linewidth=0)
+            ax.fill_betweenx(y, 0, .35, color='lightgrey', alpha=1, linewidth=0)
         elif align == 'Delay_OFF':
-            ax.fill_betweenx(y, 0,0.2, color='lightgrey', alpha=1, linewidth=0)
+            ax.fill_betweenx(y, 0, 0.2, color='lightgrey', alpha=1, linewidth=0)
 
-        if show_axis==False:
+        if not show_axis:
             ax.spines['left'].set_visible(False)
 
 def new_convolve(nx, df, kernel=50, bin_size=20, add_state=False):
@@ -440,7 +450,7 @@ def new_convolve(nx, df, kernel=50, bin_size=20, add_state=False):
     return neuron
 
 def plotsingledelay(df_cum_sti, panel, colors, variables_combined, delay, baseline = 0.5, invert_list=[False, False]):
-
+    """Plot mean ± bootstrap CI decoder accuracy for one delay condition."""
     y_upper=baseline
     y_lower=baseline
 
@@ -494,7 +504,7 @@ def plotsingledelay(df_cum_sti, panel, colors, variables_combined, delay, baseli
 def plot_results_session_summary(fig, plot, df, colors, variables_combined = ['WM_roll_1', 'RL_roll_1'],
                                  y_range = [], x_range = None, epoch = 'Stimulus_ON', baseline=0.5,
                                  epoch_markers=None, shuffle_df=None):
-
+    """Plot session-averaged decoder accuracy with epoch shading and optional shuffle subtraction."""
     for color, variable, ax in zip(colors, variables_combined, np.repeat(plot, len(variables_combined))):
         try:
             df_loop = df.loc[(df['trial_type'] == variable)]
@@ -554,10 +564,12 @@ def plot_results_session_summary(fig, plot, df, colors, variables_combined = ['W
 # ── Utility / math ────────────────────────────────────────────────────────────
 
 def exp_decay(x, a, tau):
+    """Exponential decay: a * exp(-x / tau)."""
     return a * np.exp(-x / tau)
 
 
 def repeat_reward_side(row):
+    """Encode repeat/switch: 2=right-repeat, 1=left-repeat, 0=switch, NaN=first trial."""
     if row['trials'] != 0:
         if row['reward_side'] == row['previous_reward_side']:
             if row['reward_side'] == 1:
@@ -570,10 +582,6 @@ def repeat_reward_side(row):
         return np.nan
 
 
-def trials_synch(row):
-    """Normalized trial index for synch scripts (uses 'T' / 'total trials')."""
-    return row['T'] / row['total trials']
-
 
 def trials_normalized(row):
     """Normalized trial index for behavior supp scripts (uses 'trials' / 'total_trials')."""
@@ -581,6 +589,7 @@ def trials_normalized(row):
 
 
 def trials_label(row):
+    """Map normalized trial position to 'Early' (T < 0.5) or 'Late' (T >= 0.5)."""
     if row['T'] < 0.5:
         return 'Early'
     elif row['T'] >= 0.5:
@@ -634,6 +643,7 @@ def compute_window_centered(data, runningwindow, option):
 # ── Model figure helpers ───────────────────────────────────────────────────────
 
 def figureplot(new_df_real, new_df, panel):
+    """Overlay behavioral accuracy data (scatter) with model prediction (line) vs delay."""
     Left = COLORLEFT
     Right = COLORRIGHT
 
@@ -669,6 +679,7 @@ def figureplot(new_df_real, new_df, panel):
 
 def synch_trial(df, T, lower_plot, upper_plot=None, trial=0, start=-2, stop=0,
                 color='black', surrogates=100, bins=20):
+    """Compute and plot population synchrony for trial T vs surrogate baseline."""
     dft = df.loc[df.trial == T]
     align = 'Stimulus_ON'
     delay = dft.delay.unique()[0]
@@ -730,6 +741,7 @@ def synch_trial(df, T, lower_plot, upper_plot=None, trial=0, start=-2, stop=0,
 
 
 def distribution(df_final, variable='WM_roll'):
+    """For each animal, compute mean r-value against all others' synchrony vs variable."""
     r_value_upper = []
     for animal in df_final.animal.unique():
         test_df = df_final.loc[df_final.animal == animal].dropna()
@@ -744,104 +756,6 @@ def distribution(df_final, variable='WM_roll'):
                 continue
         r_value_upper.append(np.mean(r_value_list))
     return r_value_upper
-
-
-# ── Decoder plot variants ──────────────────────────────────────────────────────
-
-def plot_decoder_shuffle(axes, df_cum_sti, df_shuffle, baseline=0.5,
-                         individual_sessions=False, colors=['black'],
-                         upper_limit=0.2, variables_combined=['WM_roll_1']):
-    """plot_decoder variant that subtracts a shuffle baseline before plotting."""
-    for color, variable, ax in zip(colors, variables_combined, [axes]):
-        if individual_sessions:
-            real = df_cum_sti.groupby('session').median(numeric_only=True).reset_index()
-            try:
-                times = np.array(df_cum_sti.columns[:-4]).astype(float)
-            except Exception:
-                times = np.array(df_cum_sti.columns[1:]).astype(float)
-            for i in range(len(real)):
-                ax.plot(times, real.iloc[i][1:-1], color=color, alpha=0.1)
-
-        real = np.array(df_cum_sti.loc[:, (df_cum_sti.columns != 'session_shuffle')
-                                       & (df_cum_sti.columns != 'fold')
-                                       & (df_cum_sti.columns != 'train')
-                                       & (df_cum_sti.columns != 'session')
-                                       & (df_cum_sti.columns != 'subject')].mean())
-
-        df_shuffle = df_shuffle.groupby('times').median(numeric_only=True).reset_index()
-        df_shuffle_mean = np.array(df_shuffle.loc[:, (df_shuffle.columns != 'times')
-                                                  & (df_shuffle.columns != 'fold')].mean(axis=1))
-
-        try:
-            times = np.array(df_cum_sti.columns[:-4]).astype(float)
-            time_points = df_cum_sti.columns[:-4]
-        except Exception:
-            times = np.array(df_cum_sti.columns[1:]).astype(float)
-            time_points = df_cum_sti.columns[1:]
-
-        df_for_boots = (df_cum_sti.loc[:, (df_cum_sti.columns != 'session_shuffle')
-                                       & (df_cum_sti.columns != 'fold')]
-                        .groupby('session').mean(numeric_only=True).reset_index())
-
-        lower, upper = _bootstrap_ci(df_for_boots, time_points, lower_pct=0.5, upper_pct=99.5)
-
-        ax.plot(times, lower - df_shuffle_mean, color=color, linestyle='', alpha=0.6, linewidth=0)
-        ax.plot(times, upper - df_shuffle_mean, color=color, linestyle='', alpha=0.6, linewidth=0)
-        ax.fill_between(times, lower - df_shuffle_mean, upper - df_shuffle_mean,
-                          alpha=0.2, color=color, linewidth=0)
-        ax.plot(times, real - df_shuffle_mean, color=color)
-        ax.fill_betweenx(np.arange(-baseline - 0.1, baseline + .5, 0.1), 0, 0.4,
-                           color='lightgrey', alpha=1, linewidth=0, zorder=0)
-        ax.fill_betweenx(np.arange(-baseline - 0.1, baseline + .5, 0.1), 3.35, 3.55,
-                           color='lightgrey', alpha=1, linewidth=0, zorder=0)
-        ax.set_ylim(baseline - 0.1, upper_limit + baseline)
-        ax.axhline(y=baseline, linestyle=':', color='black')
-        ax.set_xlabel('Time from Cue onset (s)')
-        ax.set_ylabel('Decoding\n accuracy')
-
-
-def plot_decoder_single(axes, df_cum_sti, baseline=0.5, individual_sessions=False,
-                        align='Stimulus_ON', colors=['black'], upper_limit=0.2,
-                        alpha=1, variables_combined=['WM_roll_1']):
-    """Mean-trace-only decoder plot with no bootstrap CI bands."""
-    for color, variable, ax in zip(colors, variables_combined, axes):
-        if individual_sessions:
-            real = (df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
-                    .groupby('session').mean(numeric_only=True).drop(columns=['fold', 'score']).reset_index())
-            times = df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
-            try:
-                times = np.array(times.drop(columns=['trial_type', 'session', 'fold', 'score'],
-                                            axis=1).columns.astype(float))
-            except Exception:
-                times = np.array(times.drop(columns=['trial_type', 'session', 'fold', 'score', 'subject'],
-                                            axis=1).columns.astype(float))
-            for i in range(len(real)):
-                ax.plot(times, real.iloc[i][1:-1], color=color, alpha=0.1)
-
-        try:
-            times = df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
-            times = np.array(times.drop(columns=['trial_type', 'session', 'fold', 'score'],
-                                        axis=1).columns.astype(float))
-            real = np.array(df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
-                                    .groupby('session').mean(numeric_only=True).drop(columns=['fold', 'score']).mean())
-        except Exception:
-            try:
-                times = df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
-                times = np.array(times.drop(columns=['trial_type', 'session', 'score_type'],
-                                            axis=1).columns.astype(float))
-                real = np.array(df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
-                                        .groupby('session').mean(numeric_only=True).mean())
-            except Exception:
-                times = df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
-                times = np.array(times.drop(columns=['subject', 'trial_type', 'session', 'fold', 'score'],
-                                            axis=1).columns.astype(float))
-                real = np.array(df_cum_sti.loc[(df_cum_sti['trial_type'] == variable)]
-                                        .groupby('session').mean(numeric_only=True).drop(columns=['fold', 'score']).mean())
-
-        ax.plot(times, real, color=color, alpha=alpha)
-        ax.set_ylim(baseline - 0.1, upper_limit + baseline)
-        ax.axhline(y=baseline, linestyle=':', color='black')
-        ax.set_ylabel('Decoding\n accuracy')
 
 
 # ── Notebook helpers ───────────────────────────────────────────────────────────

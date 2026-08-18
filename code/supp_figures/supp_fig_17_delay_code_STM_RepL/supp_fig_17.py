@@ -20,10 +20,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from config import ROOT, FIGURES_OUT, DATA_DIR
 sys.path.insert(0, str(ROOT / 'src'))
 import functions as plots
-from functions import add_stat_annotation, convolveandplot, plot_decoder_single, plot_decoder_shuffle, new_convolve, plotsingledelay
+from functions import add_stat_annotation, convolveandplot, new_convolve, plotsingledelay
 
 path = str(DATA_DIR / 'supp_figures' / 'supp_fig_17_delay_code_STM_RepL')
 save_path = str(FIGURES_OUT / 'supp_figures' / 'supp_fig_17_delay_code_STM_RepL')
+Path(save_path).mkdir(parents=True, exist_ok=True)
 
 cm = 1/2.54
 sns.set_context('paper', rc={'axes.labelsize': 7,

@@ -25,6 +25,7 @@ import functions as plots
 from functions import add_stat_annotation, exp_decay, figureplot, compute_window_centered
 
 save_path = str(FIGURES_OUT / 'supp_figures' / 'supp_fig_3_extra_results_model')
+Path(save_path).mkdir(parents=True, exist_ok=True)
 analysis_path = str(DATA_DIR/ 'supp_figures' / 'supp_fig_3_extra_results_model')
 
 cm = 1/2.54

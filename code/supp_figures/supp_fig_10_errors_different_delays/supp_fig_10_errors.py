@@ -26,6 +26,7 @@ sys.path.insert(0, str(ROOT / 'src'))
 import functions as plots
 
 save_path = str(FIGURES_OUT / 'supp_figures' / 'supp_fig_10_errors_different_delays') + '/'
+Path(save_path).mkdir(parents=True, exist_ok=True)
 cm = 1/2.54
 sns.set_context('paper', rc={'axes.labelsize': 7,
                             'lines.linewidth': 1,

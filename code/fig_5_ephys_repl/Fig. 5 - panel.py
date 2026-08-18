@@ -40,6 +40,7 @@ import functions as plots
 # #########################################################################################
 
 save_path = str(FIGURES_OUT / 'fig_5_ephys_repl') + '/'
+Path(save_path).mkdir(parents=True, exist_ok=True)
 path      = str(DATA_DIR   / 'fig_5_ephys_repl') + '/'
 os.chdir(path)
 
@@ -232,13 +233,11 @@ label_panel(c1, 'c')
 hide_yaxis(c2)
 hide_inner(c1, c2)
 
-# Legend: coloured text only, no line markers
 c2.text(0.95, 0.95, 'STM',  transform=c2.transAxes, ha='right', va='top',
         fontsize=6, color=COLOR_STM,  fontweight='bold')
 c2.text(0.95, 0.82, 'RepL', transform=c2.transAxes, ha='right', va='top',
         fontsize=6, color=COLOR_REPL, fontweight='bold')
 
-# Grey shaded regions at bottom of a, b, c1, c2
 grey_y_bot = y_range[0]
 grey_y_top = grey_y_bot + 0.03
 a.fill_betweenx( [grey_y_bot, grey_y_top], 0, 0.35, color='lightgrey', alpha=1, linewidth=0, zorder=0)
@@ -373,7 +372,6 @@ g1.set_xticks([0, 5, 10]); g2.set_xticks([0, 5, 10]); g3.set_xticks([0, 5, 10])
 for gax in [g1, g2, g3]:
     gax.axvspan(0, 0.35,  color='lightgrey', alpha=0.8, linewidth=0, zorder=0)
     gax.axvspan(10.4,10.6,color='lightgrey', alpha=0.8, linewidth=0, zorder=0)
-# no neuron labels on g
 
 
 # #########################################################################################
@@ -538,7 +536,6 @@ for left_ax, right_ax in [(a, b), (c1, c2), (e1, e2)]:
     rpos = right_ax.get_position()
     right_ax.set_position([rpos.x0, lpos.y0, rpos.width, lpos.height])
 
-# Post-despine spine cleanup
 for ax in [b, c2, e2, j2, j3]:
     ax.spines['left'].set_visible(False)
     ax.yaxis.set_visible(False)
@@ -551,7 +548,6 @@ for jax in [j1, j2, j3]:
     jax.set_ylim(-0.12, 0.65)
     jax.set_yticks([0, 0.2, 0.4])
 
-# f/g: no bottom/top spine on raster and PSTH panels
 for ax in [f1, f2, g1, g2]:
     ax.spines['bottom'].set_visible(False)
     ax.spines['top'].set_visible(False)
@@ -560,7 +556,6 @@ for ax in [f1, f2, g1, g2]:
 # i1: no bottom spine (despine style, keep ticks)
 i1.spines['bottom'].set_visible(False)
 
-# b: no left spine
 b.spines['left'].set_visible(False)
 b.tick_params(left=False, labelleft=False)
 
@@ -572,7 +567,6 @@ b.tick_params(left=False, labelleft=False)
 fig.canvas.draw()
 
 
-# Arrows
 j1.annotate('', xy=(1.0, 1.22), xytext=(0.0, 1.22),
     xycoords='axes fraction', textcoords='axes fraction',
     arrowprops=dict(arrowstyle='<->', color='black', lw=0.8),
@@ -597,17 +591,14 @@ fig.text((lj[0]+rj[0])/2, lj[1]+0.06, 'Previous response decoding',
     ha='center', va='bottom', fontsize=8, fontweight='bold',
     transform=fig.transFigure)
 
-# Trial boundary: tall black dashed line between j1 and j2
 j1.axvline(x=j1.get_xlim()[1], ymin=-0.15, ymax=1.20,
     color='black', linestyle='--', linewidth=0.7, clip_on=False)
 
-# Internal grey dashed lines
 j1.axvline(x=0, color='lightgrey', linestyle='--', linewidth=0.5, zorder=1)
 j2.axvline(x=0, color='lightgrey', linestyle='--', linewidth=0.5, zorder=1)
 j2.axvline(x=0.4, color='lightgrey', linestyle='--', linewidth=0.5, zorder=1)
 j3.axvline(x=0, color='lightgrey', linestyle='--', linewidth=0.5, zorder=1)
 
-# Grey context labels inside panels
 j1.text(0.04, 0.98, 'Go cue',             transform=j1.transAxes, fontsize=6, color='grey', va='top', clip_on=True)
 j1.text(0.22, 0.98, 'Resp. window + ITI', transform=j1.transAxes, fontsize=6, color='grey', va='top', clip_on=True)
 j2.text(0.04, 0.98, 'Pre-stim.',          transform=j2.transAxes, fontsize=6, color='grey', va='top', clip_on=True)

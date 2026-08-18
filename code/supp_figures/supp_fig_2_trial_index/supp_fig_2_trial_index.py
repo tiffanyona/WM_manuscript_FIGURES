@@ -20,6 +20,7 @@ data_path = str(DATA_DIR / 'supp_figures' / 'supp_fig_2_trial_index') + '/'
 path = data_path
 os.chdir(path)
 save_path = str(FIGURES_OUT / 'supp_figures' / 'supp_fig_2_trial_index') + '/'
+Path(save_path).mkdir(parents=True, exist_ok=True)
 
 sns.set_context('paper', rc={'axes.labelsize': 7,
                             'lines.linewidth': 1,

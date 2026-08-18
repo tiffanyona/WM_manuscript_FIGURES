@@ -32,6 +32,7 @@ from functions import add_stat_annotation, repeat_reward_side, exp_decay
 
 path = str(DATA_DIR) + '/fig_1_behavior/'
 save_path = str(FIGURES_OUT) + '/fig_1_behavior/'
+Path(save_path).mkdir(parents=True, exist_ok=True)
 
 os.chdir(path)
 
